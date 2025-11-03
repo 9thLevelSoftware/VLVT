@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/profile_api_service.dart';
+import '../models/profile.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -9,32 +12,40 @@ class DiscoveryScreen extends StatefulWidget {
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> {
   int _currentProfileIndex = 0;
-  
-  // Stub profile data
-  final List<Map<String, dynamic>> _profiles = [
-    {
-      'name': 'Alex',
-      'age': 28,
-      'bio': 'Love hiking and outdoor adventures',
-      'photo': Icons.person,
-    },
-    {
-      'name': 'Sam',
-      'age': 26,
-      'bio': 'Foodie and travel enthusiast',
-      'photo': Icons.person,
-    },
-    {
-      'name': 'Jordan',
-      'age': 30,
-      'bio': 'Book lover and coffee addict',
-      'photo': Icons.person,
-    },
-  ];
+  List<Profile>? _profiles;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfiles();
+  }
+
+  Future<void> _loadProfiles() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final profileService = context.read<ProfileApiService>();
+      final profiles = await profileService.getDiscoveryProfiles();
+      setState(() {
+        _profiles = profiles;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load profiles: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   void _onLike() {
     setState(() {
-      if (_currentProfileIndex < _profiles.length - 1) {
+      if (_profiles != null && _currentProfileIndex < _profiles!.length - 1) {
         _currentProfileIndex++;
       } else {
         _showEndOfProfilesMessage();
@@ -44,7 +55,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   void _onPass() {
     setState(() {
-      if (_currentProfileIndex < _profiles.length - 1) {
+      if (_profiles != null && _currentProfileIndex < _profiles!.length - 1) {
         _currentProfileIndex++;
       } else {
         _showEndOfProfilesMessage();
@@ -60,21 +71,72 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentProfileIndex >= _profiles.length) {
+    if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Discovery'),
         ),
         body: const Center(
-          child: Text(
-            'No more profiles available',
-            style: TextStyle(fontSize: 18),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Discovery'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _errorMessage!,
+                style: const TextStyle(fontSize: 16, color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadProfiles,
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    final profile = _profiles[_currentProfileIndex];
+    if (_profiles == null || _profiles!.isEmpty || _currentProfileIndex >= _profiles!.length) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Discovery'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'No more profiles available',
+                style: TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _currentProfileIndex = 0;
+                  });
+                  _loadProfiles();
+                },
+                child: const Text('Refresh'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final profile = _profiles![_currentProfileIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -106,14 +168,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          profile['photo'] as IconData,
+                        const Icon(
+                          Icons.person,
                           size: 120,
                           color: Colors.white,
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          '${profile['name']}, ${profile['age']}',
+                          '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
                           style: const TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -124,7 +186,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 32),
                           child: Text(
-                            profile['bio'] as String,
+                            profile.bio ?? 'No bio available',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 16,
@@ -132,6 +194,21 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                             ),
                           ),
                         ),
+                        if (profile.interests != null && profile.interests!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: profile.interests!.map((interest) {
+                              return Chip(
+                                label: Text(interest),
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                labelStyle: const TextStyle(color: Colors.white),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
