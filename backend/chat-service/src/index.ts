@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
@@ -12,6 +13,13 @@ if (!process.env.DATABASE_URL) {
   console.error('ERROR: DATABASE_URL environment variable is required');
   process.exit(1);
 }
+
+// Rate limiter for match creation endpoint
+const matchLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // limit each IP to 15 match creation attempts per windowMs (reasonable for a dating app)
+  message: 'Too many match requests, please try again later'
+});
 
 app.use(cors());
 app.use(express.json());
@@ -62,7 +70,7 @@ app.get('/matches/:userId', async (req: Request, res: Response) => {
 });
 
 // Create a match
-app.post('/matches', async (req: Request, res: Response) => {
+app.post('/matches', matchLimiter, async (req: Request, res: Response) => {
   try {
     const { userId1, userId2 } = req.body;
     
@@ -70,6 +78,31 @@ app.post('/matches', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Both userIds are required' });
     }
     
+    // Check for existing match in both directions
+    const existingMatch = await pool.query(
+      `SELECT id, user_id_1, user_id_2, created_at 
+       FROM matches 
+       WHERE (user_id_1 = $1 AND user_id_2 = $2) 
+          OR (user_id_1 = $2 AND user_id_2 = $1)`,
+      [userId1, userId2]
+    );
+    
+    // If match already exists, return the existing match
+    if (existingMatch.rows.length > 0) {
+      const match = existingMatch.rows[0];
+      return res.json({ 
+        success: true, 
+        match: {
+          id: match.id,
+          userId1: match.user_id_1,
+          userId2: match.user_id_2,
+          createdAt: match.created_at
+        },
+        alreadyExists: true
+      });
+    }
+    
+    // Create new match only if it doesn't exist
     const matchId = `match_${Date.now()}`;
     
     const result = await pool.query(

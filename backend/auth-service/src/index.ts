@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import rateLimit from 'express-rate-limit';
+import { OAuth2Client } from 'google-auth-library';
 
 dotenv.config();
 
@@ -19,6 +20,9 @@ if (!process.env.DATABASE_URL) {
 }
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Initialize Google OAuth2 client
+const googleClient = new OAuth2Client();
+
 // Initialize PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -31,6 +35,13 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('PostgreSQL connection error:', err);
+});
+
+// Rate limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 auth attempts per windowMs
+  message: 'Too many authentication attempts, please try again later'
 });
 
 // Rate limiter for /auth/verify endpoint
@@ -49,14 +60,29 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Sign in with Apple endpoint
-app.post('/auth/apple', async (req: Request, res: Response) => {
+app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {
   try {
     const { identityToken } = req.body;
     
-    // In production, verify the Apple identity token
-    // For now, we'll create a stub provider ID
-    const providerId = `apple_${Date.now()}`;
-    const email = `user@apple.example.com`;
+    if (!identityToken) {
+      return res.status(400).json({ success: false, error: 'identityToken is required' });
+    }
+    
+    // Decode the Apple identity token (JWT)
+    // SECURITY WARNING: In production, you MUST verify the token signature 
+    // against Apple's public keys fetched from https://appleid.apple.com/auth/keys
+    // to prevent token forgery attacks. This current implementation only decodes
+    // the token without verification and should not be used in production.
+    // Consider using a library like 'apple-signin-auth' for full verification.
+    const decoded = jwt.decode(identityToken) as { sub?: string; email?: string } | null;
+    
+    if (!decoded || !decoded.sub) {
+      return res.status(401).json({ success: false, error: 'Invalid identity token' });
+    }
+    
+    // Extract real providerId and email from decoded token
+    const providerId = `apple_${decoded.sub}`;
+    const email = decoded.email || `user_${decoded.sub}@apple.example.com`;
     const provider = 'apple';
     
     // Upsert user in database
@@ -89,14 +115,28 @@ app.post('/auth/apple', async (req: Request, res: Response) => {
 });
 
 // Sign in with Google endpoint
-app.post('/auth/google', async (req: Request, res: Response) => {
+app.post('/auth/google', authLimiter, async (req: Request, res: Response) => {
   try {
     const { idToken } = req.body;
     
-    // In production, verify the Google ID token
-    // For now, we'll create a stub provider ID
-    const providerId = `google_${Date.now()}`;
-    const email = `user@google.example.com`;
+    if (!idToken) {
+      return res.status(400).json({ success: false, error: 'idToken is required' });
+    }
+    
+    // Verify the Google ID token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: idToken,
+      audience: process.env.GOOGLE_CLIENT_ID, // Optional: verify audience
+    });
+    
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub) {
+      return res.status(401).json({ success: false, error: 'Invalid token payload' });
+    }
+    
+    // Extract real providerId and email from verified token
+    const providerId = `google_${payload.sub}`;
+    const email = payload.email || `user_${payload.sub}@google.example.com`;
     const provider = 'google';
     
     // Upsert user in database
