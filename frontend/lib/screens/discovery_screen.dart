@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/profile_api_service.dart';
+import '../services/auth_service.dart';
+import '../services/chat_api_service.dart';
 import '../models/profile.dart';
 
 class DiscoveryScreen extends StatefulWidget {
@@ -43,9 +45,47 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     }
   }
 
-  void _onLike() {
+  Future<void> _onLike() async {
+    if (_profiles == null || _currentProfileIndex >= _profiles!.length) {
+      return;
+    }
+
+    final profile = _profiles![_currentProfileIndex];
+    
+    try {
+      // Get services
+      final authService = context.read<AuthService>();
+      final chatService = context.read<ChatApiService>();
+      final currentUserId = authService.userId;
+      
+      if (currentUserId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User not authenticated')),
+          );
+        }
+        return;
+      }
+      
+      // Create match
+      await chatService.createMatch(currentUserId, profile.userId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Matched with ${profile.name ?? "user"}!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create match: $e')),
+        );
+      }
+    }
+    
+    // Move to next profile
     setState(() {
-      if (_profiles != null && _currentProfileIndex < _profiles!.length - 1) {
+      if (_currentProfileIndex < _profiles!.length - 1) {
         _currentProfileIndex++;
       } else {
         _showEndOfProfilesMessage();

@@ -5,6 +5,7 @@ import '../services/chat_api_service.dart';
 import '../services/profile_api_service.dart';
 import '../models/match.dart';
 import '../models/profile.dart';
+import 'chat_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -135,10 +136,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       ),
                     ),
                     onTap: () {
-                      // Navigate to chat screen (stub)
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Chat with $name'),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(match: match),
                         ),
                       );
                     },
