@@ -1,33 +1,34 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { Pool } from 'pg';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3003;
 
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL environment variable is required');
+  process.exit(1);
+}
+
 app.use(cors());
 app.use(express.json());
 
-// In-memory storage for stub implementation
-interface Message {
-  id: string;
-  matchId: string;
-  senderId: string;
-  text: string;
-  timestamp: Date;
-}
+// Initialize PostgreSQL connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-interface Match {
-  id: string;
-  userId1: string;
-  userId2: string;
-  createdAt: Date;
-}
+// Test database connection
+pool.on('connect', () => {
+  console.log('Connected to PostgreSQL database');
+});
 
-const messages: Message[] = [];
-const matches: Match[] = [];
+pool.on('error', (err) => {
+  console.error('PostgreSQL connection error:', err);
+});
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -35,22 +36,33 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Get matches for a user
-app.get('/matches/:userId', (req: Request, res: Response) => {
+app.get('/matches/:userId', async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
     
-    const userMatches = matches.filter(
-      match => match.userId1 === userId || match.userId2 === userId
+    const result = await pool.query(
+      `SELECT id, user_id_1, user_id_2, created_at 
+       FROM matches 
+       WHERE user_id_1 = $1 OR user_id_2 = $1`,
+      [userId]
     );
     
-    res.json({ success: true, matches: userMatches });
+    const matches = result.rows.map(match => ({
+      id: match.id,
+      userId1: match.user_id_1,
+      userId2: match.user_id_2,
+      createdAt: match.created_at
+    }));
+    
+    res.json({ success: true, matches });
   } catch (error) {
+    console.error('Failed to retrieve matches:', error);
     res.status(500).json({ success: false, error: 'Failed to retrieve matches' });
   }
 });
 
-// Create a match (stub)
-app.post('/matches', (req: Request, res: Response) => {
+// Create a match
+app.post('/matches', async (req: Request, res: Response) => {
   try {
     const { userId1, userId2 } = req.body;
     
@@ -58,36 +70,62 @@ app.post('/matches', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Both userIds are required' });
     }
     
-    const match: Match = {
-      id: `match_${Date.now()}`,
-      userId1,
-      userId2,
-      createdAt: new Date()
-    };
+    const matchId = `match_${Date.now()}`;
     
-    matches.push(match);
+    const result = await pool.query(
+      `INSERT INTO matches (id, user_id_1, user_id_2) 
+       VALUES ($1, $2, $3) 
+       RETURNING id, user_id_1, user_id_2, created_at`,
+      [matchId, userId1, userId2]
+    );
     
-    res.json({ success: true, match });
+    const match = result.rows[0];
+    
+    res.json({ 
+      success: true, 
+      match: {
+        id: match.id,
+        userId1: match.user_id_1,
+        userId2: match.user_id_2,
+        createdAt: match.created_at
+      }
+    });
   } catch (error) {
+    console.error('Failed to create match:', error);
     res.status(500).json({ success: false, error: 'Failed to create match' });
   }
 });
 
 // Get messages for a match
-app.get('/messages/:matchId', (req: Request, res: Response) => {
+app.get('/messages/:matchId', async (req: Request, res: Response) => {
   try {
     const { matchId } = req.params;
     
-    const matchMessages = messages.filter(msg => msg.matchId === matchId);
+    const result = await pool.query(
+      `SELECT id, match_id, sender_id, text, created_at 
+       FROM messages 
+       WHERE match_id = $1 
+       ORDER BY created_at ASC`,
+      [matchId]
+    );
     
-    res.json({ success: true, messages: matchMessages });
+    const messages = result.rows.map(msg => ({
+      id: msg.id,
+      matchId: msg.match_id,
+      senderId: msg.sender_id,
+      text: msg.text,
+      timestamp: msg.created_at
+    }));
+    
+    res.json({ success: true, messages });
   } catch (error) {
+    console.error('Failed to retrieve messages:', error);
     res.status(500).json({ success: false, error: 'Failed to retrieve messages' });
   }
 });
 
-// Send a message (stub)
-app.post('/messages', (req: Request, res: Response) => {
+// Send a message
+app.post('/messages', async (req: Request, res: Response) => {
   try {
     const { matchId, senderId, text } = req.body;
     
@@ -95,18 +133,29 @@ app.post('/messages', (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'matchId, senderId, and text are required' });
     }
     
-    const message: Message = {
-      id: `msg_${Date.now()}`,
-      matchId,
-      senderId,
-      text,
-      timestamp: new Date()
-    };
+    const messageId = `msg_${Date.now()}`;
     
-    messages.push(message);
+    const result = await pool.query(
+      `INSERT INTO messages (id, match_id, sender_id, text) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id, match_id, sender_id, text, created_at`,
+      [messageId, matchId, senderId, text]
+    );
     
-    res.json({ success: true, message });
+    const message = result.rows[0];
+    
+    res.json({ 
+      success: true, 
+      message: {
+        id: message.id,
+        matchId: message.match_id,
+        senderId: message.sender_id,
+        text: message.text,
+        timestamp: message.created_at
+      }
+    });
   } catch (error) {
+    console.error('Failed to send message:', error);
     res.status(500).json({ success: false, error: 'Failed to send message' });
   }
 });
