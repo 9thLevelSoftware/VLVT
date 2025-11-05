@@ -4,6 +4,9 @@ import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/profile_api_service.dart';
 import 'services/chat_api_service.dart';
+import 'services/cache_service.dart';
+import 'services/safety_service.dart';
+import 'services/discovery_preferences_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 
@@ -20,6 +23,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => SubscriptionService()),
+        ChangeNotifierProvider(create: (_) => CacheService()),
+        ChangeNotifierProvider(create: (_) => DiscoveryPreferencesService()),
         ChangeNotifierProxyProvider<AuthService, ProfileApiService>(
           create: (context) => ProfileApiService(context.read<AuthService>()),
           update: (context, auth, previous) => ProfileApiService(auth),
@@ -27,6 +32,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProxyProvider<AuthService, ChatApiService>(
           create: (context) => ChatApiService(context.read<AuthService>()),
           update: (context, auth, previous) => ChatApiService(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthService, SafetyService>(
+          create: (context) => SafetyService(context.read<AuthService>()),
+          update: (context, auth, previous) => SafetyService(auth),
         ),
       ],
       child: MaterialApp(

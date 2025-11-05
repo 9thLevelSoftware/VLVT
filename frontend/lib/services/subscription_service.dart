@@ -1,20 +1,33 @@
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 
 class SubscriptionService extends ChangeNotifier {
   bool _hasPremiumAccess = false;
   bool _isLoading = false;
-  
+
+  // Demo mode limits
+  static const int _maxDailyLikes = 5;
+  static const int _maxDailyMessages = 10;
+
+  int _likesUsedToday = 0;
+  int _messagesUsedToday = 0;
+  String _lastResetDate = '';
+
   bool get hasPremiumAccess => _hasPremiumAccess;
   bool get isLoading => _isLoading;
+  bool get isDemoMode => !_hasPremiumAccess;
   
   // Initialize RevenueCat
   Future<void> initialize(String userId) async {
     try {
       _isLoading = true;
       notifyListeners();
-      
+
+      // Load demo mode data from shared preferences
+      await _loadDemoData();
+
       // Initialize RevenueCat with your API key from config
       // Make sure to set different keys for iOS and Android in production
       if (AppConfig.revenueCatApiKey == 'YOUR_REVENUECAT_API_KEY') {
@@ -23,13 +36,13 @@ class SubscriptionService extends ChangeNotifier {
       final configuration = PurchasesConfiguration(
         AppConfig.revenueCatApiKey,
       );
-      
+
       await Purchases.configure(configuration);
       await Purchases.logIn(userId);
-      
+
       // Check subscription status
       await checkSubscriptionStatus();
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -85,10 +98,10 @@ class SubscriptionService extends ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
-      
+
       await Purchases.restorePurchases();
       await checkSubscriptionStatus();
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -96,5 +109,108 @@ class SubscriptionService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Demo mode tracking methods
+  Future<void> _loadDemoData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = _getTodayString();
+
+      _lastResetDate = prefs.getString('demo_last_reset') ?? '';
+
+      // Reset if it's a new day
+      if (_lastResetDate != today) {
+        _likesUsedToday = 0;
+        _messagesUsedToday = 0;
+        _lastResetDate = today;
+        await _saveDemoData();
+      } else {
+        _likesUsedToday = prefs.getInt('demo_likes_used') ?? 0;
+        _messagesUsedToday = prefs.getInt('demo_messages_used') ?? 0;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading demo data: $e');
+    }
+  }
+
+  Future<void> _saveDemoData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('demo_last_reset', _lastResetDate);
+      await prefs.setInt('demo_likes_used', _likesUsedToday);
+      await prefs.setInt('demo_messages_used', _messagesUsedToday);
+    } catch (e) {
+      debugPrint('Error saving demo data: $e');
+    }
+  }
+
+  String _getTodayString() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  // Check if action is allowed in demo mode
+  bool canLike() {
+    if (_hasPremiumAccess) return true;
+    return _likesUsedToday < _maxDailyLikes;
+  }
+
+  bool canSendMessage() {
+    if (_hasPremiumAccess) return true;
+    return _messagesUsedToday < _maxDailyMessages;
+  }
+
+  // Get remaining counts
+  int getLikesRemaining() {
+    if (_hasPremiumAccess) return -1; // -1 means unlimited
+    return (_maxDailyLikes - _likesUsedToday).clamp(0, _maxDailyLikes);
+  }
+
+  int getMessagesRemaining() {
+    if (_hasPremiumAccess) return -1; // -1 means unlimited
+    return (_maxDailyMessages - _messagesUsedToday).clamp(0, _maxDailyMessages);
+  }
+
+  // Use actions (call these when user performs limited actions)
+  Future<void> useLike() async {
+    if (_hasPremiumAccess) return;
+
+    final today = _getTodayString();
+    if (_lastResetDate != today) {
+      // New day, reset counts
+      _likesUsedToday = 0;
+      _messagesUsedToday = 0;
+      _lastResetDate = today;
+    }
+
+    _likesUsedToday++;
+    await _saveDemoData();
+    notifyListeners();
+  }
+
+  Future<void> useMessage() async {
+    if (_hasPremiumAccess) return;
+
+    final today = _getTodayString();
+    if (_lastResetDate != today) {
+      // New day, reset counts
+      _likesUsedToday = 0;
+      _messagesUsedToday = 0;
+      _lastResetDate = today;
+    }
+
+    _messagesUsedToday++;
+    await _saveDemoData();
+    notifyListeners();
+  }
+
+  // Enable demo mode explicitly (for when user clicks "Try Limited Version")
+  void enableDemoMode() {
+    // Demo mode is the default when not premium
+    // This is just for clarity in the UI flow
+    notifyListeners();
   }
 }

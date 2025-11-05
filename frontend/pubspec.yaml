@@ -30,9 +30,17 @@ dependencies:
   
   # Secure storage for tokens
   flutter_secure_storage: ^9.0.0
-  
+
+  # Local storage for preferences
+  shared_preferences: ^2.2.2
+
   # JSON serialization
   json_annotation: ^4.8.1
+
+  # UX Improvements
+  shimmer: ^3.0.0
+  connectivity_plus: ^5.0.0
+  lottie: ^2.7.0
 
 dev_dependencies:
   flutter_test:
