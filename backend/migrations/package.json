@@ -1,0 +1,15 @@
+{
+  "name": "nobsdating-migrations",
+  "version": "1.0.0",
+  "description": "Database migrations for NoBSDating",
+  "main": "run_migration.js",
+  "scripts": {
+    "migrate": "node run_migration.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

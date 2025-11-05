@@ -4,6 +4,44 @@ This directory contains SQL migration files for the NoBSDating application.
 
 ## Migrations
 
+### 001_create_users_and_profiles.sql
+
+Creates the core authentication and profile tables:
+
+- **users table**: Core authentication data
+  - `id`: Unique user ID
+  - `provider`: OAuth provider (apple, google)
+  - `email`: User email address
+  - `created_at`: When the user was created
+  - `updated_at`: When the user was last updated
+
+- **profiles table**: User profile information
+  - `user_id`: Foreign key to users table
+  - `name`: User's display name
+  - `age`: User's age
+  - `bio`: User's biography
+  - `photos`: Array of photo URLs
+  - `interests`: Array of user interests
+  - `created_at`: When the profile was created
+  - `updated_at`: When the profile was last updated
+
+### 002_create_matches_and_messages.sql
+
+Creates the matching and messaging tables:
+
+- **matches table**: Mutual matches between users
+  - `id`: Unique match ID
+  - `user_id_1`: First user in the match
+  - `user_id_2`: Second user in the match
+  - `created_at`: When the match was created
+
+- **messages table**: Chat messages between matched users
+  - `id`: Unique message ID
+  - `match_id`: Foreign key to matches table
+  - `sender_id`: Foreign key to users table
+  - `text`: Message content
+  - `created_at`: When the message was sent
+
 ### 003_create_safety_tables.sql
 
 Creates the safety and moderation tables:

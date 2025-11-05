@@ -9,18 +9,10 @@ class AppConfig {
   );
   
   /// Backend service URLs
-  static const String authServiceUrl = String.fromEnvironment(
-    'AUTH_SERVICE_URL',
-    defaultValue: 'http://localhost:3001',
-  );
-  
-  static const String profileServiceUrl = String.fromEnvironment(
-    'PROFILE_SERVICE_URL',
-    defaultValue: 'http://localhost:3002',
-  );
-  
-  static const String chatServiceUrl = String.fromEnvironment(
-    'CHAT_SERVICE_URL',
-    defaultValue: 'http://localhost:3003',
-  );
+  static const String authServiceUrl =
+      'https://auth-service-production-XXXX.up.railway.app';
+  static const String profileServiceUrl =
+      'https://profile-service-production-XXXX.up.railway.app';
+  static const String chatServiceUrl =
+      'https://chat-service-production-XXXX.up.railway.app';
 }

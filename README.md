@@ -74,7 +74,7 @@ A straightforward dating app with no BS. Built with Flutter for the frontend and
    flutter run --dart-define=REVENUECAT_API_KEY=YOUR_KEY
    ```
 
-For detailed setup instructions including RevenueCat configuration, Apple/Google Sign In setup, and production deployment, see **[SETUP.md](SETUP.md)**.
+For detailed setup instructions including RevenueCat configuration, Apple/Google Sign In setup, and production deployment, see **[SETUP.md](docs/SETUP.md)**.
 
 ## API Endpoints
 
@@ -169,7 +169,7 @@ Create `.env` files based on `.env.example` in each service directory:
 5. **HTTPS**: Use HTTPS for all API endpoints in production.
 6. **API Keys**: Store RevenueCat API keys securely and use different keys for development/production.
 
-See **[SETUP.md](SETUP.md)** for complete security checklist.
+See **[SETUP.md](docs/SETUP.md)** for complete security checklist.
 
 ## Subscription Flow
 

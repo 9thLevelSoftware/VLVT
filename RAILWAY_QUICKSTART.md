@@ -90,10 +90,10 @@ railway link
 # Get DATABASE_URL
 railway variables get DATABASE_URL
 
-# Run migrations
+# Run all migrations
 cd backend/migrations
 export DATABASE_URL="postgresql://user:pass@host:port/db"
-./run_migration.sh
+./run_migration.sh  # Runs all 3 migrations in order
 ```
 
 **Option B - Manually via psql:**
@@ -101,10 +101,10 @@ export DATABASE_URL="postgresql://user:pass@host:port/db"
 # Connect to Railway database
 railway connect postgres
 
-# Run each migration
-\i /path/to/backend/migrations/001_create_users_and_profiles.sql
-\i /path/to/backend/migrations/002_create_matches_and_messages.sql
-\i /path/to/backend/migrations/003_create_safety_tables.sql
+# Run each migration in order
+\i 001_create_users_and_profiles.sql
+\i 002_create_matches_and_messages.sql
+\i 003_create_safety_tables.sql
 
 \q
 ```
