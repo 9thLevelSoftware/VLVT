@@ -74,19 +74,19 @@ function Show-EnvTemplate {
     Write-Host "AUTH SERVICE:"
     Write-Host "  PORT=3001"
     Write-Host "  JWT_SECRET=<paste-generated-secret>"
-    Write-Host '  DATABASE_URL=${{Postgres.DATABASE_URL}}'
+    Write-Host "  DATABASE_URL=`${{Postgres.DATABASE_URL}}"
     Write-Host "  NODE_ENV=production"
     Write-Host "  CORS_ORIGIN=*"
     Write-Host ""
     Write-Host "PROFILE SERVICE:"
     Write-Host "  PORT=3002"
-    Write-Host '  DATABASE_URL=${{Postgres.DATABASE_URL}}'
+    Write-Host "  DATABASE_URL=`${{Postgres.DATABASE_URL}}"
     Write-Host "  NODE_ENV=production"
     Write-Host "  CORS_ORIGIN=*"
     Write-Host ""
     Write-Host "CHAT SERVICE:"
     Write-Host "  PORT=3003"
-    Write-Host '  DATABASE_URL=${{Postgres.DATABASE_URL}}'
+    Write-Host "  DATABASE_URL=`${{Postgres.DATABASE_URL}}"
     Write-Host "  NODE_ENV=production"
     Write-Host "  CORS_ORIGIN=*"
     Write-Host ""
@@ -125,7 +125,7 @@ function Run-Migrations {
     Write-Host "Running migrations..."
     Push-Location backend\migrations
 
-    Get-ChildItem -Filter "*.sql" | ForEach-Object {
+    Get-ChildItem -Filter "*.sql" | Sort-Object Name | ForEach-Object {
         Write-Host "  → Running $($_.Name)"
         psql $env:DATABASE_URL -f $_.Name -q
     }
@@ -213,15 +213,19 @@ function Show-Menu {
     switch ($choice) {
         "1" {
             Generate-JWTSecret
+            Show-Menu
         }
         "2" {
             Show-EnvTemplate
+            Show-Menu
         }
         "3" {
             Run-Migrations
+            Show-Menu
         }
         "4" {
             Verify-Deployment
+            Show-Menu
         }
         "5" {
             Generate-JWTSecret
@@ -230,6 +234,7 @@ function Show-Menu {
             Read-Host "Press enter to continue to migrations (make sure env vars are set first)"
             Run-Migrations
             Verify-Deployment
+            Show-Menu
         }
         "6" {
             Write-Host "Goodbye!"
