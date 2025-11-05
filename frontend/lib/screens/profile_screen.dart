@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
 import '../services/profile_api_service.dart';
 import '../models/profile.dart';
+import 'profile_edit_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,6 +14,27 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  int _refreshKey = 0;
+
+  void _refreshProfile() {
+    setState(() {
+      _refreshKey++;
+    });
+  }
+
+  Future<void> _navigateToEditProfile(Profile? currentProfile) async {
+    final result = await Navigator.of(context).push<Profile>(
+      MaterialPageRoute(
+        builder: (context) => ProfileEditScreen(
+          existingProfile: currentProfile,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      _refreshProfile();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: SafeArea(
         child: FutureBuilder<Profile>(
+          key: ValueKey(_refreshKey),
           future: profileService.getProfile(userId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -202,11 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Edit profile feature coming soon!')),
-                        );
-                      },
+                      onPressed: () => _navigateToEditProfile(profile),
                       icon: const Icon(Icons.edit),
                       label: const Text('Edit Profile'),
                       style: ElevatedButton.styleFrom(

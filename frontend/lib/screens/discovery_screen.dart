@@ -3,7 +3,13 @@ import 'package:provider/provider.dart';
 import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
+import '../services/subscription_service.dart';
+import '../services/discovery_preferences_service.dart';
+import '../widgets/premium_gate_dialog.dart';
 import '../models/profile.dart';
+import '../models/match.dart';
+import 'discovery_filters_screen.dart';
+import 'dart:async';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -12,16 +18,58 @@ class DiscoveryScreen extends StatefulWidget {
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
-class _DiscoveryScreenState extends State<DiscoveryScreen> {
+class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProviderStateMixin {
   int _currentProfileIndex = 0;
   List<Profile>? _profiles;
+  List<Profile> _filteredProfiles = [];
+  List<Match>? _currentMatches;
   bool _isLoading = true;
   String? _errorMessage;
+
+  // Undo functionality
+  Profile? _lastProfile;
+  String? _lastAction; // 'pass' or 'like'
+  Match? _lastMatch;
+  Timer? _undoTimer;
+  bool _showUndoButton = false;
+
+  // Animation
+  late AnimationController _cardAnimationController;
+  late Animation<double> _cardAnimation;
+  bool _isExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadProfiles();
+    _cardAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _cardAnimation = CurvedAnimation(
+      parent: _cardAnimationController,
+      curve: Curves.easeInOut,
+    );
+    _initializeDiscovery();
+  }
+
+  @override
+  void dispose() {
+    _undoTimer?.cancel();
+    _cardAnimationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeDiscovery() async {
+    final prefsService = context.read<DiscoveryPreferencesService>();
+    await prefsService.init();
+
+    // Restore saved index if available
+    final savedIndex = prefsService.getSavedIndex();
+    if (savedIndex != null) {
+      _currentProfileIndex = savedIndex;
+    }
+
+    await _loadProfiles();
   }
 
   Future<void> _loadProfiles() async {
@@ -32,10 +80,48 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
     try {
       final profileService = context.read<ProfileApiService>();
-      final profiles = await profileService.getDiscoveryProfiles();
+      final chatService = context.read<ChatApiService>();
+      final authService = context.read<AuthService>();
+      final prefsService = context.read<DiscoveryPreferencesService>();
+      final currentUserId = authService.userId;
+
+      if (currentUserId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Get filters
+      final filters = prefsService.filters;
+
+      // Get seen profile IDs to exclude
+      final seenProfileIds = prefsService.seenProfileIds;
+
+      // Get current matches to exclude
+      _currentMatches = await chatService.getMatches(currentUserId);
+      final matchedUserIds = _currentMatches!
+          .map((m) => m.userId1 == currentUserId ? m.userId2 : m.userId1)
+          .toList();
+
+      // Combine exclusions
+      final excludeIds = {...seenProfileIds, ...matchedUserIds, currentUserId}.toList();
+
+      // Fetch profiles with filters
+      final profiles = await profileService.getDiscoveryProfiles(
+        minAge: filters.minAge != 18 ? filters.minAge : null,
+        maxAge: filters.maxAge != 99 ? filters.maxAge : null,
+        maxDistance: filters.maxDistance != 50.0 ? filters.maxDistance : null,
+        interests: filters.selectedInterests.isNotEmpty ? filters.selectedInterests : null,
+        excludeUserIds: excludeIds.isNotEmpty ? excludeIds : null,
+      );
+
       setState(() {
         _profiles = profiles;
+        _filteredProfiles = _filterProfilesClientSide(profiles);
         _isLoading = false;
+
+        // Reset index if we have new profiles and current index is invalid
+        if (_currentProfileIndex >= _filteredProfiles.length) {
+          _currentProfileIndex = 0;
+        }
       });
     } catch (e) {
       setState(() {
@@ -45,19 +131,51 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     }
   }
 
+  List<Profile> _filterProfilesClientSide(List<Profile> profiles) {
+    final prefsService = context.read<DiscoveryPreferencesService>();
+    final authService = context.read<AuthService>();
+    final currentUserId = authService.userId;
+
+    final seenIds = prefsService.seenProfileIds;
+    final matchedUserIds = _currentMatches
+        ?.map((m) => m.userId1 == currentUserId ? m.userId2 : m.userId1)
+        .toSet() ?? {};
+
+    // Filter out seen profiles and matched profiles
+    return profiles.where((profile) {
+      return profile.userId != currentUserId &&
+             !seenIds.contains(profile.userId) &&
+             !matchedUserIds.contains(profile.userId);
+    }).toList();
+  }
+
   Future<void> _onLike() async {
-    if (_profiles == null || _currentProfileIndex >= _profiles!.length) {
+    if (_filteredProfiles.isEmpty || _currentProfileIndex >= _filteredProfiles.length) {
       return;
     }
 
-    final profile = _profiles![_currentProfileIndex];
-    
+    // Check subscription limits
+    final subscriptionService = context.read<SubscriptionService>();
+    if (!subscriptionService.canLike()) {
+      if (mounted) {
+        PremiumGateDialog.showLikesLimitReached(context);
+      }
+      return;
+    }
+
+    final profile = _filteredProfiles[_currentProfileIndex];
+
+    // Store for undo
+    _lastProfile = profile;
+    _lastAction = 'like';
+
     try {
       // Get services
       final authService = context.read<AuthService>();
       final chatService = context.read<ChatApiService>();
+      final prefsService = context.read<DiscoveryPreferencesService>();
       final currentUserId = authService.userId;
-      
+
       if (currentUserId == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -66,21 +184,34 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         }
         return;
       }
-      
+
+      // Use a like (increments counter for demo users)
+      await subscriptionService.useLike();
+
+      // Record the action
+      await prefsService.recordProfileAction(profile.userId, 'like');
+
       // Create match
       final result = await chatService.createMatch(currentUserId, profile.userId);
       final alreadyExists = result['alreadyExists'] as bool;
-      
+      _lastMatch = result['match'] as Match?;
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              alreadyExists 
-                ? 'You already matched with ${profile.name ?? "user"}!'
-                : 'Matched with ${profile.name ?? "user"}!'
+        if (alreadyExists) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('You already matched with ${profile.name ?? "user"}!'),
+              backgroundColor: Colors.orange,
             ),
-          ),
-        );
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Matched with ${profile.name ?? "user"}!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -89,39 +220,190 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         );
       }
     }
-    
-    // Move to next profile
+
+    // Move to next profile and show undo button
+    _moveToNextProfile();
+    _showUndo();
+  }
+
+  Future<void> _onPass() async {
+    if (_filteredProfiles.isEmpty || _currentProfileIndex >= _filteredProfiles.length) {
+      return;
+    }
+
+    final profile = _filteredProfiles[_currentProfileIndex];
+
+    // Store for undo
+    _lastProfile = profile;
+    _lastAction = 'pass';
+
+    // Record the action
+    final prefsService = context.read<DiscoveryPreferencesService>();
+    await prefsService.recordProfileAction(profile.userId, 'pass');
+
+    // Move to next profile and show undo button
+    _moveToNextProfile();
+    _showUndo();
+  }
+
+  void _moveToNextProfile() {
     setState(() {
-      if (_currentProfileIndex < _profiles!.length - 1) {
+      if (_currentProfileIndex < _filteredProfiles.length - 1) {
         _currentProfileIndex++;
+        _saveCurrentIndex();
       } else {
         _showEndOfProfilesMessage();
       }
     });
   }
 
-  void _onPass() {
+  void _showUndo() {
     setState(() {
-      if (_profiles != null && _currentProfileIndex < _profiles!.length - 1) {
-        _currentProfileIndex++;
-      } else {
-        _showEndOfProfilesMessage();
+      _showUndoButton = true;
+    });
+
+    _undoTimer?.cancel();
+    _undoTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showUndoButton = false;
+          _lastProfile = null;
+          _lastAction = null;
+          _lastMatch = null;
+        });
       }
     });
+  }
+
+  Future<void> _onUndo() async {
+    if (_lastProfile == null || _lastAction == null) return;
+
+    _undoTimer?.cancel();
+
+    final prefsService = context.read<DiscoveryPreferencesService>();
+
+    // Undo the last action in preferences
+    await prefsService.undoLastAction();
+
+    // Go back to previous profile
+    setState(() {
+      if (_currentProfileIndex > 0) {
+        _currentProfileIndex--;
+      }
+      _showUndoButton = false;
+      _lastProfile = null;
+      _lastAction = null;
+      _lastMatch = null;
+      _saveCurrentIndex();
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Action undone'),
+          duration: Duration(seconds: 1),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
+  void _saveCurrentIndex() {
+    final prefsService = context.read<DiscoveryPreferencesService>();
+    prefsService.saveCurrentIndex(_currentProfileIndex);
   }
 
   void _showEndOfProfilesMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('No more profiles for now!')),
+    final prefsService = context.read<DiscoveryPreferencesService>();
+    final hasFilters = prefsService.filters.hasActiveFilters;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('No More Profiles'),
+        content: Text(
+          hasFilters
+              ? 'No more profiles match your current filters. Try adjusting your filters or check back later!'
+              : 'You\'ve seen all available profiles for now. Check back later for more matches!',
+        ),
+        actions: [
+          if (hasFilters)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _navigateToFilters();
+              },
+              child: const Text('Adjust Filters'),
+            ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await prefsService.clearSeenProfiles();
+              await _loadProfiles();
+            },
+            child: const Text('Show All Again'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
+  }
+
+  Future<void> _navigateToFilters() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const DiscoveryFiltersScreen(),
+      ),
+    );
+
+    // If filters were changed, reload profiles
+    if (result == true) {
+      _currentProfileIndex = 0;
+      await _loadProfiles();
+    }
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _cardAnimationController.forward();
+      } else {
+        _cardAnimationController.reverse();
+      }
+    });
+  }
+
+  int get _remainingProfiles {
+    if (_filteredProfiles.isEmpty) return 0;
+    return _filteredProfiles.length - _currentProfileIndex;
   }
 
   @override
   Widget build(BuildContext context) {
+    final prefsService = context.watch<DiscoveryPreferencesService>();
+    final subscriptionService = context.watch<SubscriptionService>();
+    final hasActiveFilters = prefsService.filters.hasActiveFilters;
+    final likesRemaining = subscriptionService.getLikesRemaining();
+    final showLikesCounter = subscriptionService.isDemoMode;
+
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Discovery'),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.filter_list,
+                color: hasActiveFilters ? Colors.amber : null,
+              ),
+              onPressed: _navigateToFilters,
+            ),
+          ],
         ),
         body: const Center(
           child: CircularProgressIndicator(),
@@ -133,15 +415,29 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Discovery'),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.filter_list,
+                color: hasActiveFilters ? Colors.amber : null,
+              ),
+              onPressed: _navigateToFilters,
+            ),
+          ],
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                _errorMessage!,
-                style: const TextStyle(fontSize: 16, color: Colors.red),
-                textAlign: TextAlign.center,
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(fontSize: 16, color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
@@ -154,28 +450,56 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       );
     }
 
-    if (_profiles == null || _profiles!.isEmpty || _currentProfileIndex >= _profiles!.length) {
+    if (_filteredProfiles.isEmpty || _currentProfileIndex >= _filteredProfiles.length) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Discovery'),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.filter_list,
+                color: hasActiveFilters ? Colors.amber : null,
+              ),
+              onPressed: _navigateToFilters,
+            ),
+          ],
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              const Icon(Icons.explore_off, size: 80, color: Colors.grey),
+              const SizedBox(height: 24),
               const Text(
                 'No more profiles available',
-                style: TextStyle(fontSize: 18),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _currentProfileIndex = 0;
-                  });
-                  _loadProfiles();
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  hasActiveFilters
+                      ? 'Try adjusting your filters to see more profiles'
+                      : 'Check back later for new matches!',
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+              if (hasActiveFilters)
+                ElevatedButton.icon(
+                  onPressed: _navigateToFilters,
+                  icon: const Icon(Icons.tune),
+                  label: const Text('Adjust Filters'),
+                ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () async {
+                  await prefsService.clearSeenProfiles();
+                  _currentProfileIndex = 0;
+                  await _loadProfiles();
                 },
-                child: const Text('Refresh'),
+                child: const Text('Show All Profiles Again'),
               ),
             ],
           ),
@@ -183,105 +507,281 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       );
     }
 
-    final profile = _profiles![_currentProfileIndex];
+    final profile = _filteredProfiles[_currentProfileIndex];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Discovery'),
-      ),
-      body: SafeArea(
-        child: Column(
+        title: Column(
           children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
+            const Text('Discovery'),
+            if (_remainingProfiles > 0)
+              Text(
+                '$_remainingProfiles profile${_remainingProfiles == 1 ? '' : 's'} left',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              ),
+          ],
+        ),
+        actions: [
+          if (showLikesCounter)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: likesRemaining > 0 ? Colors.green.shade100 : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: likesRemaining > 0 ? Colors.green : Colors.red,
+                    ),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.deepPurple.shade100,
-                          Colors.deepPurple.shade300,
-                        ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.favorite,
+                        size: 16,
+                        color: likesRemaining > 0 ? Colors.green : Colors.red,
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.person,
-                          size: 120,
-                          color: Colors.white,
+                      const SizedBox(width: 4),
+                      Text(
+                        '$likesRemaining',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: likesRemaining > 0 ? Colors.green.shade900 : Colors.red.shade900,
                         ),
-                        const SizedBox(height: 24),
-                        Text(
-                          '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
-                          style: const TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32),
-                          child: Text(
-                            profile.bio ?? 'No bio available',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        if (profile.interests != null && profile.interests!.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.center,
-                            children: profile.interests!.map((interest) {
-                              return Chip(
-                                label: Text(interest),
-                                backgroundColor: Colors.white.withOpacity(0.2),
-                                labelStyle: const TextStyle(color: Colors.white),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+          if (hasActiveFilters)
             Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  FloatingActionButton(
-                    heroTag: 'pass',
-                    onPressed: _onPass,
-                    backgroundColor: Colors.red,
-                    child: const Icon(Icons.close, size: 32),
+              padding: const EdgeInsets.only(right: 4),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  FloatingActionButton(
-                    heroTag: 'like',
-                    onPressed: _onLike,
-                    backgroundColor: Colors.green,
-                    child: const Icon(Icons.favorite, size: 32),
+                  child: const Text(
+                    'Filtered',
+                    style: TextStyle(fontSize: 11, color: Colors.black, fontWeight: FontWeight.bold),
                   ),
-                ],
+                ),
               ),
             ),
+          IconButton(
+            icon: Icon(
+              Icons.filter_list,
+              color: hasActiveFilters ? Colors.amber : null,
+            ),
+            onPressed: _navigateToFilters,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                // Profile Counter Warning
+                if (_remainingProfiles > 0 && _remainingProfiles <= 5)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.orange.shade100,
+                    child: Text(
+                      'Only $_remainingProfiles profile${_remainingProfiles == 1 ? '' : 's'} remaining. Adjust filters for more!',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+
+                // Profile Card
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: GestureDetector(
+                      onTap: _toggleExpanded,
+                      child: AnimatedBuilder(
+                        animation: _cardAnimation,
+                        builder: (context, child) {
+                          return Card(
+                            elevation: 8,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.deepPurple.shade100,
+                                    Colors.deepPurple.shade300,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: SingleChildScrollView(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.person,
+                                        size: 120,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        profile.bio ?? 'No bio available',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      if (profile.interests != null && profile.interests!.isNotEmpty) ...[
+                                        const SizedBox(height: 24),
+                                        const Divider(color: Colors.white54),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'Interests',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          alignment: WrapAlignment.center,
+                                          children: profile.interests!.map((interest) {
+                                            return Chip(
+                                              label: Text(interest),
+                                              backgroundColor: Colors.white.withOpacity(0.2),
+                                              labelStyle: const TextStyle(color: Colors.white),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
+                                      if (_isExpanded) ...[
+                                        const SizedBox(height: 24),
+                                        const Divider(color: Colors.white54),
+                                        const SizedBox(height: 16),
+                                        const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.info_outline, color: Colors.white70, size: 20),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'More Info',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white70,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          'Distance: Not available yet',
+                                          style: TextStyle(color: Colors.white70),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'Tap card to collapse',
+                                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Action Buttons
+                Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      FloatingActionButton(
+                        heroTag: 'pass',
+                        onPressed: _onPass,
+                        backgroundColor: Colors.red,
+                        child: const Icon(Icons.close, size: 32),
+                      ),
+                      if (_showUndoButton)
+                        FloatingActionButton(
+                          heroTag: 'undo',
+                          onPressed: _onUndo,
+                          backgroundColor: Colors.blue,
+                          child: const Icon(Icons.undo, size: 28),
+                        ),
+                      FloatingActionButton(
+                        heroTag: 'like',
+                        onPressed: _onLike,
+                        backgroundColor: Colors.green,
+                        child: const Icon(Icons.favorite, size: 32),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // Undo Button Hint
+            if (_showUndoButton)
+              Positioned(
+                bottom: 100,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'Tap UNDO to revert last action',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

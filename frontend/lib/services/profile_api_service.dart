@@ -46,10 +46,33 @@ class ProfileApiService extends ChangeNotifier {
     }
   }
 
-  Future<List<Profile>> getDiscoveryProfiles() async {
+  Future<List<Profile>> getDiscoveryProfiles({
+    int? minAge,
+    int? maxAge,
+    double? maxDistance,
+    List<String>? interests,
+    List<String>? excludeUserIds,
+  }) async {
     try {
+      // Build query parameters
+      final Map<String, String> queryParams = {};
+
+      if (minAge != null) queryParams['minAge'] = minAge.toString();
+      if (maxAge != null) queryParams['maxAge'] = maxAge.toString();
+      if (maxDistance != null) queryParams['maxDistance'] = maxDistance.toString();
+      if (interests != null && interests.isNotEmpty) {
+        queryParams['interests'] = interests.join(',');
+      }
+      if (excludeUserIds != null && excludeUserIds.isNotEmpty) {
+        queryParams['exclude'] = excludeUserIds.join(',');
+      }
+
+      final uri = Uri.parse('$baseUrl/profiles/discover').replace(
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+
       final response = await http.get(
-        Uri.parse('$baseUrl/profiles/discover'),
+        uri,
         headers: _getAuthHeaders(),
       );
 
@@ -66,6 +89,34 @@ class ProfileApiService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error getting discovery profiles: $e');
+      rethrow;
+    }
+  }
+
+  Future<Profile> createProfile(Profile profile) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/profile'),
+        headers: _getAuthHeaders(),
+        body: json.encode(profile.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['profile'] != null) {
+          notifyListeners();
+          return Profile.fromJson(data['profile']);
+        } else {
+          throw Exception('Invalid response format');
+        }
+      } else if (response.statusCode == 400) {
+        final data = json.decode(response.body);
+        throw Exception(data['error'] ?? 'Invalid profile data');
+      } else {
+        throw Exception('Failed to create profile: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error creating profile: $e');
       rethrow;
     }
   }
@@ -90,10 +141,39 @@ class ProfileApiService extends ChangeNotifier {
       } else if (response.statusCode == 404) {
         throw Exception('Profile not found');
       } else {
-        throw Exception('Failed to update profile: ${response.statusCode}');
+        final data = json.decode(response.body);
+        throw Exception(data['error'] ?? 'Failed to update profile: ${response.statusCode}');
       }
     } catch (e) {
       debugPrint('Error updating profile: $e');
+      rethrow;
+    }
+  }
+
+  /// Batch fetch multiple profiles at once
+  /// Returns a map of userId -> Profile
+  Future<Map<String, Profile>> batchGetProfiles(List<String> userIds) async {
+    if (userIds.isEmpty) {
+      return {};
+    }
+
+    try {
+      // For now, fetch profiles in parallel
+      // In a real app, you'd want a dedicated batch endpoint on the backend
+      final futures = userIds.map((userId) => getProfile(userId));
+      final profiles = await Future.wait(
+        futures,
+        eagerError: false, // Continue even if some fail
+      );
+
+      final profileMap = <String, Profile>{};
+      for (var i = 0; i < userIds.length; i++) {
+        profileMap[userIds[i]] = profiles[i];
+      }
+
+      return profileMap;
+    } catch (e) {
+      debugPrint('Error batch getting profiles: $e');
       rethrow;
     }
   }

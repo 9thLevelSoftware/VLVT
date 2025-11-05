@@ -2,20 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/subscription_service.dart';
 import '../services/auth_service.dart';
+import '../services/profile_api_service.dart';
+import '../models/profile.dart';
+import '../widgets/upgrade_banner.dart';
 import 'discovery_screen.dart';
 import 'matches_screen.dart';
 import 'profile_screen.dart';
-import 'paywall_screen.dart';
+import 'profile_setup_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+
+  void setTab(int index) {
+    if (index >= 0 && index < 3) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
+  }
   
   @override
   void initState() {
@@ -35,12 +46,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final subscriptionService = context.watch<SubscriptionService>();
-    
-    // If no premium access, show paywall
-    if (!subscriptionService.hasPremiumAccess && !subscriptionService.isLoading) {
-      return const PaywallScreen();
-    }
-    
+    final authService = context.watch<AuthService>();
+    final profileService = context.watch<ProfileApiService>();
+
     // Loading state
     if (subscriptionService.isLoading) {
       return const Scaffold(
@@ -49,37 +57,84 @@ class _MainScreenState extends State<MainScreen> {
         ),
       );
     }
-    
-    final screens = [
-      const DiscoveryScreen(),
-      const MatchesScreen(),
-      const ProfileScreen(),
-    ];
 
-    return Scaffold(
-      body: screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Discovery',
+    final userId = authService.userId;
+    if (userId == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('User not authenticated'),
+        ),
+      );
+    }
+
+    // Check if profile setup is needed
+    return FutureBuilder<Profile>(
+      future: profileService.getProfile(userId),
+      builder: (context, snapshot) {
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        // Check if profile needs setup
+        // Profile not found (404) or incomplete profile data
+        final profile = snapshot.data;
+        final hasError = snapshot.hasError;
+        final needsSetup = hasError ||
+                          profile == null ||
+                          profile.name == null ||
+                          profile.age == null;
+
+        if (needsSetup) {
+          return const ProfileSetupScreen();
+        }
+
+        // Profile is complete, show main app
+        final screens = [
+          const DiscoveryScreen(),
+          const MatchesScreen(),
+          const ProfileScreen(),
+        ];
+
+        return Scaffold(
+          body: Column(
+            children: [
+              // Show upgrade banner if in demo mode
+              const UpgradeBanner(),
+              // Main content
+              Expanded(
+                child: screens[_currentIndex],
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Matches',
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.explore),
+                label: 'Discovery',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.favorite),
+                label: 'Matches',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
