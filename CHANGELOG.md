@@ -1,6 +1,45 @@
 # NoBS Dating - Changelog
 
-## [Unreleased] - 2025-11-13 - Beta Prep Session
+## [Unreleased] - 2025-11-14 - Beta Testing - Test Login Working
+
+### Added
+- **Test Login Endpoint** - Enabled test login for beta testing
+  - Modified auth service to allow test endpoints via ENABLE_TEST_ENDPOINTS env var
+  - Added seed endpoint to populate database with 20 test users
+  - Inlined seed SQL to ensure deployment availability
+
+### Fixed
+- **Railway Database Connection**
+  - Fixed SSL certificate issue (rejectUnauthorized: false for Railway)
+  - Database now connects successfully from deployed services
+  - Seed endpoint successfully populates test users
+
+### Changed
+- **Authentication Service**
+  - Test endpoints now available in production with ENABLE_TEST_ENDPOINTS=true
+  - Added detailed error logging for debugging
+  - Embedded seed SQL directly in code for reliable deployment
+
+### Deployed
+- ✅ Railway auth service with test login enabled
+- ✅ 20 test users seeded (google_test001 through google_test020)
+- ✅ Debug APK installed on physical device with test login button
+- ✅ Test login verified working end-to-end
+
+### Available Test Accounts
+- `google_test001` through `google_test020`
+- Each user has realistic profile data, interests, and some have matches/messages
+- Use test login button in debug builds to authenticate
+
+### Status
+- **Test Login:** ✅ WORKING
+- **Database Seeding:** ✅ COMPLETE
+- **Beta Testing:** ✅ READY
+- **Next Step:** Full app testing on physical device
+
+---
+
+## [1.0.0] - 2025-11-13 - Beta Prep Session
 
 ### Fixed
 - **Test Infrastructure** - Made all backend services testable

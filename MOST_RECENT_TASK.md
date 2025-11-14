@@ -1,295 +1,98 @@
-# Most Recent Task - Session Memory
+# Most Recent Task - Test Login for Beta Testing
 
-**Last Updated:** 2025-11-13
-**Session Type:** Flutter Compilation Error Fixes
-**Status:** ✅ All Dart Errors Fixed - App Ready to Build
+## Date: 2025-11-14
 
----
+## Task: Enable Test Login for Physical Device Beta Testing
 
-## What Was Just Completed
+### Problem
+User attempted to test the app on their physical device but:
+1. Test login button was hidden (only shown in kDebugMode but connecting to local backend)
+2. Test login endpoint returned 404 (disabled in production)
+3. Test users didn't exist in Railway database
+4. Database SSL certificate was rejecting connections
 
-### Primary Objective
-Fix all Flutter/Dart compilation errors reported by the user to prepare the app for building and beta testing.
+### Solution Implemented
 
-### Tasks Completed This Session
+#### 1. Enabled Test Endpoints in Production
+**File:** `backend/auth-service/src/index.ts`
+- Modified condition from `process.env.NODE_ENV !== 'production'` to:
+  ```typescript
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_TEST_ENDPOINTS === 'true')
+  ```
+- Set Railway environment variable: `ENABLE_TEST_ENDPOINTS=true`
 
-1. **Fixed Missing Model Properties** ✅
-   - Added `matchId` getter to Match model (lib/models/match.dart:38)
-   - Removed references to non-existent Profile properties (`dateOfBirth`, `gender`)
-   - Created `calculateAgeGroupFromAge` method in AnalyticsService for integer age handling
-   - Updated profile_api_service.dart to use `age` instead of `dateOfBirth`
+#### 2. Added Database Seed Endpoint
+**File:** `backend/auth-service/src/index.ts:277-316`
+- Created POST `/auth/seed-test-users` endpoint
+- Embedded seed SQL directly in code (instead of reading from file)
+- Seeds 20 test users: `google_test001` through `google_test020`
+- Added detailed error logging to debug issues
 
-2. **Fixed Undefined Identifiers** ✅
-   - Fixed `showBackButton` reference in paywall_screen.dart:170 (missing `widget.` prefix)
-   - Added missing `dart:async` import for `TimeoutException` in error_handler.dart
-   - Generated Mockito mock classes for test files using build_runner
-   - Added import for generated mocks in auth_service_test.dart
+#### 3. Fixed Database SSL Certificate Issue
+**File:** `backend/auth-service/src/index.ts:60-62`
+- Changed PostgreSQL SSL config:
+  ```typescript
+  ssl: process.env.DATABASE_URL?.includes('railway')
+    ? { rejectUnauthorized: false }  // was: true
+    : false,
+  ```
+- This allows Railway's self-signed certificate to be accepted
 
-3. **Fixed Firebase Analytics Type Mismatches** ✅
-   - Changed parameter types from `Map<String, dynamic>` to `Map<String, Object>` in:
-     - analytics_service.dart:86 (logProfileUpdated)
-     - analytics_service.dart:171 (logFiltersApplied)
-     - analytics_service.dart:427 (logCustomEvent)
-   - Added `.cast<String, Object>()` to feedback.toJson() in profile_screen.dart:265
+#### 4. Configured Frontend for Railway Testing
+**File:** `frontend/lib/config/app_config.dart`
+- Hardcoded Railway URLs (temporarily) to allow debug builds to connect to production backend
+- This shows test login button (debug mode) while connecting to Railway
 
-4. **Fixed Connectivity Package API Changes** ✅
-   - Upgraded connectivity_plus from v5.0.0 to v7.0.0
-   - New version uses `List<ConnectivityResult>` instead of single `ConnectivityResult`
-   - offline_banner.dart already had correct type signatures, just needed package upgrade
+#### 5. Deployed and Verified
+- Successfully seeded 20 test users to Railway database
+- Verified test login endpoint works: `POST /auth/test-login`
+- Built and installed debug APK on physical device
+- App now shows test login button and successfully authenticates
 
-5. **Cleaned Up Warnings** ✅
-   - Removed unused import: firebase_analytics from main.dart:6
-   - Removed unused import: safety_service from chat_screen.dart:8
-   - Removed unused variable: isSending from chat_screen.dart:556
-   - Removed unused field: _profiles from discovery_screen.dart:24
-   - Removed unused variable: name from matches_screen.dart:367
-   - Removed unused variable: profile from matches_screen.dart:366
-
-### Files Modified This Session
-
-**Model Files (2 files):**
-- `frontend/lib/models/match.dart` - Added matchId getter for backward compatibility
-- `frontend/lib/services/analytics_service.dart` - Added calculateAgeGroupFromAge method
-
-**Service Files (2 files):**
-- `frontend/lib/services/profile_api_service.dart` - Fixed dateOfBirth/gender references
-- `frontend/lib/services/analytics_service.dart` - Fixed Map<String, Object> type signatures
-
-**Screen Files (4 files):**
-- `frontend/lib/screens/paywall_screen.dart` - Fixed widget.showBackButton reference
-- `frontend/lib/screens/profile_screen.dart` - Added type cast for Firebase Analytics
-- `frontend/lib/screens/chat_screen.dart` - Removed unused imports and variables
-- `frontend/lib/screens/discovery_screen.dart` - Removed unused field
-- `frontend/lib/screens/matches_screen.dart` - Removed unused variables
-- `frontend/lib/main.dart` - Removed unused import
-
-**Utility Files (1 file):**
-- `frontend/lib/utils/error_handler.dart` - Added dart:async import
-
-**Test Files (1 file):**
-- `frontend/test/services/auth_service_test.dart` - Added import for generated mocks
-
-**Configuration Files (1 file):**
-- `frontend/pubspec.yaml` - Upgraded connectivity_plus from ^5.0.0 to ^7.0.0
-
-**Generated Files:**
-- `frontend/test/services/auth_service_test.mocks.dart` - Generated by build_runner
-
----
-
-## Current State of the Project
-
-### ✅ What's Complete
-1. **Phase 1** (Security Hardening) - 100% complete
-   - JWT authentication
-   - Authorization on 16 endpoints
-   - Input validation
-   - CORS configuration
-   - Security headers
-   - Sentry + Crashlytics
-
-2. **Phase 2** (Testing & Infrastructure) - 100% complete
-   - 235+ tests written (158 backend, 77 frontend)
-   - Rate limiting (20+ endpoints)
-   - Winston structured logging
-   - PII redaction
-   - Beta testing documentation (100+ pages)
-   - Firebase Analytics (20+ events)
-   - In-app feedback system
-
-3. **Test Infrastructure** - 100% functional
-   - Jest configured
-   - Backend tests execute
-   - Mocking framework works
-   - Environment variables set correctly
-   - Services properly exported
-
-4. **Flutter App Compilation** - ✅ 100% error-free
-   - All 24 errors fixed
-   - Main warnings cleaned up
-   - App analyzes without errors
-   - Ready to build
-
-### ⚠️ What Needs Attention
-1. **Railway Deployment** (Required - 2-3 hours)
-   - Configure Railway environment variables
-   - Deploy 3 backend services
-   - Update frontend with Railway URLs
-   - Configure Firebase (flutterfire configure)
-   - Set up feedback webhook (Slack/Discord)
-
-2. **App Building** (Required - 1-2 hours)
-   - Build Android APK/Bundle
-   - Build iOS IPA
-   - Test on physical devices
-   - Upload to TestFlight/Play Console
-
-3. **Legal Review** (Required - 1-2 weeks)
-   - Privacy Policy attorney review
-   - Terms of Service attorney review
-   - **CANNOT LAUNCH WITHOUT THIS**
-
----
-
-## Next Steps for Next Session
-
-### Immediate (Can Do Now)
-1. **Build Flutter App** (30-45 min)
-   ```bash
-   cd frontend
-   flutter build apk --release  # Android
-   flutter build ios --release  # iOS (requires macOS)
-   ```
-
-2. **Test on Devices** (30 min)
-   - Install on Android device
-   - Install on iOS device (if available)
-   - Manual smoke testing
-   - Verify all features work
-
-3. **Deploy to Railway** (30-45 min)
-   ```bash
-   railway login
-   cd backend/auth-service && railway up
-   cd backend/profile-service && railway up
-   cd backend/chat-service && railway up
-   ```
-
-4. **Configure Environment Variables** (15 min)
-   - Generate JWT_SECRET: `openssl rand -base64 64`
-   - Set DATABASE_URL from Railway Postgres
-   - Set CORS_ORIGIN to frontend URL
-   - Set NODE_ENV=production
-
-5. **Update Frontend Config** (5 min)
-   ```dart
-   // lib/config/app_config.dart
-   static const String _prodAuthServiceUrl = 'https://your-auth.railway.app';
-   static const String _prodProfileServiceUrl = 'https://your-profile.railway.app';
-   static const String _prodChatServiceUrl = 'https://your-chat.railway.app';
-   ```
-
-### This Week
-- Complete deployment setup (above)
-- Build and test mobile apps
-- Manual end-to-end testing
-- Submit Privacy Policy + Terms to attorney
-
-### Next Week
-- Build iOS TestFlight version
-- Build Android Early Access version
-- Recruit 10-15 alpha testers
-- Launch Closed Alpha (Week 1 of beta plan)
-
-### During Beta (4-6 weeks)
-- Fix issues reported by testers
-- Iterate based on feedback
-- Monitor analytics
-- Prepare for public launch
-
----
-
-## Analysis Results
-
-### Final Flutter Analysis
+### Test Results
 ```bash
-flutter analyze
+# Seed endpoint
+curl -X POST https://nobsdatingauth.up.railway.app/auth/seed-test-users
+# Response: {"success":true,"message":"Test users seeded successfully"}
+
+# Test login
+curl -X POST https://nobsdatingauth.up.railway.app/auth/test-login \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "google_test001"}'
+# Response: {"success":true,"token":"...","userId":"google_test001","provider":"google","email":"alex.chen@test.com"}
 ```
-**Result:** 0 errors, 34 issues (only info/warnings)
-- 0 errors ✅
-- 5 warnings (dead code in tests - not critical)
-- 29 info messages (deprecated methods - can upgrade later)
 
-### Error Categories Fixed
-1. **Model Errors:** 3 fixed (matchId, dateOfBirth, gender)
-2. **Undefined Identifiers:** 4 fixed (showBackButton, TimeoutException, Mock classes)
-3. **Type Mismatches:** 4 fixed (Map<String, Object> conversions)
-4. **Connectivity API:** 11 fixed (package upgrade to v7.0.0)
-5. **Unused Code:** 5 fixed (imports, variables, fields)
+### Available Test Accounts
+All 20 test users are now available for login:
+- `google_test001` (Alex Chen - Software engineer, loves cooking)
+- `google_test002` (Jordan Rivera - Yoga instructor)
+- `google_test003` through `google_test020`
 
-**Total Errors Fixed:** 27
-**Time Taken:** ~30 minutes
+Each user has:
+- Unique email and realistic bio
+- Age, interests, and photos
+- Some users have matches and conversation history
 
----
+### Files Modified
+1. `backend/auth-service/src/index.ts` - Test endpoints, seed endpoint, SSL fix
+2. `frontend/lib/config/app_config.dart` - Hardcoded Railway URLs
+3. `CHANGELOG.md` - Documented changes
 
-## Technical Decisions Made
+### Current State
+✅ Test login fully functional on physical device
+✅ 20 test users seeded in Railway database
+✅ Debug APK installed and ready for testing
+✅ All backend services deployed and accessible
 
-1. **Connectivity Package Upgrade** - Upgraded from v5.0.0 to v7.0.0
-   - Type signatures in code already matched v7 API
-   - Package was lagging behind
-   - Simpler to upgrade than downgrade type signatures
+### Next Steps
+1. Full app testing on physical device
+2. Test all user flows (discovery, matching, chat)
+3. Verify payment wall integration
+4. Check analytics tracking
+5. Test safety features (block/report)
 
-2. **Age Group Calculation** - Added integer-based method
-   - Profile model uses `age` (int), not `dateOfBirth` (DateTime)
-   - Created `calculateAgeGroupFromAge` to match existing `calculateAgeGroup`
-   - Maintains consistency in analytics tracking
-
-3. **Mock Generation** - Used Mockito build_runner
-   - Generates type-safe mocks automatically
-   - Prevents manual mock maintenance
-   - Standard Flutter testing practice
-
-4. **Warnings Cleanup** - Removed unused code
-   - Improves code quality
-   - Reduces confusion for future developers
-   - Left deprecated method warnings (not critical for beta)
-
----
-
-## Metrics Snapshot
-
-| Metric | Value |
-|--------|-------|
-| **Dart Analysis Errors** | 0 ✅ (was 24) |
-| **Dart Analysis Warnings** | 5 (dead code in tests) |
-| **Dart Analysis Info** | 29 (deprecated methods) |
-| **Dependencies Updated** | 1 (connectivity_plus) |
-| **Files Modified** | 13 |
-| **Build Status** | ✅ Ready to build |
-| **Phase 1** | ✅ 100% complete |
-| **Phase 2** | ✅ 100% complete |
-| **App Compilation** | ✅ 100% error-free |
-
----
-
-## Questions for User (Next Session)
-
-1. **Building:** Ready to build Android/iOS apps now?
-2. **Deployment:** Want to deploy backend to Railway?
-3. **Testing:** Need help with device testing?
-4. **Firebase:** Ready to configure Firebase for production?
-5. **App Stores:** Have developer accounts set up (Apple, Google)?
-
----
-
-## Summary for Next Session Start
-
-**READ THIS FIRST:**
-
-The NoBS Dating Flutter app had 24 compilation errors that prevented building. All errors have been fixed:
-- Model property issues resolved
-- Type mismatches corrected
-- Connectivity package upgraded
-- Mock classes generated
-- Unused code cleaned up
-
-**Current Task:** App is ready to build and deploy
-**Next Action:** Build Flutter apps, deploy backend to Railway, configure Firebase
-**Blocker:** Legal review needed before public launch (1-2 weeks)
-**Timeline:** Can build and test apps immediately, deploy within hours
-
-**Key Files:**
-- `BETA_PREP_STATUS.md` - Current comprehensive status
-- `CHANGELOG.md` - Complete project history
-- `PHASE1_COMPLETION_SUMMARY.md` - Phase 1 details
-- `PHASE2_COMPLETION_SUMMARY.md` - Phase 2 details
-
-**Build Status:** ✅ Ready to build (0 errors)
-**Production Code:** Ready for beta (85/100 security score)
-**Documentation:** World-class (100+ pages)
-
----
-
-**Session End:** 2025-11-13
-**Next Session Goal:** Build mobile apps and deploy to Railway
-**Estimated Time:** 2-3 hours for building + deployment
+### Notes
+- Test endpoints are now available in production (ENABLE_TEST_ENDPOINTS=true)
+- This should be disabled before public launch
+- SSL certificate validation is disabled for Railway database
+- Frontend temporarily hardcoded to Railway URLs (revert for local development)
