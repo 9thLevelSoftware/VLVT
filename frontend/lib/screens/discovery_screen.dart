@@ -8,6 +8,7 @@ import '../services/subscription_service.dart';
 import '../services/discovery_preferences_service.dart';
 import '../services/analytics_service.dart';
 import '../widgets/premium_gate_dialog.dart';
+import '../widgets/empty_state_widget.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
 import 'discovery_filters_screen.dart';
@@ -593,45 +594,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
             ),
           ],
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.explore_off, size: 80, color: Colors.grey),
-              const SizedBox(height: 24),
-              const Text(
-                'No more profiles available',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  hasActiveFilters
-                      ? 'Try adjusting your filters to see more profiles'
-                      : 'Check back later for new matches!',
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (hasActiveFilters)
-                ElevatedButton.icon(
-                  onPressed: _navigateToFilters,
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Adjust Filters'),
-                ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () async {
-                  await prefsService.clearSeenProfiles();
-                  _currentProfileIndex = 0;
-                  await _loadProfiles();
-                },
-                child: const Text('Show All Profiles Again'),
-              ),
-            ],
-          ),
+        body: DiscoveryEmptyState.noProfiles(
+          context: context,
+          hasFilters: hasActiveFilters,
+          onAdjustFilters: _navigateToFilters,
+          onShowAllProfiles: () async {
+            await prefsService.clearSeenProfiles();
+            _currentProfileIndex = 0;
+            await _loadProfiles();
+          },
         ),
       );
     }

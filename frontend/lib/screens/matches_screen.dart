@@ -11,6 +11,7 @@ import '../models/profile.dart';
 import '../models/message.dart';
 import '../utils/date_utils.dart';
 import '../widgets/user_action_sheet.dart';
+import '../widgets/empty_state_widget.dart';
 import 'chat_screen.dart';
 
 enum SortOption { recentActivity, newestMatches, nameAZ }
@@ -670,90 +671,18 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
     // Show empty state (no matches at all)
     if (_matches.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 100),
-          const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 100,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No matches yet',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Keep swiping to find your match!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 24),
-              ],
-            ),
-          ),
-          Center(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to discovery screen - switch to first tab
-                final tabController = DefaultTabController.of(context);
-                tabController.animateTo(0);
-              },
-              icon: const Icon(Icons.explore),
-              label: const Text('Go to Discovery'),
-            ),
-          ),
-        ],
+      return MatchesEmptyState.noMatches(
+        onGoToDiscovery: () {
+          // Navigate to discovery screen - switch to first tab
+          final tabController = DefaultTabController.of(context);
+          tabController.animateTo(0);
+        },
       );
     }
 
     // Show "no results" state (filtered results are empty)
     if (filteredMatches.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 100),
-          const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off,
-                  size: 80,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No matches found',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Try adjusting your search or filters',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
+      return MatchesEmptyState.noSearchResults();
     }
 
     // Show matches list
