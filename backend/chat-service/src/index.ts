@@ -14,6 +14,7 @@ if (process.env.SENTRY_DSN) {
 }
 
 import express, { Request, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import { Pool } from 'pg';
@@ -21,6 +22,7 @@ import { authMiddleware } from './middleware/auth';
 import { validateMessage, validateMatch, validateReport, validateBlock } from './middleware/validation';
 import logger from './utils/logger';
 import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
+import { initializeSocketIO } from './socket';
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -639,12 +641,20 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
+// Create HTTP server and initialize Socket.IO
+const httpServer = createServer(app);
+const io = initializeSocketIO(httpServer, pool);
+
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    logger.info(`Chat service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
+  httpServer.listen(PORT, () => {
+    logger.info(`Chat service started with Socket.IO`, {
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development'
+    });
   });
 }
 
 // Export for testing
 export default app;
+export { io, httpServer };
