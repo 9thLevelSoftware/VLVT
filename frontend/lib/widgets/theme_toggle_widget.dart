@@ -1,0 +1,106 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/theme_service.dart';
+
+/// Widget for toggling between light and dark themes
+class ThemeToggleWidget extends StatelessWidget {
+  const ThemeToggleWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final themeService = context.watch<ThemeService>();
+
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          themeService.isDarkMode ? Icons.dark_mode : Icons.light_mode,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        title: const Text(
+          'Dark Mode',
+          style: TextStyle(fontWeight: FontWeight.w500),
+        ),
+        subtitle: Text(_getThemeModeText(themeService.themeMode)),
+        trailing: Switch(
+          value: themeService.themeMode == ThemeMode.dark,
+          onChanged: (value) {
+            themeService.setThemeMode(
+              value ? ThemeMode.dark : ThemeMode.light,
+            );
+          },
+        ),
+        onTap: () {
+          // Show theme options dialog
+          _showThemeDialog(context, themeService);
+        },
+      ),
+    );
+  }
+
+  String _getThemeModeText(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light theme enabled';
+      case ThemeMode.dark:
+        return 'Dark theme enabled';
+      case ThemeMode.system:
+        return 'Following system preference';
+    }
+  }
+
+  void _showThemeDialog(BuildContext context, ThemeService themeService) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Theme Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              title: const Text('Light'),
+              subtitle: const Text('Always use light theme'),
+              value: ThemeMode.light,
+              groupValue: themeService.themeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  themeService.setThemeMode(value);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Dark'),
+              subtitle: const Text('Always use dark theme'),
+              value: ThemeMode.dark,
+              groupValue: themeService.themeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  themeService.setThemeMode(value);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('System'),
+              subtitle: const Text('Follow system theme'),
+              value: ThemeMode.system,
+              groupValue: themeService.themeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  themeService.setThemeMode(value);
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+}

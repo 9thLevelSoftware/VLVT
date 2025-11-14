@@ -14,6 +14,7 @@ import 'services/safety_service.dart';
 import 'services/discovery_preferences_service.dart';
 import 'services/analytics_service.dart';
 import 'services/notification_service.dart';
+import 'services/theme_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/chat_screen.dart';
@@ -63,7 +64,11 @@ void main() async {
     debugPrint('To enable Firebase, follow instructions in FIREBASE_SETUP.md');
   }
 
-  runApp(const MyApp());
+  // Initialize Theme Service
+  final themeService = ThemeService();
+  await themeService.initialize();
+
+  runApp(MyApp(themeService: themeService));
 }
 
 /// Handle notification tap - navigate to appropriate screen
@@ -93,12 +98,15 @@ void _handleNotificationTap(Map<String, dynamic> data) {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final ThemeService themeService;
+
+  const MyApp({super.key, required this.themeService});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: themeService),
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => SubscriptionService()),
         ChangeNotifierProvider(create: (_) => CacheService()),
@@ -124,17 +132,20 @@ class MyApp extends StatelessWidget {
           update: (context, auth, previous) => SafetyService(auth),
         ),
       ],
-      child: MaterialApp(
-        title: 'NoBS Dating',
-        navigatorKey: navigatorKey,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        navigatorObservers: [
-          AnalyticsService.getObserver(),
-        ],
-        home: const AuthWrapper(),
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, _) {
+          return MaterialApp(
+            title: 'NoBS Dating',
+            navigatorKey: navigatorKey,
+            theme: AppThemes.lightTheme,
+            darkTheme: AppThemes.darkTheme,
+            themeMode: themeService.themeMode,
+            navigatorObservers: [
+              AnalyticsService.getObserver(),
+            ],
+            home: const AuthWrapper(),
+          );
+        },
       ),
     );
   }

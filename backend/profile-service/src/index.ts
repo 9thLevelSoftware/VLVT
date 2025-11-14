@@ -575,8 +575,43 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
 
     // Fetch profiles with or without distance calculation
     let query: string;
+    let countQuery: string;
+    let totalCount = 0;
+
+    // First, get total count of matching profiles for efficient random offset
+    if (userLocation && maxDistance) {
+      // Count profiles within distance (more expensive due to distance calculation)
+      countQuery = `
+        SELECT COUNT(*) as count
+        FROM profiles
+        WHERE ${whereClause}
+          AND latitude IS NOT NULL
+          AND longitude IS NOT NULL
+          AND (
+            6371 * acos(
+              cos(radians($${paramIndex})) * cos(radians(latitude)) *
+              cos(radians(longitude) - radians($${paramIndex + 1})) +
+              sin(radians($${paramIndex})) * sin(radians(latitude))
+            )
+          ) <= $${paramIndex + 2}
+      `;
+      const countResult = await pool.query(countQuery, [...params, userLocation.latitude, userLocation.longitude, maxDistance]);
+      totalCount = parseInt(countResult.rows[0].count);
+    } else {
+      // Simple count for non-distance queries
+      countQuery = `SELECT COUNT(*) as count FROM profiles WHERE ${whereClause}`;
+      const countResult = await pool.query(countQuery, params);
+      totalCount = parseInt(countResult.rows[0].count);
+    }
+
+    // Calculate random offset (ensure we have enough profiles for LIMIT 20)
+    const limit = 20;
+    const maxOffset = Math.max(0, totalCount - limit);
+    const randomOffset = Math.floor(Math.random() * (maxOffset + 1));
+
     if (userLocation && maxDistance) {
       // P1: Use Haversine formula to calculate distance and filter
+      // Optimized with OFFSET instead of ORDER BY RANDOM()
       query = `
         SELECT
           user_id, name, age, bio, photos, interests, latitude, longitude,
@@ -592,17 +627,20 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
           AND latitude IS NOT NULL
           AND longitude IS NOT NULL
         HAVING distance <= $${paramIndex + 2}
-        ORDER BY RANDOM()
-        LIMIT 20
+        ORDER BY user_id
+        OFFSET ${randomOffset}
+        LIMIT ${limit}
       `;
       params.push(userLocation.latitude, userLocation.longitude, maxDistance);
     } else {
+      // Optimized with OFFSET instead of ORDER BY RANDOM()
       query = `
         SELECT user_id, name, age, bio, photos, interests, latitude, longitude
         FROM profiles
         WHERE ${whereClause}
-        ORDER BY RANDOM()
-        LIMIT 20
+        ORDER BY user_id
+        OFFSET ${randomOffset}
+        LIMIT ${limit}
       `;
     }
 

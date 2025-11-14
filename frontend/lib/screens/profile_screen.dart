@@ -7,6 +7,7 @@ import '../models/profile.dart';
 import 'profile_edit_screen.dart';
 import 'safety_settings_screen.dart';
 import '../widgets/feedback_widget.dart';
+import '../widgets/theme_toggle_widget.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -250,6 +251,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    const ThemeToggleWidget(),
                   ],
                 ),
               ),
