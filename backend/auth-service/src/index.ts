@@ -277,15 +277,33 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_TEST_ENDPOINTS =
   // Seed database endpoint (BETA TESTING ONLY)
   app.post('/auth/seed-test-users', async (req: Request, res: Response) => {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const seedPath = path.join(__dirname, '../seed.sql');
+      // Inline seed SQL to ensure it's available in deployment
+      const seedSQL = `
+-- Test Users
+INSERT INTO users (id, provider, email, created_at, updated_at) VALUES
+('google_test001', 'google', 'alex.chen@test.com', NOW() - INTERVAL '30 days', NOW() - INTERVAL '30 days'),
+('google_test002', 'google', 'jordan.rivera@test.com', NOW() - INTERVAL '28 days', NOW() - INTERVAL '28 days'),
+('google_test003', 'google', 'sam.patel@test.com', NOW() - INTERVAL '25 days', NOW() - INTERVAL '25 days'),
+('google_test004', 'google', 'taylor.kim@test.com', NOW() - INTERVAL '22 days', NOW() - INTERVAL '22 days'),
+('google_test005', 'google', 'morgan.santos@test.com', NOW() - INTERVAL '20 days', NOW() - INTERVAL '20 days'),
+('google_test006', 'google', 'casey.nguyen@test.com', NOW() - INTERVAL '18 days', NOW() - INTERVAL '18 days'),
+('google_test007', 'google', 'riley.anderson@test.com', NOW() - INTERVAL '15 days', NOW() - INTERVAL '15 days'),
+('google_test008', 'google', 'avery.williams@test.com', NOW() - INTERVAL '12 days', NOW() - INTERVAL '12 days'),
+('google_test009', 'google', 'drew.martinez@test.com', NOW() - INTERVAL '10 days', NOW() - INTERVAL '10 days'),
+('google_test010', 'google', 'charlie.lee@test.com', NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days'),
+('google_test011', 'google', 'jamie.brown@test.com', NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days'),
+('google_test012', 'google', 'quinn.davis@test.com', NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'),
+('google_test013', 'google', 'reese.garcia@test.com', NOW() - INTERVAL '4 days', NOW() - INTERVAL '4 days'),
+('google_test014', 'google', 'skylar.wilson@test.com', NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+('google_test015', 'google', 'blake.moore@test.com', NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'),
+('google_test016', 'google', 'phoenix.taylor@test.com', NOW() - INTERVAL '1 days', NOW() - INTERVAL '1 days'),
+('google_test017', 'google', 'sage.jackson@test.com', NOW() - INTERVAL '12 hours', NOW() - INTERVAL '12 hours'),
+('google_test018', 'google', 'dakota.white@test.com', NOW() - INTERVAL '6 hours', NOW() - INTERVAL '6 hours'),
+('google_test019', 'google', 'river.harris@test.com', NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours'),
+('google_test020', 'google', 'ocean.clark@test.com', NOW() - INTERVAL '1 hour', NOW() - INTERVAL '1 hour')
+ON CONFLICT (id) DO NOTHING;
+      `;
 
-      if (!fs.existsSync(seedPath)) {
-        return res.status(404).json({ success: false, error: 'Seed file not found' });
-      }
-
-      const seedSQL = fs.readFileSync(seedPath, 'utf8');
       await pool.query(seedSQL);
 
       res.json({ success: true, message: 'Test users seeded successfully' });
