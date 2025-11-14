@@ -279,7 +279,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_TEST_ENDPOINTS =
     try {
       const fs = require('fs');
       const path = require('path');
-      const seedPath = path.join(__dirname, '../../seed-data/seed.sql');
+      const seedPath = path.join(__dirname, '../seed.sql');
 
       if (!fs.existsSync(seedPath)) {
         return res.status(404).json({ success: false, error: 'Seed file not found' });
