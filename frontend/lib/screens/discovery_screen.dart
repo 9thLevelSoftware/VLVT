@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
@@ -38,6 +39,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
   late Animation<double> _cardAnimation;
   bool _isExpanded = false;
 
+  // Photo carousel
+  PageController? _photoPageController;
+  int _currentPhotoIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +61,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
   void dispose() {
     _undoTimer?.cancel();
     _cardAnimationController.dispose();
+    _photoPageController?.dispose();
     super.dispose();
   }
 
@@ -260,11 +266,20 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
     setState(() {
       if (_currentProfileIndex < _filteredProfiles.length - 1) {
         _currentProfileIndex++;
+        _currentPhotoIndex = 0;
+        _photoPageController?.dispose();
+        _photoPageController = null;
         _saveCurrentIndex();
       } else {
         _showEndOfProfilesMessage();
       }
     });
+  }
+
+  void _initPhotoController(int photoCount) {
+    if (_photoPageController == null && photoCount > 0) {
+      _photoPageController = PageController(initialPage: 0);
+    }
   }
 
   void _showUndo() {
@@ -658,11 +673,82 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(
-                                        Icons.person,
-                                        size: 120,
-                                        color: Colors.white,
-                                      ),
+                                      // Photo carousel or default icon
+                                      if (profile.photos != null && profile.photos!.isNotEmpty) ...[
+                                        Builder(
+                                          builder: (context) {
+                                            _initPhotoController(profile.photos!.length);
+                                            return Column(
+                                              children: [
+                                                SizedBox(
+                                                  height: 300,
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: PageView.builder(
+                                                      controller: _photoPageController,
+                                                      onPageChanged: (index) {
+                                                        setState(() {
+                                                          _currentPhotoIndex = index;
+                                                        });
+                                                      },
+                                                      itemCount: profile.photos!.length,
+                                                      itemBuilder: (context, index) {
+                                                        final photoUrl = profile.photos![index];
+                                                        final profileService = context.read<ProfileApiService>();
+                                                        return CachedNetworkImage(
+                                                          imageUrl: '${profileService.baseUrl}$photoUrl',
+                                                          fit: BoxFit.cover,
+                                                          placeholder: (context, url) => Container(
+                                                            color: Colors.white.withOpacity(0.2),
+                                                            child: const Center(
+                                                              child: CircularProgressIndicator(
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          errorWidget: (context, url, error) => Container(
+                                                            color: Colors.white.withOpacity(0.2),
+                                                            child: const Icon(
+                                                              Icons.broken_image,
+                                                              size: 80,
+                                                              color: Colors.white70,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (profile.photos!.length > 1) ...[
+                                                  const SizedBox(height: 12),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: List.generate(
+                                                      profile.photos!.length,
+                                                      (index) => Container(
+                                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                        width: 8,
+                                                        height: 8,
+                                                        decoration: BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          color: _currentPhotoIndex == index
+                                                              ? Colors.white
+                                                              : Colors.white.withOpacity(0.4),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ] else
+                                        const Icon(
+                                          Icons.person,
+                                          size: 120,
+                                          color: Colors.white,
+                                        ),
                                       const SizedBox(height: 24),
                                       Text(
                                         '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',

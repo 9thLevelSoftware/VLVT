@@ -52,6 +52,11 @@ dependencies:
   device_info_plus: ^9.1.0
   package_info_plus: ^9.0.0
 
+  # Image handling
+  image_picker: ^1.1.2
+  cached_network_image: ^3.4.1
+  http_parser: ^4.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
