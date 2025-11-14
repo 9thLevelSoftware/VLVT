@@ -33,4 +33,7 @@ class Match {
   String getOtherUserId(String currentUserId) {
     return userId1 == currentUserId ? userId2 : userId1;
   }
+
+  /// Alias for id (for backward compatibility)
+  String get matchId => id;
 }

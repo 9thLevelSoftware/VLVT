@@ -22,11 +22,11 @@ dependencies:
   http: ^1.1.0
   
   # Authentication
-  sign_in_with_apple: ^5.0.0
-  google_sign_in: ^6.1.5
+  sign_in_with_apple: ^7.0.0
+  google_sign_in: ^7.0.0
   
   # RevenueCat SDK for subscriptions
-  purchases_flutter: ^6.0.0
+  purchases_flutter: ^9.0.0
   
   # Secure storage for tokens
   flutter_secure_storage: ^9.0.0
@@ -39,7 +39,7 @@ dependencies:
 
   # UX Improvements
   shimmer: ^3.0.0
-  connectivity_plus: ^5.0.0
+  connectivity_plus: ^7.0.0
   lottie: ^2.7.0
 
   # Firebase

@@ -49,34 +49,43 @@ class AppConfig {
 
   /// Auth Service URL with local development fallback
   static String get authServiceUrl {
-    if (kDebugMode) {
-      // For local development - use 10.0.2.2 for Android emulator
-      return Platform.isAndroid
-        ? 'http://10.0.2.2:3001'
-        : 'http://localhost:3001';
-    }
+    // TEMPORARY: Always use Railway for testing on real devices
     return _prodAuthServiceUrl;
+
+    // Uncomment below for local development:
+    // if (kDebugMode) {
+    //   return Platform.isAndroid
+    //     ? 'http://10.0.2.2:3001'
+    //     : 'http://localhost:3001';
+    // }
+    // return _prodAuthServiceUrl;
   }
 
   /// Profile Service URL with local development fallback
   static String get profileServiceUrl {
-    if (kDebugMode) {
-      // For local development - use 10.0.2.2 for Android emulator
-      return Platform.isAndroid
-        ? 'http://10.0.2.2:3002'
-        : 'http://localhost:3002';
-    }
+    // TEMPORARY: Always use Railway for testing on real devices
     return _prodProfileServiceUrl;
+
+    // Uncomment below for local development:
+    // if (kDebugMode) {
+    //   return Platform.isAndroid
+    //     ? 'http://10.0.2.2:3002'
+    //     : 'http://localhost:3002';
+    // }
+    // return _prodProfileServiceUrl;
   }
 
   /// Chat Service URL with local development fallback
   static String get chatServiceUrl {
-    if (kDebugMode) {
-      // For local development - use 10.0.2.2 for Android emulator
-      return Platform.isAndroid
-        ? 'http://10.0.2.2:3003'
-        : 'http://localhost:3003';
-    }
+    // TEMPORARY: Always use Railway for testing on real devices
     return _prodChatServiceUrl;
+
+    // Uncomment below for local development:
+    // if (kDebugMode) {
+    //   return Platform.isAndroid
+    //     ? 'http://10.0.2.2:3003'
+    //     : 'http://localhost:3003';
+    // }
+    // return _prodChatServiceUrl;
   }
 }

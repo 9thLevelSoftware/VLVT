@@ -21,7 +21,6 @@ class DiscoveryScreen extends StatefulWidget {
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProviderStateMixin {
   int _currentProfileIndex = 0;
-  List<Profile>? _profiles;
   List<Profile> _filteredProfiles = [];
   List<Match>? _currentMatches;
   bool _isLoading = true;
@@ -115,7 +114,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
       );
 
       setState(() {
-        _profiles = profiles;
         _filteredProfiles = _filterProfilesClientSide(profiles);
         _isLoading = false;
 

@@ -363,8 +363,6 @@ class _MatchesScreenState extends State<MatchesScreen> {
     if (userId == null) return;
 
     final otherUserId = match.getOtherUserId(userId);
-    final profile = _profiles[otherUserId];
-    final name = profile?.name ?? 'this user';
 
     showModalBottomSheet(
       context: context,

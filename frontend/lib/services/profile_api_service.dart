@@ -110,12 +110,11 @@ class ProfileApiService extends ChangeNotifier {
           // Track profile creation
           await AnalyticsService.logProfileCreated();
 
-          // Set user properties
-          if (createdProfile.dateOfBirth != null) {
-            final ageGroup = AnalyticsService.calculateAgeGroup(createdProfile.dateOfBirth!);
+          // Set user properties (using age instead of dateOfBirth)
+          if (createdProfile.age != null) {
+            final ageGroup = AnalyticsService.calculateAgeGroupFromAge(createdProfile.age!);
             await AnalyticsService.setUserProperties(
               ageGroup: ageGroup,
-              gender: createdProfile.gender,
               signupDate: DateTime.now(),
             );
           }

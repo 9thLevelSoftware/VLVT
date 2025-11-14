@@ -9,26 +9,35 @@ import 'analytics_service.dart';
 
 class AuthService extends ChangeNotifier {
   final _storage = const FlutterSecureStorage();
-  final _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
-  
+  final _googleSignIn = GoogleSignIn.instance;
+  bool _isGoogleSignInInitialized = false;
+
   String? _token;
   String? _userId;
   bool _isAuthenticated = false;
-  
+
   bool get isAuthenticated => _isAuthenticated;
   String? get userId => _userId;
   String? get token => _token;
-  
+
   // Base URL for backend - uses AppConfig
   // For iOS simulator: http://localhost:3001
   // For Android emulator: http://10.0.2.2:3001
   // For real device: http://YOUR_COMPUTER_IP:3001
   String get baseUrl => AppConfig.authServiceUrl;
-  
+
   AuthService() {
     _loadToken();
+    _initializeGoogleSignIn();
+  }
+
+  Future<void> _initializeGoogleSignIn() async {
+    if (!_isGoogleSignInInitialized) {
+      // Note: scopes parameter no longer exists in v7.x
+      // Scopes are now configured in platform-specific files
+      await _googleSignIn.initialize();
+      _isGoogleSignInInitialized = true;
+    }
   }
   
   Future<void> _loadToken() async {
@@ -98,14 +107,11 @@ class AuthService extends ChangeNotifier {
         return false;
       }
 
-      final account = await _googleSignIn.signIn();
-      if (account == null) {
-        // User cancelled
-        await AnalyticsService.logLoginFailed('google', 'user_cancelled');
-        return false;
-      }
+      final account = await _googleSignIn.authenticate(
+        scopeHint: const <String>['email', 'profile'],
+      );
 
-      final auth = await account.authentication;
+      final auth = account.authentication;
 
       // Send to backend
       final response = await http.post(

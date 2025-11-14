@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
 import '../services/profile_api_service.dart';
-import '../services/safety_service.dart';
 import '../services/subscription_service.dart';
 import '../models/match.dart';
 import '../models/message.dart';
@@ -554,7 +553,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _buildMessageBubble(Message message, bool isCurrentUser) {
     final isFailed = message.status == MessageStatus.failed;
-    final isSending = message.status == MessageStatus.sending;
 
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,

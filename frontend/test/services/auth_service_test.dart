@@ -5,6 +5,9 @@ import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 import 'dart:convert';
 
+// Import generated mocks
+import 'auth_service_test.mocks.dart';
+
 // Mock classes will be generated
 @GenerateMocks([FlutterSecureStorage, http.Client])
 void main() {

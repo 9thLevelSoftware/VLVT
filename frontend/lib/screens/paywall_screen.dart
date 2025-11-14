@@ -167,7 +167,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                if (!showBackButton)
+                if (!widget.showBackButton)
                   OutlinedButton(
                     onPressed: () {
                       subscriptionService.enableDemoMode();

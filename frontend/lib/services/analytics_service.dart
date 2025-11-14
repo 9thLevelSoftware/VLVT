@@ -83,7 +83,7 @@ class AnalyticsService {
   }
 
   /// Log when user updates their profile
-  static Future<void> logProfileUpdated({Map<String, dynamic>? fields}) async {
+  static Future<void> logProfileUpdated({Map<String, Object>? fields}) async {
     try {
       await _analytics.logEvent(
         name: 'profile_updated',
@@ -168,7 +168,7 @@ class AnalyticsService {
   }
 
   /// Log when user applies discovery filters
-  static Future<void> logFiltersApplied(Map<String, dynamic> filters) async {
+  static Future<void> logFiltersApplied(Map<String, Object> filters) async {
     try {
       await _analytics.logEvent(
         name: 'filters_applied',
@@ -392,6 +392,17 @@ class AnalyticsService {
     return '65_plus';
   }
 
+  /// Calculate age group from integer age
+  static String calculateAgeGroupFromAge(int age) {
+    if (age < 18) return 'under_18';
+    if (age <= 24) return '18_24';
+    if (age <= 34) return '25_34';
+    if (age <= 44) return '35_44';
+    if (age <= 54) return '45_54';
+    if (age <= 64) return '55_64';
+    return '65_plus';
+  }
+
   // ============================================================
   // SCREEN TRACKING
   // ============================================================
@@ -413,7 +424,7 @@ class AnalyticsService {
   /// Log a custom event with optional parameters
   static Future<void> logCustomEvent(
     String eventName,
-    Map<String, dynamic>? parameters,
+    Map<String, Object>? parameters,
   ) async {
     try {
       await _analytics.logEvent(name: eventName, parameters: parameters);

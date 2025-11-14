@@ -262,7 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Log to Firebase Analytics
           await FirebaseAnalytics.instance.logEvent(
             name: 'beta_feedback',
-            parameters: feedback.toJson(),
+            parameters: feedback.toJson().cast<String, Object>(),
           );
         },
       ),
