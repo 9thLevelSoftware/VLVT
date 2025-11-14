@@ -43,6 +43,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
   PageController? _photoPageController;
   int _currentPhotoIndex = 0;
 
+  // Swipe gesture state
+  Offset _cardPosition = Offset.zero;
+  double _cardRotation = 0.0;
+  bool _isDragging = false;
+  late AnimationController _swipeAnimationController;
+  late Animation<Offset> _swipeAnimation;
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +61,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
       parent: _cardAnimationController,
       curve: Curves.easeInOut,
     );
+
+    // Initialize swipe animation controller
+    _swipeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
     _initializeDiscovery();
   }
 
@@ -61,6 +75,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
   void dispose() {
     _undoTimer?.cancel();
     _cardAnimationController.dispose();
+    _swipeAnimationController.dispose();
     _photoPageController?.dispose();
     super.dispose();
   }
@@ -298,6 +313,80 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
         });
       }
     });
+  }
+
+  // Swipe gesture handlers
+  void _onPanStart(DragStartDetails details) {
+    setState(() {
+      _isDragging = true;
+    });
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    setState(() {
+      _cardPosition += details.delta;
+
+      // Calculate rotation based on horizontal position (max 20 degrees)
+      _cardRotation = (_cardPosition.dx / 1000).clamp(-0.35, 0.35);
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final threshold = screenWidth * 0.3; // 30% of screen width
+
+    setState(() {
+      _isDragging = false;
+    });
+
+    // Check if swiped far enough
+    if (_cardPosition.dx.abs() > threshold) {
+      // Determine swipe direction
+      final swipeRight = _cardPosition.dx > 0;
+
+      // Animate card off screen
+      final targetX = swipeRight ? screenWidth * 1.5 : -screenWidth * 1.5;
+      _swipeAnimation = Tween<Offset>(
+        begin: _cardPosition,
+        end: Offset(targetX, _cardPosition.dy),
+      ).animate(CurvedAnimation(
+        parent: _swipeAnimationController,
+        curve: Curves.easeOut,
+      ));
+
+      _swipeAnimationController.forward(from: 0).then((_) {
+        // Reset card position
+        setState(() {
+          _cardPosition = Offset.zero;
+          _cardRotation = 0.0;
+        });
+        _swipeAnimationController.reset();
+
+        // Trigger appropriate action
+        if (swipeRight) {
+          _onLike();
+        } else {
+          _onPass();
+        }
+      });
+    } else {
+      // Snap back to center
+      _swipeAnimation = Tween<Offset>(
+        begin: _cardPosition,
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _swipeAnimationController,
+        curve: Curves.elasticOut,
+      ));
+
+      _swipeAnimationController.forward(from: 0).then((_) {
+        setState(() {
+          _cardPosition = Offset.zero;
+          _cardRotation = 0.0;
+        });
+        _swipeAnimationController.reset();
+      });
+    }
   }
 
   Future<void> _onUndo() async {
@@ -646,16 +735,42 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: GestureDetector(
+                      onPanStart: _onPanStart,
+                      onPanUpdate: _onPanUpdate,
+                      onPanEnd: _onPanEnd,
                       onTap: _toggleExpanded,
                       child: AnimatedBuilder(
-                        animation: _cardAnimation,
+                        animation: _swipeAnimationController.isAnimating
+                          ? _swipeAnimation
+                          : AlwaysStoppedAnimation(Offset.zero),
                         builder: (context, child) {
-                          return Card(
-                            elevation: 8,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Container(
+                          // Use animated position if animating, otherwise use dragged position
+                          final position = _swipeAnimationController.isAnimating
+                              ? _swipeAnimation.value
+                              : _cardPosition;
+
+                          // Calculate opacity based on swipe distance
+                          final opacity = _isDragging || _swipeAnimationController.isAnimating
+                              ? (1.0 - (position.dx.abs() / 300)).clamp(0.5, 1.0)
+                              : 1.0;
+
+                          return Transform.translate(
+                            offset: position,
+                            child: Transform.rotate(
+                              angle: _cardRotation,
+                              child: Opacity(
+                                opacity: opacity,
+                                child: AnimatedBuilder(
+                                  animation: _cardAnimation,
+                                  builder: (context, child) {
+                                    return Card(
+                                      elevation: 8,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topLeft,
@@ -828,6 +943,90 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                                 ),
                               ),
                             ),
+
+                            // Swipe direction indicators
+                            if (_isDragging || _swipeAnimationController.isAnimating) ...[
+                              // LIKE indicator (right swipe - green)
+                              if (position.dx > 50)
+                                Positioned(
+                                  top: 50,
+                                  left: 30,
+                                  child: Transform.rotate(
+                                    angle: -0.5,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.green,
+                                          width: 4,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'LIKE',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // PASS indicator (left swipe - red)
+                              if (position.dx < -50)
+                                Positioned(
+                                  top: 50,
+                                  right: 30,
+                                  child: Transform.rotate(
+                                    angle: 0.5,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.red,
+                                          width: 4,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'PASS',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ),
                           );
                         },
                       ),
