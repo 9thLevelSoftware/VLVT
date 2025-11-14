@@ -198,6 +198,46 @@ class ProfileApiService extends ChangeNotifier {
     }
   }
 
+  // ===== LOCATION METHODS =====
+
+  /// Update user's location
+  Future<bool> updateLocation(double latitude, double longitude) async {
+    try {
+      final userId = _authService.userId;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response = await http.put(
+        Uri.parse('$baseUrl/profile/$encodedUserId/location'),
+        headers: _getAuthHeaders(),
+        body: json.encode({
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          debugPrint('Location updated successfully');
+          notifyListeners();
+          return true;
+        } else {
+          debugPrint('Location update failed: ${data['error']}');
+          return false;
+        }
+      } else {
+        debugPrint('Location update failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error updating location: $e');
+      return false;
+    }
+  }
+
   // ===== PHOTO UPLOAD METHODS =====
 
   /// Upload a photo to the user's profile

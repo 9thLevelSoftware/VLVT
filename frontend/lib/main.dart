@@ -7,6 +7,8 @@ import 'services/auth_service.dart';
 import 'services/subscription_service.dart';
 import 'services/profile_api_service.dart';
 import 'services/chat_api_service.dart';
+import 'services/socket_service.dart';
+import 'services/location_service.dart';
 import 'services/cache_service.dart';
 import 'services/safety_service.dart';
 import 'services/discovery_preferences_service.dart';
@@ -68,6 +70,14 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProxyProvider<AuthService, ChatApiService>(
           create: (context) => ChatApiService(context.read<AuthService>()),
           update: (context, auth, previous) => ChatApiService(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthService, SocketService>(
+          create: (context) => SocketService(context.read<AuthService>()),
+          update: (context, auth, previous) => previous ?? SocketService(auth),
+        ),
+        ChangeNotifierProxyProvider<ProfileApiService, LocationService>(
+          create: (context) => LocationService(context.read<ProfileApiService>()),
+          update: (context, profile, previous) => previous ?? LocationService(profile),
         ),
         ChangeNotifierProxyProvider<AuthService, SafetyService>(
           create: (context) => SafetyService(context.read<AuthService>()),

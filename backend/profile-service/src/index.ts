@@ -273,6 +273,85 @@ app.delete('/profile/:userId', authMiddleware, generalLimiter, async (req: Reque
   }
 });
 
+// ===== LOCATION ENDPOINTS =====
+
+// Update user location - P1 Feature
+app.put('/profile/:userId/location', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
+  try {
+    const requestedUserId = req.params.userId;
+    const authenticatedUserId = req.user!.userId;
+
+    // Authorization check: user can only update their own location
+    if (requestedUserId !== authenticatedUserId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: Cannot update other users\' location'
+      });
+    }
+
+    const { latitude, longitude } = req.body;
+
+    // Validate latitude and longitude
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid location data: latitude and longitude must be numbers'
+      });
+    }
+
+    if (latitude < -90 || latitude > 90) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid latitude: must be between -90 and 90'
+      });
+    }
+
+    if (longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid longitude: must be between -180 and 180'
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE profiles
+       SET latitude = $2,
+           longitude = $3,
+           location_updated_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1
+       RETURNING user_id, latitude, longitude, location_updated_at`,
+      [requestedUserId, latitude, longitude]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    logger.info('Location updated', {
+      userId: requestedUserId,
+      latitude,
+      longitude
+    });
+
+    res.json({
+      success: true,
+      location: {
+        userId: result.rows[0].user_id,
+        latitude: result.rows[0].latitude,
+        longitude: result.rows[0].longitude,
+        updatedAt: result.rows[0].location_updated_at
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to update location', {
+      error,
+      requestedUserId: req.params.userId
+    });
+    res.status(500).json({ success: false, error: 'Failed to update location' });
+  }
+});
+
 // ===== PHOTO UPLOAD ENDPOINTS =====
 
 // Upload photo - Only allow users to upload photos to their own profile
@@ -431,28 +510,133 @@ app.put('/profile/photos/reorder', authMiddleware, generalLimiter, async (req: R
 // ===== DISCOVERY ENDPOINTS =====
 
 // Get random profiles for discovery - Requires authentication
+// P1: Now supports distance filtering based on user location
 app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Request, res: Response) => {
   try {
     const authenticatedUserId = req.user!.userId;
 
-    // Exclude the authenticated user's own profile from discovery
-    const result = await pool.query(
-      `SELECT user_id, name, age, bio, photos, interests
-       FROM profiles
-       WHERE user_id != $1
-       ORDER BY RANDOM()
-       LIMIT 10`,
-      [authenticatedUserId]
-    );
+    // Parse optional query parameters
+    const minAge = req.query.minAge ? parseInt(req.query.minAge as string) : null;
+    const maxAge = req.query.maxAge ? parseInt(req.query.maxAge as string) : null;
+    const maxDistance = req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : null; // P1: Distance in km
+    const interests = req.query.interests ? (req.query.interests as string).split(',') : null;
+    const excludeIds = req.query.exclude ? (req.query.exclude as string).split(',') : [];
 
-    const profiles = result.rows.map(profile => ({
-      userId: profile.user_id,
-      name: profile.name,
-      age: profile.age,
-      bio: profile.bio,
-      photos: profile.photos,
-      interests: profile.interests
-    }));
+    // Get current user's location for distance filtering
+    let userLocation: { latitude: number; longitude: number } | null = null;
+    if (maxDistance !== null) {
+      const locationResult = await pool.query(
+        'SELECT latitude, longitude FROM profiles WHERE user_id = $1',
+        [authenticatedUserId]
+      );
+
+      if (locationResult.rows.length > 0 &&
+          locationResult.rows[0].latitude !== null &&
+          locationResult.rows[0].longitude !== null) {
+        userLocation = {
+          latitude: locationResult.rows[0].latitude,
+          longitude: locationResult.rows[0].longitude
+        };
+      }
+    }
+
+    // Build WHERE clause conditions
+    const conditions = ['user_id != $1'];
+    const params: any[] = [authenticatedUserId];
+    let paramIndex = 2;
+
+    // Age filter
+    if (minAge !== null) {
+      conditions.push(`age >= $${paramIndex}`);
+      params.push(minAge);
+      paramIndex++;
+    }
+    if (maxAge !== null) {
+      conditions.push(`age <= $${paramIndex}`);
+      params.push(maxAge);
+      paramIndex++;
+    }
+
+    // Interests filter
+    if (interests && interests.length > 0) {
+      conditions.push(`interests && $${paramIndex}::text[]`);
+      params.push(interests);
+      paramIndex++;
+    }
+
+    // Exclude specific user IDs
+    if (excludeIds.length > 0) {
+      conditions.push(`user_id != ALL($${paramIndex}::text[])`);
+      params.push(excludeIds);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // Fetch profiles with or without distance calculation
+    let query: string;
+    if (userLocation && maxDistance) {
+      // P1: Use Haversine formula to calculate distance and filter
+      query = `
+        SELECT
+          user_id, name, age, bio, photos, interests, latitude, longitude,
+          (
+            6371 * acos(
+              cos(radians($${paramIndex})) * cos(radians(latitude)) *
+              cos(radians(longitude) - radians($${paramIndex + 1})) +
+              sin(radians($${paramIndex})) * sin(radians(latitude))
+            )
+          ) AS distance
+        FROM profiles
+        WHERE ${whereClause}
+          AND latitude IS NOT NULL
+          AND longitude IS NOT NULL
+        HAVING distance <= $${paramIndex + 2}
+        ORDER BY RANDOM()
+        LIMIT 20
+      `;
+      params.push(userLocation.latitude, userLocation.longitude, maxDistance);
+    } else {
+      query = `
+        SELECT user_id, name, age, bio, photos, interests, latitude, longitude
+        FROM profiles
+        WHERE ${whereClause}
+        ORDER BY RANDOM()
+        LIMIT 20
+      `;
+    }
+
+    const result = await pool.query(query, params);
+
+    const profiles = result.rows.map(profile => {
+      const profileData: any = {
+        userId: profile.user_id,
+        name: profile.name,
+        age: profile.age,
+        bio: profile.bio,
+        photos: profile.photos,
+        interests: profile.interests
+      };
+
+      // P1: Include distance if calculated
+      if (profile.distance !== undefined) {
+        profileData.distance = Math.round(profile.distance * 10) / 10; // Round to 1 decimal
+      }
+
+      return profileData;
+    });
+
+    logger.info('Discovery profiles fetched', {
+      userId: authenticatedUserId,
+      count: profiles.length,
+      filters: {
+        minAge,
+        maxAge,
+        maxDistance,
+        hasInterests: interests !== null,
+        excludeCount: excludeIds.length
+      }
+    });
 
     res.json({ success: true, profiles });
   } catch (error) {

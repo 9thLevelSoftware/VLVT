@@ -24,5 +24,11 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
+    <!-- Internet permission -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Location permissions for geolocation features -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 </manifest>
