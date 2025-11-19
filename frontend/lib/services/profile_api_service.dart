@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
 import '../models/profile.dart';
 import 'auth_service.dart';
@@ -193,6 +195,165 @@ class ProfileApiService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error batch getting profiles: $e');
       rethrow;
+    }
+  }
+
+  // ===== LOCATION METHODS =====
+
+  /// Update user's location
+  Future<bool> updateLocation(double latitude, double longitude) async {
+    try {
+      final userId = _authService.userId;
+      if (userId == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final encodedUserId = Uri.encodeComponent(userId);
+      final response = await http.put(
+        Uri.parse('$baseUrl/profile/$encodedUserId/location'),
+        headers: _getAuthHeaders(),
+        body: json.encode({
+          'latitude': latitude,
+          'longitude': longitude,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          debugPrint('Location updated successfully');
+          notifyListeners();
+          return true;
+        } else {
+          debugPrint('Location update failed: ${data['error']}');
+          return false;
+        }
+      } else {
+        debugPrint('Location update failed with status: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Error updating location: $e');
+      return false;
+    }
+  }
+
+  // ===== PHOTO UPLOAD METHODS =====
+
+  /// Upload a photo to the user's profile
+  Future<Map<String, dynamic>> uploadPhoto(String imagePath) async {
+    try {
+      final uri = Uri.parse('$baseUrl/profile/photos/upload');
+      final request = http.MultipartRequest('POST', uri);
+
+      // Add authorization header
+      final token = _authService.token;
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add file
+      final file = File(imagePath);
+      final fileName = imagePath.split('/').last;
+      final mimeType = _getMimeType(fileName);
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'photo',
+          imagePath,
+          contentType: mimeType,
+        ),
+      );
+
+      // Send request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          notifyListeners();
+          return data;
+        } else {
+          throw Exception(data['error'] ?? 'Upload failed');
+        }
+      } else {
+        final data = json.decode(response.body);
+        throw Exception(data['error'] ?? 'Failed to upload photo: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error uploading photo: $e');
+      rethrow;
+    }
+  }
+
+  /// Delete a photo from the user's profile
+  Future<void> deletePhoto(String photoId) async {
+    try {
+      final encodedPhotoId = Uri.encodeComponent(photoId);
+      final response = await http.delete(
+        Uri.parse('$baseUrl/profile/photos/$encodedPhotoId'),
+        headers: _getAuthHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          notifyListeners();
+        } else {
+          throw Exception(data['error'] ?? 'Delete failed');
+        }
+      } else {
+        final data = json.decode(response.body);
+        throw Exception(data['error'] ?? 'Failed to delete photo: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error deleting photo: $e');
+      rethrow;
+    }
+  }
+
+  /// Reorder photos in the user's profile
+  Future<void> reorderPhotos(List<String> photoUrls) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/profile/photos/reorder'),
+        headers: _getAuthHeaders(),
+        body: json.encode({'photos': photoUrls}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          notifyListeners();
+        } else {
+          throw Exception(data['error'] ?? 'Reorder failed');
+        }
+      } else {
+        final data = json.decode(response.body);
+        throw Exception(data['error'] ?? 'Failed to reorder photos: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error reordering photos: $e');
+      rethrow;
+    }
+  }
+
+  /// Get MIME type from file extension
+  MediaType _getMimeType(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return MediaType('image', 'jpeg');
+      case 'png':
+        return MediaType('image', 'png');
+      case 'heic':
+        return MediaType('image', 'heic');
+      case 'heif':
+        return MediaType('image', 'heif');
+      case 'webp':
+        return MediaType('image', 'webp');
+      default:
+        return MediaType('image', 'jpeg');
     }
   }
 }

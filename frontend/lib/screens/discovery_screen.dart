@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
 import '../services/subscription_service.dart';
 import '../services/discovery_preferences_service.dart';
 import '../services/analytics_service.dart';
+import '../services/location_service.dart';
 import '../widgets/premium_gate_dialog.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/loading_skeleton.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
 import 'discovery_filters_screen.dart';
 import 'dart:async';
+import '../config/app_colors.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -38,6 +43,17 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
   late Animation<double> _cardAnimation;
   bool _isExpanded = false;
 
+  // Photo carousel
+  PageController? _photoPageController;
+  int _currentPhotoIndex = 0;
+
+  // Swipe gesture state
+  Offset _cardPosition = Offset.zero;
+  double _cardRotation = 0.0;
+  bool _isDragging = false;
+  late AnimationController _swipeAnimationController;
+  late Animation<Offset> _swipeAnimation;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +65,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
       parent: _cardAnimationController,
       curve: Curves.easeInOut,
     );
+
+    // Initialize swipe animation controller
+    _swipeAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
     _initializeDiscovery();
   }
 
@@ -56,6 +79,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
   void dispose() {
     _undoTimer?.cancel();
     _cardAnimationController.dispose();
+    _swipeAnimationController.dispose();
+    _photoPageController?.dispose();
     super.dispose();
   }
 
@@ -260,11 +285,20 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
     setState(() {
       if (_currentProfileIndex < _filteredProfiles.length - 1) {
         _currentProfileIndex++;
+        _currentPhotoIndex = 0;
+        _photoPageController?.dispose();
+        _photoPageController = null;
         _saveCurrentIndex();
       } else {
         _showEndOfProfilesMessage();
       }
     });
+  }
+
+  void _initPhotoController(int photoCount) {
+    if (_photoPageController == null && photoCount > 0) {
+      _photoPageController = PageController(initialPage: 0);
+    }
   }
 
   void _showUndo() {
@@ -283,6 +317,80 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
         });
       }
     });
+  }
+
+  // Swipe gesture handlers
+  void _onPanStart(DragStartDetails details) {
+    setState(() {
+      _isDragging = true;
+    });
+  }
+
+  void _onPanUpdate(DragUpdateDetails details) {
+    setState(() {
+      _cardPosition += details.delta;
+
+      // Calculate rotation based on horizontal position (max 20 degrees)
+      _cardRotation = (_cardPosition.dx / 1000).clamp(-0.35, 0.35);
+    });
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final threshold = screenWidth * 0.3; // 30% of screen width
+
+    setState(() {
+      _isDragging = false;
+    });
+
+    // Check if swiped far enough
+    if (_cardPosition.dx.abs() > threshold) {
+      // Determine swipe direction
+      final swipeRight = _cardPosition.dx > 0;
+
+      // Animate card off screen
+      final targetX = swipeRight ? screenWidth * 1.5 : -screenWidth * 1.5;
+      _swipeAnimation = Tween<Offset>(
+        begin: _cardPosition,
+        end: Offset(targetX, _cardPosition.dy),
+      ).animate(CurvedAnimation(
+        parent: _swipeAnimationController,
+        curve: Curves.easeOut,
+      ));
+
+      _swipeAnimationController.forward(from: 0).then((_) {
+        // Reset card position
+        setState(() {
+          _cardPosition = Offset.zero;
+          _cardRotation = 0.0;
+        });
+        _swipeAnimationController.reset();
+
+        // Trigger appropriate action
+        if (swipeRight) {
+          _onLike();
+        } else {
+          _onPass();
+        }
+      });
+    } else {
+      // Snap back to center
+      _swipeAnimation = Tween<Offset>(
+        begin: _cardPosition,
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _swipeAnimationController,
+        curve: Curves.elasticOut,
+      ));
+
+      _swipeAnimationController.forward(from: 0).then((_) {
+        setState(() {
+          _cardPosition = Offset.zero;
+          _cardRotation = 0.0;
+        });
+        _swipeAnimationController.reset();
+      });
+    }
   }
 
   Future<void> _onUndo() async {
@@ -340,7 +448,22 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
               : 'You\'ve seen all available profiles for now. Check back later for more matches!',
         ),
         actions: [
-          if (hasFilters)
+          if (hasFilters) ...[
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                // Reset all filters to defaults
+                await prefsService.clearFilters();
+                await _loadProfiles();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.primaryDark
+                    : AppColors.primaryLight,
+                fontWeight: FontWeight.bold,
+              ),
+              child: const Text('Clear Filters'),
+            ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
@@ -348,6 +471,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
               },
               child: const Text('Adjust Filters'),
             ),
+          ],
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -430,9 +554,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
             ),
           ],
         ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const ProfileCardSkeleton(),
       );
     }
 
@@ -489,45 +611,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
             ),
           ],
         ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.explore_off, size: 80, color: Colors.grey),
-              const SizedBox(height: 24),
-              const Text(
-                'No more profiles available',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  hasActiveFilters
-                      ? 'Try adjusting your filters to see more profiles'
-                      : 'Check back later for new matches!',
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (hasActiveFilters)
-                ElevatedButton.icon(
-                  onPressed: _navigateToFilters,
-                  icon: const Icon(Icons.tune),
-                  label: const Text('Adjust Filters'),
-                ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () async {
-                  await prefsService.clearSeenProfiles();
-                  _currentProfileIndex = 0;
-                  await _loadProfiles();
-                },
-                child: const Text('Show All Profiles Again'),
-              ),
-            ],
-          ),
+        body: DiscoveryEmptyState.noProfiles(
+          context: context,
+          hasFilters: hasActiveFilters,
+          onAdjustFilters: _navigateToFilters,
+          onShowAllProfiles: () async {
+            await prefsService.clearSeenProfiles();
+            _currentProfileIndex = 0;
+            await _loadProfiles();
+          },
         ),
       );
     }
@@ -631,23 +723,53 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: GestureDetector(
+                      onPanStart: _onPanStart,
+                      onPanUpdate: _onPanUpdate,
+                      onPanEnd: _onPanEnd,
                       onTap: _toggleExpanded,
                       child: AnimatedBuilder(
-                        animation: _cardAnimation,
+                        animation: _swipeAnimationController.isAnimating
+                          ? _swipeAnimation
+                          : AlwaysStoppedAnimation(Offset.zero),
                         builder: (context, child) {
-                          return Card(
-                            elevation: 8,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Container(
+                          // Use animated position if animating, otherwise use dragged position
+                          final position = _swipeAnimationController.isAnimating
+                              ? _swipeAnimation.value
+                              : _cardPosition;
+
+                          // Calculate opacity based on swipe distance
+                          final opacity = _isDragging || _swipeAnimationController.isAnimating
+                              ? (1.0 - (position.dx.abs() / 300)).clamp(0.5, 1.0)
+                              : 1.0;
+
+                          return Transform.translate(
+                            offset: position,
+                            child: Transform.rotate(
+                              angle: _cardRotation,
+                              child: Opacity(
+                                opacity: opacity,
+                                child: AnimatedBuilder(
+                                  animation: _cardAnimation,
+                                  builder: (context, child) {
+                                    return Card(
+                                      elevation: 8,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    Colors.deepPurple.shade100,
-                                    Colors.deepPurple.shade300,
+                                    Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.primaryDark.withOpacity(0.3)
+                                        : AppColors.primaryLight.withOpacity(0.3),
+                                    Theme.of(context).brightness == Brightness.dark
+                                        ? AppColors.primaryDark
+                                        : AppColors.primaryLight,
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(16),
@@ -658,11 +780,85 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(
-                                        Icons.person,
-                                        size: 120,
-                                        color: Colors.white,
-                                      ),
+                                      // Photo carousel or default icon
+                                      if (profile.photos != null && profile.photos!.isNotEmpty) ...[
+                                        Builder(
+                                          builder: (context) {
+                                            _initPhotoController(profile.photos!.length);
+                                            return Column(
+                                              children: [
+                                                SizedBox(
+                                                  height: 300,
+                                                  child: ClipRRect(
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    child: PageView.builder(
+                                                      controller: _photoPageController,
+                                                      onPageChanged: (index) {
+                                                        setState(() {
+                                                          _currentPhotoIndex = index;
+                                                        });
+                                                      },
+                                                      itemCount: profile.photos!.length,
+                                                      itemBuilder: (context, index) {
+                                                        final photoUrl = profile.photos![index];
+                                                        final profileService = context.read<ProfileApiService>();
+                                                        return Hero(
+                                                          tag: 'profile_${profile.userId}_photo_$index',
+                                                          child: CachedNetworkImage(
+                                                            imageUrl: '${profileService.baseUrl}$photoUrl',
+                                                            fit: BoxFit.cover,
+                                                          placeholder: (context, url) => Container(
+                                                            color: Colors.white.withOpacity(0.2),
+                                                            child: const Center(
+                                                              child: CircularProgressIndicator(
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          errorWidget: (context, url, error) => Container(
+                                                            color: Colors.white.withOpacity(0.2),
+                                                            child: const Icon(
+                                                              Icons.broken_image,
+                                                              size: 80,
+                                                              color: Colors.white70,
+                                                            ),
+                                                          ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (profile.photos!.length > 1) ...[
+                                                  const SizedBox(height: 12),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: List.generate(
+                                                      profile.photos!.length,
+                                                      (index) => Container(
+                                                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                                                        width: 8,
+                                                        height: 8,
+                                                        decoration: BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          color: _currentPhotoIndex == index
+                                                              ? Colors.white
+                                                              : Colors.white.withOpacity(0.4),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ],
+                                            );
+                                          },
+                                        ),
+                                      ] else
+                                        const Icon(
+                                          Icons.person,
+                                          size: 120,
+                                          color: Colors.white,
+                                        ),
                                       const SizedBox(height: 24),
                                       Text(
                                         '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
@@ -727,9 +923,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                                           ],
                                         ),
                                         const SizedBox(height: 12),
-                                        const Text(
-                                          'Distance: Not available yet',
-                                          style: TextStyle(color: Colors.white70),
+                                        Text(
+                                          profile.distance != null
+                                              ? 'Distance: ${LocationService.formatDistance(profile.distance! * 1000)}' // Convert km to meters
+                                              : 'Distance: Not available',
+                                          style: const TextStyle(color: Colors.white70),
                                         ),
                                         const SizedBox(height: 8),
                                         const Text(
@@ -742,6 +940,90 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                                 ),
                               ),
                             ),
+
+                            // Swipe direction indicators
+                            if (_isDragging || _swipeAnimationController.isAnimating) ...[
+                              // LIKE indicator (right swipe - green)
+                              if (position.dx > 50)
+                                Positioned(
+                                  top: 50,
+                                  left: 30,
+                                  child: Transform.rotate(
+                                    angle: -0.5,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.green,
+                                          width: 4,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'LIKE',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // PASS indicator (left swipe - red)
+                              if (position.dx < -50)
+                                Positioned(
+                                  top: 50,
+                                  right: 30,
+                                  child: Transform.rotate(
+                                    angle: 0.5,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 24,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: Colors.red,
+                                          width: 4,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'PASS',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          shadows: [
+                                            Shadow(
+                                              color: Colors.black.withOpacity(0.3),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ),
                           );
                         },
                       ),

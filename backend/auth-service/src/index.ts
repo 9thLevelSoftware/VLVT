@@ -20,7 +20,6 @@ import jwt from 'jsonwebtoken';
 import { Pool } from 'pg';
 import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
-import migrateRouter from './migrate-endpoint';
 import logger from './utils/logger';
 import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-limiter';
 
@@ -58,7 +57,7 @@ const pool = new Pool({
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
   ssl: process.env.DATABASE_URL?.includes('railway')
-    ? { rejectUnauthorized: false }
+    ? { rejectUnauthorized: true }
     : false,
 });
 
@@ -91,11 +90,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '10kb' }));
-
-// TEMPORARY: Migration endpoint (remove after migrations complete)
-// WARNING: This endpoint should be removed in production
-// Migrations should be run via Railway CLI or separate script
-// app.use('/admin', migrateRouter);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {

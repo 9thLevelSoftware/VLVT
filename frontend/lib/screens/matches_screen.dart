@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
 import '../services/profile_api_service.dart';
 import '../services/cache_service.dart';
+import '../services/safety_service.dart';
 import '../models/match.dart';
 import '../models/profile.dart';
 import '../models/message.dart';
 import '../utils/date_utils.dart';
+import '../widgets/user_action_sheet.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/loading_skeleton.dart';
 import 'chat_screen.dart';
 
 enum SortOption { recentActivity, newestMatches, nameAZ }
@@ -55,6 +60,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final chatService = context.read<ChatApiService>();
     final profileService = context.read<ProfileApiService>();
     final cacheService = context.read<CacheService>();
+    final safetyService = context.read<SafetyService>();
     final userId = authService.userId;
 
     if (userId == null) {
@@ -71,6 +77,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
     });
 
     try {
+      // Load blocked users first
+      await safetyService.loadBlockedUsers();
+
       // Step 1: Load matches (from cache or API)
       List<Match> matches;
       if (!forceRefresh) {
@@ -168,10 +177,17 @@ class _MatchesScreenState extends State<MatchesScreen> {
   /// Get filtered and sorted matches
   List<Match> _getFilteredAndSortedMatches() {
     final authService = context.read<AuthService>();
+    final safetyService = context.read<SafetyService>();
     final userId = authService.userId;
     if (userId == null) return [];
 
     var filteredMatches = _matches;
+
+    // Filter out blocked users
+    filteredMatches = filteredMatches.where((match) {
+      final otherUserId = match.getOtherUserId(userId);
+      return !safetyService.isUserBlocked(otherUserId);
+    }).toList();
 
     // Apply search filter
     if (_searchQuery.isNotEmpty) {
@@ -362,48 +378,24 @@ class _MatchesScreenState extends State<MatchesScreen> {
     if (userId == null) return;
 
     final otherUserId = match.getOtherUserId(userId);
+    final profile = _profiles[otherUserId];
+
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile not available')),
+      );
+      return;
+    }
 
     showModalBottomSheet(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.heart_broken, color: Colors.red),
-              title: const Text('Unmatch'),
-              onTap: () {
-                Navigator.pop(context);
-                _handleUnmatch(match);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.block, color: Colors.orange),
-              title: const Text('Block'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Block feature coming soon')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.report, color: Colors.orange),
-              title: const Text('Report'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Report feature coming soon')),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.cancel),
-              title: const Text('Cancel'),
-              onTap: () => Navigator.pop(context),
-            ),
-          ],
-        ),
+      builder: (context) => UserActionSheet(
+        otherUserProfile: profile,
+        match: match,
+        onActionComplete: () {
+          // Refresh the matches list after block/unmatch
+          _loadData(forceRefresh: true);
+        },
       ),
     );
   }
@@ -443,11 +435,14 @@ class _MatchesScreenState extends State<MatchesScreen> {
       child: ListTile(
         leading: Stack(
           children: [
-            CircleAvatar(
-              backgroundColor: Colors.deepPurple,
-              child: Text(
-                name[0].toUpperCase(),
-                style: const TextStyle(color: Colors.white),
+            Hero(
+              tag: 'profile_${match.otherUser.userId}',
+              child: CircleAvatar(
+                backgroundColor: Colors.deepPurple,
+                child: Text(
+                  name[0].toUpperCase(),
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ),
             if (unreadCount > 0)
@@ -631,9 +626,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   Widget _buildBody(List<Match> filteredMatches, String userId) {
     // Show loading indicator on initial load
     if (_isLoading && _matches.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const MatchListSkeleton();
     }
 
     // Show error state
@@ -648,9 +641,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
               color: Colors.red,
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Error loading matches',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,
@@ -680,90 +673,18 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
     // Show empty state (no matches at all)
     if (_matches.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 100),
-          const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 100,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No matches yet',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Keep swiping to find your match!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 24),
-              ],
-            ),
-          ),
-          Center(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to discovery screen - switch to first tab
-                final tabController = DefaultTabController.of(context);
-                tabController.animateTo(0);
-              },
-              icon: const Icon(Icons.explore),
-              label: const Text('Go to Discovery'),
-            ),
-          ),
-        ],
+      return MatchesEmptyState.noMatches(
+        onGoToDiscovery: () {
+          // Navigate to discovery screen - switch to first tab
+          final tabController = DefaultTabController.of(context);
+          tabController.animateTo(0);
+        },
       );
     }
 
     // Show "no results" state (filtered results are empty)
     if (filteredMatches.isEmpty) {
-      return ListView(
-        children: const [
-          SizedBox(height: 100),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off,
-                  size: 80,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No matches found',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Try adjusting your search or filters',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
+      return MatchesEmptyState.noSearchResults();
     }
 
     // Show matches list

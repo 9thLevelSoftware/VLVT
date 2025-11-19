@@ -8,6 +8,7 @@ import '../constants/spacing.dart';
 import '../constants/text_styles.dart';
 import '../utils/error_handler.dart';
 import 'test_login_screen.dart';
+import 'legal_document_viewer.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -145,15 +146,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: AppColors.primaryGradient,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: AppColors.primaryGradient,
+            ),
           ),
-        ),
-        child: SafeArea(
+          child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
@@ -273,7 +277,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () {
-                                    // TODO: Open terms of service
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LegalDocumentViewer(
+                                          documentType: LegalDocumentType.termsOfService,
+                                        ),
+                                      ),
+                                    );
                                   },
                               ),
                               const TextSpan(text: ' and '),
@@ -285,7 +296,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 ),
                                 recognizer: TapGestureRecognizer()
                                   ..onTap = () {
-                                    // TODO: Open privacy policy
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LegalDocumentViewer(
+                                          documentType: LegalDocumentType.privacyPolicy,
+                                        ),
+                                      ),
+                                    );
                                   },
                               ),
                             ],
@@ -319,6 +337,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
+        ),
+      ),
         ),
       ),
     );

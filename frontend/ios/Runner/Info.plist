@@ -47,5 +47,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Location permissions for dating app geolocation features -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>NoBS Dating needs your location to show you potential matches nearby and calculate distances.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>NoBS Dating needs your location to show you potential matches nearby and calculate distances.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>NoBS Dating needs your location to show you potential matches nearby and calculate distances.</string>
 </dict>
 </plist>

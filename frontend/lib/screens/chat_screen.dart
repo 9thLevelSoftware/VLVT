@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
+import '../services/socket_service.dart';
 import '../services/profile_api_service.dart';
 import '../services/subscription_service.dart';
+import '../services/message_queue_service.dart';
 import '../models/match.dart';
 import '../models/message.dart';
 import '../models/profile.dart';
 import '../utils/date_utils.dart';
 import '../widgets/user_action_sheet.dart';
 import '../widgets/premium_gate_dialog.dart';
+import '../config/app_colors.dart';
 
 class ChatScreen extends StatefulWidget {
   final Match match;
@@ -29,28 +32,39 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _isSending = false;
   String? _errorMessage;
   Profile? _otherUserProfile;
-  Timer? _pollingTimer;
+  String? _otherUserId;
   Timer? _typingTimer;
+  Timer? _typingIndicatorTimer;
   bool _isTyping = false;
+  bool _otherUserTyping = false;
   bool _isRefreshing = false;
+  bool _isOtherUserOnline = false;
+
+  // Socket.IO stream subscriptions
+  StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<Map<String, dynamic>>? _readReceiptSubscription;
+  StreamSubscription<Map<String, dynamic>>? _typingSubscription;
+  StreamSubscription<UserStatus>? _statusSubscription;
+
   static const int _maxCharacters = 500;
-  static const Duration _pollingInterval = Duration(seconds: 4);
   static const Duration _typingTimeout = Duration(seconds: 2);
+  static const Duration _typingIndicatorTimeout = Duration(seconds: 3);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadData();
-    _startPolling();
+    _setupSocketListeners();
     _messageController.addListener(_onTextChanged);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _stopPolling();
+    _cancelSocketListeners();
     _typingTimer?.cancel();
+    _typingIndicatorTimer?.cancel();
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
@@ -59,29 +73,135 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Only poll when app is in foreground
+    // Connect/disconnect socket based on app state
+    final socketService = context.read<SocketService>();
     if (state == AppLifecycleState.resumed) {
-      _startPolling();
-    } else if (state == AppLifecycleState.paused) {
-      _stopPolling();
+      if (!socketService.isConnected) {
+        socketService.connect();
+      }
+
+      // Process queued messages when app resumes and socket is connected
+      Future.delayed(const Duration(seconds: 1), () async {
+        if (socketService.isConnected) {
+          final queueService = context.read<MessageQueueService>();
+          await queueService.processQueue(socketService);
+        }
+      });
     }
+    // Keep socket connected even when paused for background notifications
   }
 
-  void _startPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(_pollingInterval, (_) => _pollMessages());
+  /// Setup Socket.IO event listeners
+  void _setupSocketListeners() {
+    final socketService = context.read<SocketService>();
+
+    // Ensure socket is connected
+    if (!socketService.isConnected && !socketService.isConnecting) {
+      socketService.connect();
+    }
+
+    // Listen for new messages
+    _messageSubscription = socketService.onNewMessage.listen((message) {
+      if (!mounted) return;
+
+      // Only handle messages for this match
+      if (message.matchId != widget.match.id) return;
+
+      final wasNearBottom = _isNearBottom();
+
+      setState(() {
+        _messages = [...(_messages ?? []), message];
+      });
+
+      // Auto-scroll if near bottom
+      if (wasNearBottom) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom(animated: true);
+        });
+      }
+
+      // Mark message as read if this chat is open
+      _markMessagesAsRead();
+    });
+
+    // Listen for read receipts
+    _readReceiptSubscription = socketService.onMessagesRead.listen((data) {
+      if (!mounted) return;
+
+      final matchId = data['matchId'] as String?;
+      if (matchId != widget.match.id) return;
+
+      final messageIds = (data['messageIds'] as List?)?.cast<String>() ?? [];
+
+      setState(() {
+        _messages = _messages?.map((m) {
+          if (messageIds.contains(m.id)) {
+            return m.copyWith(status: MessageStatus.read);
+          }
+          return m;
+        }).toList();
+      });
+    });
+
+    // Listen for typing indicators
+    _typingSubscription = socketService.onUserTyping.listen((data) {
+      if (!mounted) return;
+
+      final matchId = data['matchId'] as String?;
+      final userId = data['userId'] as String?;
+      final isTyping = data['isTyping'] as bool? ?? false;
+
+      if (matchId != widget.match.id || userId == null) return;
+      if (userId == context.read<AuthService>().userId) return; // Ignore own typing
+
+      setState(() {
+        _otherUserTyping = isTyping;
+      });
+
+      // Auto-hide typing indicator after timeout
+      if (isTyping) {
+        _typingIndicatorTimer?.cancel();
+        _typingIndicatorTimer = Timer(_typingIndicatorTimeout, () {
+          if (mounted) {
+            setState(() {
+              _otherUserTyping = false;
+            });
+          }
+        });
+      }
+    });
+
+    // Listen for online status changes
+    _statusSubscription = socketService.onUserStatusChanged.listen((status) {
+      if (!mounted) return;
+
+      if (status.userId == _otherUserId) {
+        setState(() {
+          _isOtherUserOnline = status.isOnline;
+        });
+      }
+    });
   }
 
-  void _stopPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = null;
+  /// Cancel Socket.IO subscriptions
+  void _cancelSocketListeners() {
+    _messageSubscription?.cancel();
+    _readReceiptSubscription?.cancel();
+    _typingSubscription?.cancel();
+    _statusSubscription?.cancel();
   }
 
   void _onTextChanged() {
     final hasText = _messageController.text.trim().isNotEmpty;
+    final socketService = context.read<SocketService>();
 
     if (hasText && !_isTyping) {
       setState(() => _isTyping = true);
+      // Send typing indicator
+      socketService.sendTypingIndicator(
+        matchId: widget.match.id,
+        isTyping: true,
+      );
     }
 
     // Reset typing timer
@@ -89,40 +209,26 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _typingTimer = Timer(_typingTimeout, () {
       if (mounted) {
         setState(() => _isTyping = false);
+        // Send stop typing indicator
+        socketService.sendTypingIndicator(
+          matchId: widget.match.id,
+          isTyping: false,
+        );
       }
     });
   }
 
-  Future<void> _pollMessages() async {
-    if (!mounted || _isRefreshing) return;
+  /// Mark all messages in this chat as read
+  Future<void> _markMessagesAsRead() async {
+    if (_messages == null || _messages!.isEmpty) return;
+
+    final socketService = context.read<SocketService>();
+    if (!socketService.isConnected) return;
 
     try {
-      final chatService = context.read<ChatApiService>();
-      final newMessages = await chatService.getMessages(widget.match.id);
-
-      if (!mounted) return;
-
-      // Check if there are new messages by comparing message IDs
-      final currentMessageIds = _messages?.map((m) => m.id).toSet() ?? {};
-      final hasNewMessages = newMessages.any((m) => !currentMessageIds.contains(m.id));
-
-      if (hasNewMessages) {
-        final wasNearBottom = _isNearBottom();
-
-        setState(() {
-          _messages = newMessages;
-        });
-
-        // Auto-scroll to bottom if user was already near bottom
-        if (wasNearBottom) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToBottom(animated: true);
-          });
-        }
-      }
+      await socketService.markMessagesAsRead(matchId: widget.match.id);
     } catch (e) {
-      // Silently fail polling - don't disrupt user experience
-      debugPrint('Polling error: $e');
+      debugPrint('Failed to mark messages as read: $e');
     }
   }
 
@@ -157,6 +263,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final authService = context.read<AuthService>();
       final chatService = context.read<ChatApiService>();
       final profileService = context.read<ProfileApiService>();
+      final socketService = context.read<SocketService>();
       final currentUserId = authService.userId;
 
       if (currentUserId == null) {
@@ -165,6 +272,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
       // Get the other user's ID
       final otherUserId = widget.match.getOtherUserId(currentUserId);
+      _otherUserId = otherUserId;
 
       // Load messages and other user's profile in parallel
       final results = await Future.wait([
@@ -177,6 +285,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _otherUserProfile = results[1] as Profile;
         _isLoading = false;
       });
+
+      // Get online status of the other user
+      if (socketService.isConnected) {
+        final statuses = await socketService.getOnlineStatus([otherUserId]);
+        if (statuses.isNotEmpty && mounted) {
+          setState(() {
+            _isOtherUserOnline = statuses.first.isOnline;
+          });
+        }
+      }
+
+      // Mark messages as read
+      _markMessagesAsRead();
 
       // Scroll to bottom after messages are loaded
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -229,13 +350,37 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     final authService = context.read<AuthService>();
-    final chatService = context.read<ChatApiService>();
+    final socketService = context.read<SocketService>();
     final currentUserId = authService.userId;
 
     if (currentUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('User not authenticated')),
       );
+      return;
+    }
+
+    // Check socket connection
+    if (!socketService.isConnected) {
+      // Queue message for later delivery (prevents message loss)
+      final queueService = context.read<MessageQueueService>();
+      await queueService.enqueue(QueuedMessage(
+        tempId: tempId,
+        matchId: widget.match.id,
+        text: text,
+        timestamp: DateTime.now(),
+      ));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Message queued. Will send when connected.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+
+      // Try to reconnect in background
+      socketService.connect();
       return;
     }
 
@@ -263,43 +408,52 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
 
     try {
-      final sentMessage = await chatService.sendMessage(
-        widget.match.id,
-        currentUserId,
-        text,
+      // Send via Socket.IO
+      final sentMessage = await socketService.sendMessage(
+        matchId: widget.match.id,
+        text: text,
+        tempId: tempId,
       );
+
+      if (sentMessage == null) {
+        throw Exception('Failed to send message');
+      }
 
       // Use a message (increments counter for demo users)
       await subscriptionService.useMessage();
 
       // Replace temp message with real message
-      setState(() {
-        _messages = _messages!
-            .where((m) => m.id != tempId)
-            .toList()
-          ..add(sentMessage.copyWith(status: MessageStatus.sent));
-        _isSending = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages = _messages!
+              .where((m) => m.id != tempId)
+              .toList()
+            ..add(sentMessage);
+          _isSending = false;
+        });
+      }
     } catch (e) {
       // Mark message as failed
-      setState(() {
-        _messages = _messages!.map((m) {
-          if (m.id == tempId) {
-            return m.copyWith(
-              status: MessageStatus.failed,
-              error: e.toString(),
-            );
-          }
-          return m;
-        }).toList();
-        _isSending = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages = _messages!.map((m) {
+            if (m.id == tempId) {
+              return m.copyWith(
+                status: MessageStatus.failed,
+                error: e.toString(),
+              );
+            }
+            return m;
+          }).toList();
+          _isSending = false;
+        });
+      }
     }
   }
 
   Future<void> _retryMessage(Message failedMessage) async {
     final authService = context.read<AuthService>();
-    final chatService = context.read<ChatApiService>();
+    final socketService = context.read<SocketService>();
     final currentUserId = authService.userId;
 
     if (currentUserId == null) return;
@@ -315,36 +469,45 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
 
     try {
-      final sentMessage = await chatService.sendMessage(
-        widget.match.id,
-        currentUserId,
-        failedMessage.text,
+      // Retry via Socket.IO
+      final sentMessage = await socketService.sendMessage(
+        matchId: widget.match.id,
+        text: failedMessage.text,
+        tempId: failedMessage.id,
       );
 
-      // Replace failed message with sent message
-      setState(() {
-        _messages = _messages!
-            .where((m) => m.id != failedMessage.id)
-            .toList()
-          ..add(sentMessage.copyWith(status: MessageStatus.sent));
-      });
+      if (sentMessage == null) {
+        throw Exception('Failed to send message');
+      }
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToBottom(animated: true);
-      });
+      // Replace failed message with sent message
+      if (mounted) {
+        setState(() {
+          _messages = _messages!
+              .where((m) => m.id != failedMessage.id)
+              .toList()
+            ..add(sentMessage);
+        });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom(animated: true);
+        });
+      }
     } catch (e) {
       // Mark as failed again
-      setState(() {
-        _messages = _messages!.map((m) {
-          if (m.id == failedMessage.id) {
-            return m.copyWith(
-              status: MessageStatus.failed,
-              error: e.toString(),
-            );
-          }
-          return m;
-        }).toList();
-      });
+      if (mounted) {
+        setState(() {
+          _messages = _messages!.map((m) {
+            if (m.id == failedMessage.id) {
+              return m.copyWith(
+                status: MessageStatus.failed,
+                error: e.toString(),
+              );
+            }
+            return m;
+          }).toList();
+        });
+      }
     }
   }
 
@@ -439,15 +602,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          // Messages list
-          Expanded(
-            child: _buildMessagesList(currentUserId),
-          ),
-          // Message input
-          _buildMessageInput(),
-        ],
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Column(
+          children: [
+            // Messages list
+            Expanded(
+              child: _buildMessagesList(currentUserId),
+            ),
+            // Message input
+            _buildMessageInput(),
+          ],
+        ),
       ),
     );
   }
@@ -515,25 +682,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.all(16),
-        itemCount: _messages!.length + (_isTyping ? 1 : 0),
+        itemCount: _messages!.length + (_otherUserTyping ? 1 : 0),
         itemBuilder: (context, index) {
           // Show typing indicator as last item
-          if (_isTyping && index == _messages!.length) {
+          if (_otherUserTyping && index == _messages!.length) {
             return Align(
               alignment: Alignment.centerLeft,
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: AppColors.typingIndicatorBackground(context),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
+                child: Text(
                   '...',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black54,
+                    color: AppColors.typingIndicatorDots(context),
                     letterSpacing: 2,
                   ),
                 ),
@@ -580,7 +747,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 decoration: BoxDecoration(
                   color: isFailed
                       ? Colors.red[100]
-                      : (isCurrentUser ? Colors.deepPurple : Colors.grey[300]),
+                      : (isCurrentUser
+                          ? AppColors.messageBubbleSent(context)
+                          : AppColors.messageBubbleReceived(context)),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
@@ -592,7 +761,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         fontSize: 16,
                         color: isFailed
                             ? Colors.red[900]
-                            : (isCurrentUser ? Colors.white : Colors.black87),
+                            : (isCurrentUser
+                                ? AppColors.messageBubbleTextSent(context)
+                                : AppColors.messageBubbleTextReceived(context)),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -605,7 +776,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             fontSize: 11,
                             color: isFailed
                                 ? Colors.red[700]
-                                : (isCurrentUser ? Colors.white70 : Colors.black54),
+                                : (isCurrentUser
+                                    ? AppColors.messageTimestampSent(context)
+                                    : AppColors.messageTimestampReceived(context)),
                           ),
                         ),
                         if (isCurrentUser && !isFailed) ...[
@@ -691,7 +864,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface(context),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.3),
@@ -736,7 +909,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: Colors.grey[200],
+                      fillColor: AppColors.inputBackground(context),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 10,

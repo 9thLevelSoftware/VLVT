@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
+import '../widgets/photo_manager_widget.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Profile? existingProfile;
@@ -27,6 +28,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   final _interestController = TextEditingController();
 
   List<String> _interests = [];
+  List<String> _photos = [];
   bool _isLoading = false;
 
   @override
@@ -41,6 +43,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       _ageController.text = widget.existingProfile!.age?.toString() ?? '';
       _bioController.text = widget.existingProfile!.bio ?? '';
       _interests = List.from(widget.existingProfile!.interests ?? []);
+      _photos = List.from(widget.existingProfile!.photos ?? []);
     }
   }
 
@@ -93,7 +96,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         age: int.parse(_ageController.text.trim()),
         bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
         interests: _interests.isEmpty ? null : _interests,
-        photos: widget.existingProfile?.photos,
+        photos: _photos.isEmpty ? null : _photos,
       );
 
       Profile updatedProfile;
@@ -140,10 +143,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         title: Text(widget.isFirstTimeSetup ? 'Create Your Profile' : 'Edit Profile'),
         automaticallyImplyLeading: !widget.isFirstTimeSetup,
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SafeArea(
+          child: Form(
+            key: _formKey,
+            child: ListView(
             padding: const EdgeInsets.all(24.0),
             children: [
               if (widget.isFirstTimeSetup) ...[
@@ -294,6 +300,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   ),
                 ),
               const SizedBox(height: 32),
+              PhotoManagerWidget(
+                initialPhotos: _photos,
+                onPhotosChanged: (photos) {
+                  setState(() {
+                    _photos = photos;
+                  });
+                },
+                maxPhotos: 6,
+              ),
+              const SizedBox(height: 32),
               FilledButton.icon(
                 onPressed: _isLoading ? null : _saveProfile,
                 icon: _isLoading
@@ -327,6 +343,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ],
             ],
           ),
+        ),
+      ),
         ),
       ),
     );
