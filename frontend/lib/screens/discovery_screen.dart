@@ -13,6 +13,7 @@ import '../widgets/premium_gate_dialog.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/loading_skeleton.dart';
 import '../widgets/swipe_tutorial_overlay.dart';
+import '../widgets/match_overlay.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
 import 'discovery_filters_screen.dart';
@@ -58,6 +59,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
 
   // Tutorial state
   bool _showTutorial = false;
+
+  // Micro-interaction state
+  bool _showHeartParticles = false;
+  String? _matchOverlayUserName;
+  bool? _matchOverlayIsNewMatch;
+  bool _isShaking = false;
 
   @override
   void initState() {
@@ -246,21 +253,16 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
       }
 
       if (mounted) {
-        if (alreadyExists) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('You already matched with ${profile.name ?? "user"}!'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Matched with ${profile.name ?? "user"}!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        // Show heart particles animation
+        setState(() {
+          _showHeartParticles = true;
+        });
+
+        // Show match overlay instead of Snackbar
+        setState(() {
+          _matchOverlayUserName = profile.name ?? "user";
+          _matchOverlayIsNewMatch = !alreadyExists;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -293,9 +295,28 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
     // Track profile passed event
     await AnalyticsService.logProfilePassed(profile.userId);
 
+    // Trigger subtle shake animation
+    _triggerShakeAnimation();
+
     // Move to next profile and show undo button
     _moveToNextProfile();
     _showUndo();
+  }
+
+  void _triggerShakeAnimation() {
+    if (_isShaking) return;
+
+    setState(() {
+      _isShaking = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          _isShaking = false;
+        });
+      }
+    });
   }
 
   void _moveToNextProfile() {
@@ -582,7 +603,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
         children: [
           Icon(
             Icons.arrow_back,
-            color: Colors.red.withOpacity(0.6),
+            color: AppColors.error(context).withOpacity(0.6),
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -597,7 +618,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
           const SizedBox(width: 8),
           Icon(
             Icons.arrow_forward,
-            color: Colors.green.withOpacity(0.6),
+            color: AppColors.success(context).withOpacity(0.6),
             size: 20,
           ),
         ],
@@ -719,10 +740,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: likesRemaining > 0 ? Colors.green.shade100 : Colors.red.shade100,
+                    color: likesRemaining > 0
+                        ? AppColors.success(context).withOpacity(0.2)
+                        : AppColors.error(context).withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: likesRemaining > 0 ? Colors.green : Colors.red,
+                      color: likesRemaining > 0
+                          ? AppColors.success(context)
+                          : AppColors.error(context),
                     ),
                   ),
                   child: Row(
@@ -731,7 +756,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                       Icon(
                         Icons.favorite,
                         size: 16,
-                        color: likesRemaining > 0 ? Colors.green : Colors.red,
+                        color: likesRemaining > 0
+                            ? AppColors.success(context)
+                            : AppColors.error(context),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -739,7 +766,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: likesRemaining > 0 ? Colors.green.shade900 : Colors.red.shade900,
+                          color: likesRemaining > 0
+                              ? AppColors.success(context)
+                              : AppColors.error(context),
                         ),
                       ),
                     ],
@@ -754,12 +783,18 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.amber,
+                    color: AppColors.warning(context),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Filtered',
-                    style: TextStyle(fontSize: 11, color: Colors.black, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black
+                          : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -767,7 +802,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
           IconButton(
             icon: Icon(
               Icons.filter_list,
-              color: hasActiveFilters ? Colors.amber : null,
+              color: hasActiveFilters ? AppColors.warning(context) : null,
             ),
             onPressed: _navigateToFilters,
           ),
@@ -783,11 +818,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
-                    color: Colors.orange.shade100,
+                    color: AppColors.warning(context).withOpacity(0.2),
                     child: Text(
                       'Only $_remainingProfiles profile${_remainingProfiles == 1 ? '' : 's'} remaining. Adjust filters for more!',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.warning(context),
+                      ),
                     ),
                   ),
 
@@ -815,13 +854,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                               ? (1.0 - (position.dx.abs() / 300)).clamp(0.5, 1.0)
                               : 1.0;
 
-                          return Transform.translate(
-                            offset: position,
-                            child: Transform.rotate(
-                              angle: _cardRotation,
-                              child: Opacity(
-                                opacity: opacity,
-                                child: AnimatedBuilder(
+                          return _ShakeWidget(
+                            isShaking: _isShaking,
+                            child: Transform.translate(
+                              offset: position,
+                              child: Transform.rotate(
+                                angle: _cardRotation,
+                                child: Opacity(
+                                  opacity: opacity,
+                                  child: AnimatedBuilder(
                                   animation: _cardAnimation,
                                   builder: (context, child) {
                                     return Card(
@@ -1120,7 +1161,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                             HapticFeedback.lightImpact();
                             _onPass();
                           },
-                          backgroundColor: Colors.red,
+                          backgroundColor: AppColors.error(context),
                           child: const Icon(Icons.close, size: 24),
                         ),
                       ),
@@ -1132,7 +1173,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                             HapticFeedback.lightImpact();
                             _onUndo();
                           },
-                          backgroundColor: Colors.blue,
+                          backgroundColor: AppColors.info(context),
                           child: const Icon(Icons.undo, size: 20),
                         ),
                       // Like button - smaller and semi-transparent
@@ -1145,7 +1186,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                             HapticFeedback.mediumImpact();
                             _onLike();
                           },
-                          backgroundColor: Colors.green,
+                          backgroundColor: AppColors.success(context),
                           child: const Icon(Icons.favorite, size: 24),
                         ),
                       ),
@@ -1172,7 +1213,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.blue,
+                      color: AppColors.info(context),
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -1190,6 +1231,37 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
                 ),
               ),
 
+            // Heart particles animation
+            if (_showHeartParticles)
+              Positioned.fill(
+                child: HeartParticleAnimation(
+                  onComplete: () {
+                    if (mounted) {
+                      setState(() {
+                        _showHeartParticles = false;
+                      });
+                    }
+                  },
+                ),
+              ),
+
+            // Match overlay
+            if (_matchOverlayUserName != null && _matchOverlayIsNewMatch != null)
+              Positioned.fill(
+                child: MatchOverlay(
+                  userName: _matchOverlayUserName!,
+                  isNewMatch: _matchOverlayIsNewMatch!,
+                  onDismiss: () {
+                    if (mounted) {
+                      setState(() {
+                        _matchOverlayUserName = null;
+                        _matchOverlayIsNewMatch = null;
+                      });
+                    }
+                  },
+                ),
+              ),
+
             // Tutorial overlay
             if (_showTutorial)
               Positioned.fill(
@@ -1200,6 +1272,74 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProv
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Shake animation widget for pass interactions
+class _ShakeWidget extends StatefulWidget {
+  final bool isShaking;
+  final Widget child;
+
+  const _ShakeWidget({
+    required this.isShaking,
+    required this.child,
+  });
+
+  @override
+  State<_ShakeWidget> createState() => _ShakeWidgetState();
+}
+
+class _ShakeWidgetState extends State<_ShakeWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _animation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 10.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 10.0, end: -10.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -10.0, end: 10.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 10.0, end: -10.0), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -10.0, end: 0.0), weight: 1),
+    ]).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticIn,
+    ));
+  }
+
+  @override
+  void didUpdateWidget(_ShakeWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isShaking && !oldWidget.isShaking) {
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_animation.value, 0),
+          child: child,
+        );
+      },
+      child: widget.child,
     );
   }
 }
