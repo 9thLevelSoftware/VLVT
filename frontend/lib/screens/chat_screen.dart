@@ -7,6 +7,7 @@ import '../services/chat_api_service.dart';
 import '../services/socket_service.dart';
 import '../services/profile_api_service.dart';
 import '../services/subscription_service.dart';
+import '../services/message_queue_service.dart';
 import '../models/match.dart';
 import '../models/message.dart';
 import '../models/profile.dart';
@@ -78,6 +79,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (!socketService.isConnected) {
         socketService.connect();
       }
+
+      // Process queued messages when app resumes and socket is connected
+      Future.delayed(const Duration(seconds: 1), () async {
+        if (socketService.isConnected) {
+          final queueService = context.read<MessageQueueService>();
+          await queueService.processQueue(socketService);
+        }
+      });
     }
     // Keep socket connected even when paused for background notifications
   }
@@ -353,17 +362,26 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     // Check socket connection
     if (!socketService.isConnected) {
+      // Queue message for later delivery (prevents message loss)
+      final queueService = context.read<MessageQueueService>();
+      await queueService.enqueue(QueuedMessage(
+        tempId: tempId,
+        matchId: widget.match.id,
+        text: text,
+        timestamp: DateTime.now(),
+      ));
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connecting to chat server...')),
+        const SnackBar(
+          content: Text('Message queued. Will send when connected.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
       );
-      await socketService.connect();
-      await Future.delayed(const Duration(seconds: 1));
-      if (!socketService.isConnected) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to connect to chat server')),
-        );
-        return;
-      }
+
+      // Try to reconnect in background
+      socketService.connect();
+      return;
     }
 
     // Create temporary message with 'sending' status
