@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
 import '../services/profile_api_service.dart';
@@ -14,6 +15,7 @@ import '../widgets/user_action_sheet.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/loading_skeleton.dart';
 import 'chat_screen.dart';
+import '../config/app_colors.dart';
 
 enum SortOption { recentActivity, newestMatches, nameAZ }
 
@@ -307,7 +309,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
+              foregroundColor: AppColors.error(context),
             ),
             child: const Text('Unmatch'),
           ),
@@ -358,7 +360,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to unmatch: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error(context),
           ),
         );
         setState(() {
@@ -425,7 +427,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: Colors.red,
+        color: AppColors.error(context),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (direction) async {
@@ -438,11 +440,16 @@ class _MatchesScreenState extends State<MatchesScreen> {
             Hero(
               tag: 'profile_${match.otherUser.userId}',
               child: CircleAvatar(
-                backgroundColor: Colors.deepPurple,
-                child: Text(
-                  name[0].toUpperCase(),
-                  style: const TextStyle(color: Colors.white),
-                ),
+                backgroundColor: AppColors.primaryLight,
+                backgroundImage: profile?.photos?.isNotEmpty == true
+                    ? CachedNetworkImageProvider('${context.read<ProfileApiService>().baseUrl}${profile!.photos!.first}')
+                    : null,
+                child: profile?.photos?.isNotEmpty == true
+                    ? null
+                    : Text(
+                        name[0].toUpperCase(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
               ),
             ),
             if (unreadCount > 0)
@@ -480,6 +487,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 '$name, $age',
                 style: TextStyle(
                   fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                  color: AppColors.textPrimary(context),
                 ),
               ),
             ),
@@ -493,7 +501,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: lastMessage != null ? Colors.black87 : Colors.grey,
+                color: lastMessage != null ? AppColors.textPrimary(context) : AppColors.textSecondary(context),
                 fontStyle: lastMessage != null ? FontStyle.normal : FontStyle.italic,
                 fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
               ),
@@ -501,9 +509,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
             if (lastMessage != null)
               Text(
                 formatTimestamp(lastMessage.timestamp),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey,
+                  color: AppColors.textSecondary(context),
                 ),
               ),
           ],
@@ -514,9 +522,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
           children: [
             Text(
               formatTimestamp(match.createdAt),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: AppColors.textSecondary(context),
               ),
             ),
             if (unreadCount > 0)
@@ -524,7 +532,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple,
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -575,12 +583,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Search matches...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.white70),
+                  hintStyle: TextStyle(color: AppColors.textDisabled(context)),
                 ),
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: AppColors.textPrimary(context)),
                 onChanged: (value) {
                   setState(() {
                     _searchQuery = value;
@@ -635,18 +643,18 @@ class _MatchesScreenState extends State<MatchesScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline,
               size: 80,
-              color: Colors.red,
+              color: AppColors.error(context),
             ),
             const SizedBox(height: 16),
             Text(
               'Error loading matches',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.red,
+                color: AppColors.error(context),
               ),
             ),
             const SizedBox(height: 8),
@@ -654,9 +662,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 _error!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: AppColors.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -693,11 +701,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
         if (_lastUpdated != null)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            color: Colors.grey[200],
+            color: AppColors.surfaceElevated(context),
             child: Center(
               child: Text(
                 'Updated ${_getRelativeTime(_lastUpdated!)}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary(context)),
               ),
             ),
           ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/auth_service.dart';
 import '../services/chat_api_service.dart';
 import '../services/socket_service.dart';
@@ -360,6 +361,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
 
+    // Create tempId here so it's available for queueing
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
     // Check socket connection
     if (!socketService.isConnected) {
       // Queue message for later delivery (prevents message loss)
@@ -379,13 +383,32 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
       );
 
+      // Clear input immediately for better UX
+      _messageController.clear();
+
+      // Add temp message to UI immediately to show it as pending/queued
+      final tempMessage = Message(
+        id: tempId,
+        matchId: widget.match.id,
+        senderId: currentUserId,
+        text: text,
+        timestamp: DateTime.now(),
+        status: MessageStatus.sending, // Will show spinner
+      );
+
+      setState(() {
+        _messages = [...(_messages ?? []), tempMessage];
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToBottom(animated: true);
+      });
+
       // Try to reconnect in background
       socketService.connect();
       return;
     }
 
-    // Create temporary message with 'sending' status
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final tempMessage = Message(
       id: tempId,
       matchId: widget.match.id,
@@ -547,7 +570,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_otherUserProfile?.name ?? 'Chat'),
+        titleSpacing: 0,
+        title: Row(
+          children: [
+            if (_otherUserProfile?.photos?.isNotEmpty == true)
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Hero(
+                  tag: 'profile_${widget.match.otherUser.userId}',
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundImage: CachedNetworkImageProvider(
+                      '${context.read<ProfileApiService>().baseUrl}${widget.match.otherUser.photos!.first}',
+                    ),
+                  ),
+                ),
+              ),
+            Expanded(child: Text(_otherUserProfile?.name ?? 'Chat')),
+          ],
+        ),
         actions: [
           if (showMessagesCounter)
             Padding(
@@ -556,10 +597,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: messagesRemaining > 0 ? Colors.green.shade100 : Colors.red.shade100,
+                    color: messagesRemaining > 0 ? AppColors.success(context).withOpacity(0.1) : AppColors.error(context).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: messagesRemaining > 0 ? Colors.green : Colors.red,
+                      color: messagesRemaining > 0 ? AppColors.success(context) : AppColors.error(context),
                     ),
                   ),
                   child: Row(
@@ -568,7 +609,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       Icon(
                         Icons.chat,
                         size: 16,
-                        color: messagesRemaining > 0 ? Colors.green : Colors.red,
+                        color: messagesRemaining > 0 ? AppColors.success(context) : AppColors.error(context),
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -576,7 +617,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: messagesRemaining > 0 ? Colors.green.shade900 : Colors.red.shade900,
+                          color: messagesRemaining > 0 ? AppColors.success(context) : AppColors.error(context),
                         ),
                       ),
                     ],
@@ -633,7 +674,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           children: [
             Text(
               _errorMessage!,
-              style: const TextStyle(fontSize: 16, color: Colors.red),
+              style: TextStyle(fontSize: 16, color: AppColors.error(context)),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -651,17 +692,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.chat_bubble_outline,
               size: 80,
-              color: Colors.grey,
+              color: AppColors.textDisabled(context),
             ),
             const SizedBox(height: 16),
             Text(
               'No messages yet',
               style: TextStyle(
                 fontSize: 18,
-                color: Colors.grey[600],
+                color: AppColors.textSecondary(context),
               ),
             ),
             const SizedBox(height: 8),
@@ -669,7 +710,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               'Say hi to ${_otherUserProfile?.name ?? 'your match'}!',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: AppColors.textDisabled(context),
               ),
             ),
           ],
@@ -732,7 +773,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             if (isCurrentUser && isFailed) ...[
               IconButton(
                 icon: const Icon(Icons.refresh, size: 20),
-                color: Colors.red,
+                color: AppColors.error(context),
                 onPressed: () => _retryMessage(message),
                 tooltip: 'Retry',
               ),
@@ -746,7 +787,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ),
                 decoration: BoxDecoration(
                   color: isFailed
-                      ? Colors.red[100]
+                      ? AppColors.error(context).withOpacity(0.1)
                       : (isCurrentUser
                           ? AppColors.messageBubbleSent(context)
                           : AppColors.messageBubbleReceived(context)),
@@ -760,7 +801,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       style: TextStyle(
                         fontSize: 16,
                         color: isFailed
-                            ? Colors.red[900]
+                            ? AppColors.error(context)
                             : (isCurrentUser
                                 ? AppColors.messageBubbleTextSent(context)
                                 : AppColors.messageBubbleTextReceived(context)),
@@ -775,7 +816,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           style: TextStyle(
                             fontSize: 11,
                             color: isFailed
-                                ? Colors.red[700]
+                                ? AppColors.error(context).withOpacity(0.8)
                                 : (isCurrentUser
                                     ? AppColors.messageTimestampSent(context)
                                     : AppColors.messageTimestampReceived(context)),
@@ -793,7 +834,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         'Failed to send',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.red[900],
+                          color: AppColors.error(context),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -807,7 +848,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               const SizedBox(width: 4),
               IconButton(
                 icon: const Icon(Icons.close, size: 20),
-                color: Colors.red,
+                color: AppColors.error(context),
                 onPressed: () => _deleteFailedMessage(message),
                 tooltip: 'Delete',
               ),
@@ -821,37 +862,39 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget _buildMessageStatusIcon(MessageStatus status) {
     switch (status) {
       case MessageStatus.sending:
-        return const SizedBox(
+        return SizedBox(
           width: 12,
           height: 12,
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppColors.messageTimestampSent(context),
+            ),
           ),
         );
       case MessageStatus.sent:
-        return const Icon(
+        return Icon(
           Icons.check,
           size: 14,
-          color: Colors.white70,
+          color: AppColors.messageTimestampSent(context),
         );
       case MessageStatus.delivered:
-        return const Icon(
+        return Icon(
           Icons.done_all,
           size: 14,
-          color: Colors.white70,
+          color: AppColors.messageTimestampSent(context),
         );
       case MessageStatus.read:
         return const Icon(
           Icons.done_all,
           size: 14,
-          color: Colors.blue,
+          color: Colors.blue, // Keep blue for read status
         );
       case MessageStatus.failed:
-        return const Icon(
+        return Icon(
           Icons.error_outline,
           size: 14,
-          color: Colors.red,
+          color: AppColors.error(context),
         );
     }
   }
@@ -867,7 +910,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         color: AppColors.surface(context),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
+            color: AppColors.border(context).withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 3,
             offset: const Offset(0, -1),
@@ -889,7 +932,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       '$charCount/$_maxCharacters',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isOverLimit ? Colors.red : Colors.grey[600],
+                        color: isOverLimit ? AppColors.error(context) : AppColors.textSecondary(context),
                         fontWeight: isOverLimit ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
@@ -902,8 +945,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    style: TextStyle(color: AppColors.textPrimary(context)),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
+                      hintStyle: TextStyle(color: AppColors.textDisabled(context)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25),
                         borderSide: BorderSide.none,
@@ -932,7 +977,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.send),
-                  color: Colors.deepPurple,
+                  color: AppColors.primaryLight, // Keep brand color for action
                   iconSize: 28,
                 ),
               ],
@@ -942,6 +987,4 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ),
     );
   }
-
-
 }

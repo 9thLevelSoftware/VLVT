@@ -27,6 +27,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   Widget build(BuildContext context) {
     final subscriptionService = context.watch<SubscriptionService>();
     final authService = context.watch<AuthService>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -53,10 +54,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(
+              Icon(
                 Icons.star,
                 size: 80,
-                color: Colors.amber,
+                color: AppColors.premium(context),
               ),
               const SizedBox(height: 16),
               const Text(
@@ -71,17 +72,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade50,
+                  color: AppColors.success(context).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(color: AppColors.success(context).withOpacity(0.3)),
                 ),
-                child: const Text(
+                child: Text(
                   '7-day free trial included',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.green,
+                    color: AppColors.success(context),
                   ),
                 ),
               ),
@@ -93,21 +94,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.primaryDark
-                          : AppColors.primaryLight,
-                      Theme.of(context).brightness == Brightness.dark
-                          ? AppColors.primaryDark.withOpacity(0.7)
-                          : AppColors.primaryLight.withOpacity(0.7),
+                      isDark ? AppColors.primaryDark : AppColors.primaryLight,
+                      (isDark ? AppColors.primaryDark : AppColors.primaryLight).withOpacity(0.7),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: (Theme.of(context).brightness == Brightness.dark
-                              ? AppColors.primaryDark
-                              : AppColors.primaryLight)
-                          .withOpacity(0.3),
+                      color: (isDark ? AppColors.primaryDark : AppColors.primaryLight).withOpacity(0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -162,9 +156,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     await subscriptionService.purchaseSubscription();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark
-                        ? AppColors.primaryDark
-                        : AppColors.primaryLight,
+                    backgroundColor: isDark ? AppColors.primaryDark : AppColors.primaryLight,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -192,9 +184,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       side: BorderSide(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.primaryDark
-                            : AppColors.primaryLight,
+                        color: isDark ? AppColors.primaryDark : AppColors.primaryLight,
                       ),
                     ),
                     child: Text(
@@ -202,9 +192,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.primaryDark
-                            : AppColors.primaryLight,
+                        color: isDark ? AppColors.primaryDark : AppColors.primaryLight,
                       ),
                     ),
                   ),
@@ -261,16 +249,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.check, color: Colors.green, size: 16),
+                Icon(Icons.check, color: AppColors.success(context), size: 16),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     premiumValue,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: Colors.green,
+                      color: AppColors.success(context),
                     ),
                   ),
                 ),

@@ -47,6 +47,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final subscriptionService = context.watch<SubscriptionService>();
     final profileService = context.watch<ProfileApiService>();
     final userId = authService.userId;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (userId == null) {
       return Scaffold(
@@ -97,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Text(
                       'Error loading profile: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
+                      style: TextStyle(color: AppColors.error(context)),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
@@ -123,9 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Center(
                       child: CircleAvatar(
                         radius: 60,
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? AppColors.primaryDark
-                            : AppColors.primaryLight,
+                        backgroundColor: isDark ? AppColors.primaryDark : AppColors.primaryLight,
                         child: const Icon(
                           Icons.person,
                           size: 60,
@@ -175,8 +174,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ? Icons.check_circle
                                       : Icons.cancel,
                                   color: subscriptionService.hasPremiumAccess
-                                      ? Colors.green
-                                      : Colors.red,
+                                      ? AppColors.success(context)
+                                      : AppColors.error(context),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
@@ -186,8 +185,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: subscriptionService.hasPremiumAccess
-                                        ? Colors.green
-                                        : Colors.red,
+                                        ? AppColors.success(context)
+                                        : AppColors.error(context),
                                   ),
                                 ),
                               ],

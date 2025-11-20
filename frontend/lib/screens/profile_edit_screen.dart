@@ -5,6 +5,7 @@ import '../models/profile.dart';
 import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/photo_manager_widget.dart';
+import '../config/app_colors.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Profile? existingProfile;
@@ -113,7 +114,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           content: Text(widget.isFirstTimeSetup
               ? 'Profile created successfully!'
               : 'Profile updated successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success(context),
         ),
       );
 
@@ -124,7 +125,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save profile: ${e.toString()}'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error(context),
         ),
       );
     } finally {
@@ -150,201 +151,201 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
           child: Form(
             key: _formKey,
             child: ListView(
-            padding: const EdgeInsets.all(24.0),
-            children: [
-              if (widget.isFirstTimeSetup) ...[
-                const Icon(
-                  Icons.person_add,
-                  size: 80,
-                  color: Colors.deepPurple,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Welcome!',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+              padding: const EdgeInsets.all(24.0),
+              children: [
+                if (widget.isFirstTimeSetup) ...[
+                  Icon(
+                    Icons.person_add,
+                    size: 80,
+                    color: AppColors.primaryLight,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Let\'s set up your profile to get started',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-              ],
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
-                  hintText: 'Enter your name',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  if (value.trim().length < 2) {
-                    return 'Name must be at least 2 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _ageController,
-                decoration: const InputDecoration(
-                  labelText: 'Age *',
-                  hintText: 'Enter your age',
-                  prefixIcon: Icon(Icons.cake),
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(3),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your age';
-                  }
-                  final age = int.tryParse(value.trim());
-                  if (age == null) {
-                    return 'Please enter a valid age';
-                  }
-                  if (age < 18) {
-                    return 'You must be at least 18 years old';
-                  }
-                  if (age > 120) {
-                    return 'Please enter a valid age';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _bioController,
-                decoration: const InputDecoration(
-                  labelText: 'Bio',
-                  hintText: 'Tell us about yourself...',
-                  prefixIcon: Icon(Icons.edit_note),
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                maxLines: 4,
-                maxLength: 500,
-                textCapitalization: TextCapitalization.sentences,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Interests',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _interestController,
-                      decoration: const InputDecoration(
-                        hintText: 'Add an interest',
-                        prefixIcon: Icon(Icons.interests),
-                        border: OutlineInputBorder(),
-                      ),
-                      textCapitalization: TextCapitalization.words,
-                      onSubmitted: (_) => _addInterest(),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Welcome!',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filledTonal(
-                    onPressed: _addInterest,
-                    icon: const Icon(Icons.add),
-                    tooltip: 'Add interest',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (_interests.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _interests.map((interest) {
-                    return Chip(
-                      label: Text(interest),
-                      onDeleted: () => _removeInterest(interest),
-                      deleteIcon: const Icon(Icons.close, size: 18),
-                    );
-                  }).toList(),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'No interests added yet. Add some to help others get to know you!',
-                    style: TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Let\'s set up your profile to get started',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textSecondary(context),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                ],
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Name *',
+                    hintText: 'Enter your name',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    if (value.trim().length < 2) {
+                      return 'Name must be at least 2 characters';
+                    }
+                    return null;
+                  },
                 ),
-              const SizedBox(height: 32),
-              PhotoManagerWidget(
-                initialPhotos: _photos,
-                onPhotosChanged: (photos) {
-                  setState(() {
-                    _photos = photos;
-                  });
-                },
-                maxPhotos: 6,
-              ),
-              const SizedBox(height: 32),
-              FilledButton.icon(
-                onPressed: _isLoading ? null : _saveProfile,
-                icon: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _ageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Age *',
+                    hintText: 'Enter your age',
+                    prefixIcon: Icon(Icons.cake),
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(3),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your age';
+                    }
+                    final age = int.tryParse(value.trim());
+                    if (age == null) {
+                      return 'Please enter a valid age';
+                    }
+                    if (age < 18) {
+                      return 'You must be at least 18 years old';
+                    }
+                    if (age > 120) {
+                      return 'Please enter a valid age';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _bioController,
+                  decoration: const InputDecoration(
+                    labelText: 'Bio',
+                    hintText: 'Tell us about yourself...',
+                    prefixIcon: Icon(Icons.edit_note),
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 4,
+                  maxLength: 500,
+                  textCapitalization: TextCapitalization.sentences,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Interests',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _interestController,
+                        decoration: const InputDecoration(
+                          hintText: 'Add an interest',
+                          prefixIcon: Icon(Icons.interests),
+                          border: OutlineInputBorder(),
                         ),
-                      )
-                    : const Icon(Icons.save),
-                label: Text(_isLoading
-                    ? 'Saving...'
-                    : widget.isFirstTimeSetup
-                        ? 'Create Profile'
-                        : 'Save Changes'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                        textCapitalization: TextCapitalization.words,
+                        onSubmitted: (_) => _addInterest(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      onPressed: _addInterest,
+                      icon: const Icon(Icons.add),
+                      tooltip: 'Add interest',
+                    ),
+                  ],
                 ),
-              ),
-              if (!widget.isFirstTimeSetup) ...[
                 const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
+                if (_interests.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _interests.map((interest) {
+                      return Chip(
+                        label: Text(interest),
+                        onDeleted: () => _removeInterest(interest),
+                        deleteIcon: const Icon(Icons.close, size: 18),
+                      );
+                    }).toList(),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface(context),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.border(context)),
+                    ),
+                    child: Text(
+                      'No interests added yet. Add some to help others get to know you!',
+                      style: TextStyle(color: AppColors.textSecondary(context)),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                const SizedBox(height: 32),
+                PhotoManagerWidget(
+                  initialPhotos: _photos,
+                  onPhotosChanged: (photos) {
+                    setState(() {
+                      _photos = photos;
+                    });
+                  },
+                  maxPhotos: 6,
+                ),
+                const SizedBox(height: 32),
+                FilledButton.icon(
+                  onPressed: _isLoading ? null : _saveProfile,
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save),
+                  label: Text(_isLoading
+                      ? 'Saving...'
+                      : widget.isFirstTimeSetup
+                          ? 'Create Profile'
+                          : 'Save Changes'),
+                  style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: const Text('Cancel'),
                 ),
+                if (!widget.isFirstTimeSetup) ...[
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-      ),
         ),
       ),
     );

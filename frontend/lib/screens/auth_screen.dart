@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../constants/text_styles.dart';
 import '../utils/error_handler.dart';
+import '../config/app_colors.dart';
 import 'test_login_screen.dart';
 import 'legal_document_viewer.dart';
 
@@ -63,7 +64,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.message),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppColors.error(context),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -86,7 +87,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 Text(error.guidance, style: AppTextStyles.caption),
               ],
             ),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppColors.error(context),
           ),
         );
       }
@@ -109,7 +110,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.message),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppColors.error(context),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -132,7 +133,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 Text(error.guidance, style: AppTextStyles.caption),
               ],
             ),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppColors.error(context),
           ),
         );
       }
@@ -150,195 +151,201 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
         child: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: AppColors.primaryGradient,
+              colors: [
+                Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.primaryDark
+                    : AppColors.primaryLight,
+                Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.primaryDark.withOpacity(0.7)
+                    : AppColors.primaryLight.withOpacity(0.7),
+              ],
             ),
           ),
           child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: Padding(
-                padding: Spacing.paddingLg,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Logo and app name
-                    Container(
-                      padding: Spacing.paddingXl,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.favorite,
-                        size: 100,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Spacing.verticalXl,
-                    Text(
-                      'NoBS Dating',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.displaySmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Spacing.verticalMd,
-                    Text(
-                      'Straightforward dating, no BS',
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.h4.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-                    Spacing.verticalMd,
-                    // Value proposition
-                    Padding(
-                      padding: Spacing.horizontalPaddingXl,
-                      child: Text(
-                        'Find meaningful connections without the games',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withOpacity(0.8),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Padding(
+                  padding: Spacing.paddingLg,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Logo and app name
+                      Container(
+                        padding: Spacing.paddingXl,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
                         ),
-                      ),
-                    ),
-                    Spacing.verticalXxl,
-                    // Loading indicator or buttons
-                    if (_isLoading)
-                      Center(
-                        child: Container(
-                          padding: Spacing.paddingXl,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: Spacing.borderRadiusLg,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                              Spacing.verticalMd,
-                              Text(
-                                'Signing in...',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
+                        child: const Icon(
+                          Icons.favorite,
+                          size: 100,
+                          color: Colors.white,
                         ),
-                      )
-                    else ...[
-                      // Show Sign in with Apple only on iOS
-                      if (Platform.isIOS)
-                        _buildAuthButton(
-                          onPressed: _signInWithApple,
-                          icon: Icons.apple,
-                          label: 'Sign in with Apple',
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                        ),
-                      if (Platform.isIOS) Spacing.verticalMd,
-                      _buildAuthButton(
-                        onPressed: _signInWithGoogle,
-                        icon: Icons.g_mobiledata,
-                        label: 'Sign in with Google',
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        iconSize: 32,
                       ),
                       Spacing.verticalXl,
-                      // Terms of service
+                      Text(
+                        'NoBS Dating',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.displaySmall.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacing.verticalMd,
+                      Text(
+                        'Straightforward dating, no BS',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.h4.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                      Spacing.verticalMd,
+                      // Value proposition
                       Padding(
-                        padding: Spacing.horizontalPaddingLg,
-                        child: RichText(
+                        padding: Spacing.horizontalPaddingXl,
+                        child: Text(
+                          'Find meaningful connections without the games',
                           textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: AppTextStyles.caption.copyWith(
-                              color: Colors.white.withOpacity(0.7),
-                            ),
-                            children: [
-                              const TextSpan(text: 'By signing in, you agree to our '),
-                              TextSpan(
-                                text: 'Terms of Service',
-                                style: const TextStyle(
-                                  decoration: TextDecoration.underline,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const LegalDocumentViewer(
-                                          documentType: LegalDocumentType.termsOfService,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                              ),
-                              const TextSpan(text: ' and '),
-                              TextSpan(
-                                text: 'Privacy Policy',
-                                style: const TextStyle(
-                                  decoration: TextDecoration.underline,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const LegalDocumentViewer(
-                                          documentType: LegalDocumentType.privacyPolicy,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                              ),
-                            ],
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: Colors.white.withOpacity(0.8),
                           ),
                         ),
                       ),
-                      // Test users button (development only)
-                      if (kDebugMode) ...[
-                        Spacing.verticalXl,
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TestLoginScreen(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.bug_report),
-                          label: const Text('Test Users (Dev Only)'),
-                          style: OutlinedButton.styleFrom(
+                      Spacing.verticalXxl,
+                      // Loading indicator or buttons
+                      if (_isLoading)
+                        Center(
+                          child: Container(
+                            padding: Spacing.paddingXl,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: Spacing.borderRadiusLg,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                                Spacing.verticalMd,
+                                Text(
+                                  'Signing in...',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else ...[
+                        // Show Sign in with Apple only on iOS
+                        if (Platform.isIOS)
+                          _buildAuthButton(
+                            onPressed: _signInWithApple,
+                            icon: Icons.apple,
+                            label: 'Sign in with Apple',
+                            backgroundColor: Colors.black,
                             foregroundColor: Colors.white,
-                            side: const BorderSide(color: Colors.white, width: 2),
-                            padding: Spacing.paddingMd,
+                          ),
+                        if (Platform.isIOS) Spacing.verticalMd,
+                        _buildAuthButton(
+                          onPressed: _signInWithGoogle,
+                          icon: Icons.g_mobiledata,
+                          label: 'Sign in with Google',
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black87,
+                          iconSize: 32,
+                        ),
+                        Spacing.verticalXl,
+                        // Terms of service
+                        Padding(
+                          padding: Spacing.horizontalPaddingLg,
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              style: AppTextStyles.caption.copyWith(
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                              children: [
+                                const TextSpan(text: 'By signing in, you agree to our '),
+                                TextSpan(
+                                  text: 'Terms of Service',
+                                  style: const TextStyle(
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const LegalDocumentViewer(
+                                            documentType: LegalDocumentType.termsOfService,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                ),
+                                const TextSpan(text: ' and '),
+                                TextSpan(
+                                  text: 'Privacy Policy',
+                                  style: const TextStyle(
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => const LegalDocumentViewer(
+                                            documentType: LegalDocumentType.privacyPolicy,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
+                        // Test users button (development only)
+                        if (kDebugMode) ...[
+                          Spacing.verticalXl,
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TestLoginScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.bug_report),
+                            label: const Text('Test Users (Dev Only)'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white, width: 2),
+                              padding: Spacing.paddingMd,
+                            ),
+                          ),
+                        ],
                       ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
         ),
       ),
     );
