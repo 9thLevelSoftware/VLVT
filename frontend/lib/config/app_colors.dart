@@ -103,6 +103,11 @@ class AppColors {
     return Theme.of(context).colorScheme.onSurface.withOpacity(0.38);
   }
 
+  /// Text color for use on primary/colored backgrounds (buttons, SnackBars)
+  static Color textOnPrimary(BuildContext context) {
+    return Colors.white;
+  }
+
   // ===== BACKGROUND COLORS =====
 
   /// Card/surface background
