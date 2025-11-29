@@ -193,14 +193,27 @@ class SocketService extends ChangeNotifier {
     }
 
     final completer = Completer<Message?>();
+    bool hasCompleted = false;
+
+    // Timeout after 10 seconds
+    Timer(const Duration(seconds: 10), () {
+      if (!hasCompleted) {
+        debugPrint('Socket: Message send timed out');
+        hasCompleted = true;
+        completer.complete(null);
+      }
+    });
 
     _socket!.emitWithAck('send_message', {
       'matchId': matchId,
       'text': text,
       'tempId': tempId,
     }, ack: (response) {
+      if (hasCompleted) return; // Already timed out
+      hasCompleted = true;
       try {
         final data = response as Map<String, dynamic>;
+        debugPrint('Socket: Received ack response: $data');
         if (data['success'] == true) {
           final message = Message.fromJson(data['message'] as Map<String, dynamic>);
           debugPrint('Socket: Message sent successfully');
