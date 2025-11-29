@@ -6,6 +6,7 @@ import '../config/app_config.dart';
 class SubscriptionService extends ChangeNotifier {
   bool _hasPremiumAccess = false;
   bool _isLoading = false;
+  bool _isRevenueCatConfigured = false;
 
   // Demo mode limits
   static const int _maxDailyLikes = 5;
@@ -18,7 +19,8 @@ class SubscriptionService extends ChangeNotifier {
   bool get hasPremiumAccess => _hasPremiumAccess;
   bool get isLoading => _isLoading;
   bool get isDemoMode => !_hasPremiumAccess;
-  
+  bool get isRevenueCatConfigured => _isRevenueCatConfigured;
+
   // Initialize RevenueCat
   Future<void> initialize(String userId) async {
     try {
@@ -28,17 +30,23 @@ class SubscriptionService extends ChangeNotifier {
       // Load demo mode data from shared preferences
       await _loadDemoData();
 
-      // Initialize RevenueCat with your API key from config
-      // Make sure to set different keys for iOS and Android in production
-      if (AppConfig.revenueCatApiKey == 'YOUR_REVENUECAT_API_KEY') {
-        debugPrint('WARNING: Using default RevenueCat API key. Please configure a real key.');
+      // Check if RevenueCat API key is configured
+      if (!AppConfig.isRevenueCatConfigured) {
+        debugPrint('RevenueCat API key not configured. Running in demo-only mode.');
+        _isRevenueCatConfigured = false;
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
+
+      // Initialize RevenueCat with your API key from config
       final configuration = PurchasesConfiguration(
         AppConfig.revenueCatApiKey,
       );
 
       await Purchases.configure(configuration);
       await Purchases.logIn(userId);
+      _isRevenueCatConfigured = true;
 
       // Check subscription status
       await checkSubscriptionStatus();
@@ -47,18 +55,25 @@ class SubscriptionService extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error initializing RevenueCat: $e');
+      _isRevenueCatConfigured = false;
       _isLoading = false;
       notifyListeners();
     }
   }
   
   Future<void> checkSubscriptionStatus() async {
+    if (!_isRevenueCatConfigured) {
+      _hasPremiumAccess = false;
+      notifyListeners();
+      return;
+    }
+
     try {
       final customerInfo = await Purchases.getCustomerInfo();
-      
+
       // Check for 'premium_access' entitlement
       _hasPremiumAccess = customerInfo.entitlements.all['premium_access']?.isActive ?? false;
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error checking subscription status: $e');
@@ -66,25 +81,30 @@ class SubscriptionService extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> purchaseSubscription() async {
+    if (!_isRevenueCatConfigured) {
+      debugPrint('RevenueCat not configured. Cannot purchase subscriptions.');
+      return;
+    }
+
     try {
       _isLoading = true;
       notifyListeners();
-      
+
       // Get available offerings
       final offerings = await Purchases.getOfferings();
-      
+
       if (offerings.current != null && offerings.current!.availablePackages.isNotEmpty) {
         // Purchase the first available package
         final package = offerings.current!.availablePackages.first;
-        
+
         await Purchases.purchasePackage(package);
-        
+
         // Check updated subscription status
         await checkSubscriptionStatus();
       }
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -93,8 +113,13 @@ class SubscriptionService extends ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> restorePurchases() async {
+    if (!_isRevenueCatConfigured) {
+      debugPrint('RevenueCat not configured. Cannot restore purchases.');
+      return;
+    }
+
     try {
       _isLoading = true;
       notifyListeners();
