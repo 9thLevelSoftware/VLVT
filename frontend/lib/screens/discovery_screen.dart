@@ -27,7 +27,7 @@ class DiscoveryScreen extends StatefulWidget {
   State<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
-class _DiscoveryScreenState extends State<DiscoveryScreen> with SingleTickerProviderStateMixin {
+class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderStateMixin {
   int _currentProfileIndex = 0;
   List<Profile> _filteredProfiles = [];
   List<Match>? _currentMatches;
