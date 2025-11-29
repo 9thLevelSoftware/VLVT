@@ -916,7 +916,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                         return Hero(
                                                           tag: 'profile_${profile.userId}', // Simplified tag for single hero
                                                           child: CachedNetworkImage(
-                                                            imageUrl: '${profileService.baseUrl}$photoUrl',
+                                                            imageUrl: photoUrl.startsWith('http')
+                                                                ? photoUrl
+                                                                : '${profileService.baseUrl}$photoUrl',
                                                             fit: BoxFit.cover,
                                                             placeholder: (context, url) => Container(
                                                               color: Colors.white.withOpacity(0.2),

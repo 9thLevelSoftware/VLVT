@@ -441,7 +441,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
               child: CircleAvatar(
                 backgroundColor: AppColors.primaryLight,
                 backgroundImage: profile?.photos?.isNotEmpty == true
-                    ? CachedNetworkImageProvider('${context.read<ProfileApiService>().baseUrl}${profile!.photos!.first}')
+                    ? CachedNetworkImageProvider(
+                        profile!.photos!.first.startsWith('http')
+                            ? profile.photos!.first
+                            : '${context.read<ProfileApiService>().baseUrl}${profile.photos!.first}')
                     : null,
                 child: profile?.photos?.isNotEmpty == true
                     ? null

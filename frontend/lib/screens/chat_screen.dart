@@ -425,7 +425,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   child: CircleAvatar(
                     radius: 18,
                     backgroundImage: CachedNetworkImageProvider(
-                      '${context.read<ProfileApiService>().baseUrl}${_otherUserProfile!.photos!.first}',
+                      _otherUserProfile!.photos!.first.startsWith('http')
+                          ? _otherUserProfile!.photos!.first
+                          : '${context.read<ProfileApiService>().baseUrl}${_otherUserProfile!.photos!.first}',
                     ),
                   ),
                 ),

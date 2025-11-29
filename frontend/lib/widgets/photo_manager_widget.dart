@@ -235,7 +235,9 @@ class _PhotoManagerWidgetState extends State<PhotoManagerWidget> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    '${context.read<ProfileApiService>().baseUrl}${_photos[index]}',
+                    _photos[index].startsWith('http')
+                        ? _photos[index]
+                        : '${context.read<ProfileApiService>().baseUrl}${_photos[index]}',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: Colors.grey[300],
