@@ -355,21 +355,23 @@ ON CONFLICT (id) DO NOTHING;
           match_id VARCHAR(255) NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
           sender_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           text TEXT NOT NULL,
-          status VARCHAR(20) DEFAULT 'sent',
-          delivered_at TIMESTAMP WITH TIME ZONE,
-          read_at TIMESTAMP WITH TIME ZONE,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
+
+        // Add message columns if missing
+        `ALTER TABLE messages ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'sent'`,
+        `ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMP WITH TIME ZONE`,
 
         // Blocks table
         `CREATE TABLE IF NOT EXISTS blocks (
           id VARCHAR(255) PRIMARY KEY,
           user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           blocked_user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          reason TEXT,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(user_id, blocked_user_id)
         )`,
+        `ALTER TABLE blocks ADD COLUMN IF NOT EXISTS reason TEXT`,
 
         // Reports table
         `CREATE TABLE IF NOT EXISTS reports (
@@ -377,14 +379,14 @@ ON CONFLICT (id) DO NOTHING;
           reporter_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           reported_user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           reason VARCHAR(100) NOT NULL,
-          details TEXT,
-          status VARCHAR(50) DEFAULT 'pending',
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          reviewed_by VARCHAR(255),
-          reviewed_at TIMESTAMP WITH TIME ZONE,
-          resolution_notes TEXT
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )`,
+        `ALTER TABLE reports ADD COLUMN IF NOT EXISTS details TEXT`,
+        `ALTER TABLE reports ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`,
+        `ALTER TABLE reports ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`,
+        `ALTER TABLE reports ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(255)`,
+        `ALTER TABLE reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP WITH TIME ZONE`,
+        `ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolution_notes TEXT`,
 
         // Read receipts table
         `CREATE TABLE IF NOT EXISTS read_receipts (
@@ -399,23 +401,23 @@ ON CONFLICT (id) DO NOTHING;
           id SERIAL PRIMARY KEY,
           user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
           token TEXT NOT NULL,
-          device_type VARCHAR(20) CHECK (device_type IN ('ios', 'android', 'web')),
-          device_id VARCHAR(255),
-          is_active BOOLEAN DEFAULT true,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          last_used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(user_id, token)
         )`,
+        `ALTER TABLE fcm_tokens ADD COLUMN IF NOT EXISTS device_type VARCHAR(20)`,
+        `ALTER TABLE fcm_tokens ADD COLUMN IF NOT EXISTS device_id VARCHAR(255)`,
+        `ALTER TABLE fcm_tokens ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`,
+        `ALTER TABLE fcm_tokens ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`,
+        `ALTER TABLE fcm_tokens ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`,
 
         // User status table
         `CREATE TABLE IF NOT EXISTS user_status (
           user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
           is_online BOOLEAN DEFAULT false,
-          last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          socket_id VARCHAR(255),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          last_seen_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
         )`,
+        `ALTER TABLE user_status ADD COLUMN IF NOT EXISTS socket_id VARCHAR(255)`,
+        `ALTER TABLE user_status ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`,
 
         // Typing indicators table
         `CREATE TABLE IF NOT EXISTS typing_indicators (
