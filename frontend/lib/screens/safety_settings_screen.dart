@@ -104,8 +104,8 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
 
   /// Contact support via email
   Future<void> _contactSupport() async {
-    const supportEmail = 'support@nobsdating.com';
-    const subject = 'NoBS Dating - Safety Concern';
+    const supportEmail = 'support@getvlvt.vip';
+    const subject = 'VLVT - Safety Concern';
     final uri = Uri(
       scheme: 'mailto',
       path: supportEmail,

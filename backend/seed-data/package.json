@@ -1,7 +1,7 @@
 {
   "name": "nobsdating-seed-data",
   "version": "1.0.0",
-  "description": "Test database seeding scripts for NoBS Dating",
+  "description": "Test database seeding scripts for VLVT",
   "main": "seed.js",
   "scripts": {
     "seed": "node seed.js",

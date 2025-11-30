@@ -1,7 +1,7 @@
 {
   "name": "nobsdating-migrations",
   "version": "1.0.0",
-  "description": "Database migrations for NoBSDating",
+  "description": "Database migrations for VLVT",
   "main": "run_migration.js",
   "scripts": {
     "migrate": "node run_migration.js"

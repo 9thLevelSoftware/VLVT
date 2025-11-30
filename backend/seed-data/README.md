@@ -1,6 +1,6 @@
 # Test Database Seeding
 
-This directory contains scripts and data for populating the NoBS Dating database with realistic test users for comprehensive testing.
+This directory contains scripts and data for populating the VLVT database with realistic test users for comprehensive testing.
 
 ## Overview
 

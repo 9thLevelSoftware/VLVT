@@ -2,15 +2,15 @@
 
 **Last Updated: November 14, 2025**
 
-Welcome to NoBS Dating ("we," "our," or "us"). By accessing or using our mobile application and services (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms").
+Welcome to VLVT ("we," "our," or "us"). By accessing or using our mobile application and services (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms").
 
 ## 1. Acceptance of Terms
 
-By creating an account or using NoBS Dating, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use our Service.
+By creating an account or using VLVT, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you do not agree, please do not use our Service.
 
 ## 2. Eligibility
 
-You must be at least 18 years old to use NoBS Dating. By using the Service, you represent and warrant that:
+You must be at least 18 years old to use VLVT. By using the Service, you represent and warrant that:
 - You are at least 18 years of age
 - You have the legal capacity to enter into these Terms
 - You are not prohibited from using the Service under applicable law
@@ -54,7 +54,7 @@ You agree NOT to:
 - You are responsible for your content and may be held liable for content you post
 
 ### 5.2 Our Content
-- The Service and its original content, features, and functionality are owned by NoBS Dating
+- The Service and its original content, features, and functionality are owned by VLVT
 - You may not copy, modify, distribute, sell, or exploit any part of the Service without permission
 
 ## 6. Matching and Communication
@@ -106,7 +106,7 @@ TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR:
 
 ## 12. Indemnification
 
-You agree to indemnify and hold harmless NoBS Dating from any claims, damages, losses, liabilities, and expenses arising from:
+You agree to indemnify and hold harmless VLVT from any claims, damages, losses, liabilities, and expenses arising from:
 - Your use of the Service
 - Your violation of these Terms
 - Your violation of any third-party rights
@@ -127,9 +127,9 @@ You agree to indemnify and hold harmless NoBS Dating from any claims, damages, l
 ## 15. Contact Us
 
 If you have questions about these Terms, contact us at:
-- Email: support@nobsdating.app
+- Email: support@getvlvt.vip
 - In-app support feature
 
 ---
 
-**By using NoBS Dating, you acknowledge that you have read and understood these Terms of Service.**
+**By using VLVT, you acknowledge that you have read and understood these Terms of Service.**

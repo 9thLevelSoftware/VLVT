@@ -190,7 +190,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ),
                       Spacing.verticalXl,
                       Text(
-                        'NoBS Dating',
+                        'VLVT',
                         textAlign: TextAlign.center,
                         style: AppTextStyles.displaySmall.copyWith(
                           color: Colors.white,
@@ -199,7 +199,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ),
                       Spacing.verticalMd,
                       Text(
-                        'Straightforward dating, no BS',
+                        'See what\'s waiting behind the rope.',
                         textAlign: TextAlign.center,
                         style: AppTextStyles.h4.copyWith(
                           color: Colors.white.withValues(alpha: 0.9),

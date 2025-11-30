@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * NoBS Dating Test Database Seeding Script
+ * VLVT Test Database Seeding Script
  *
  * This script populates the database with realistic test users, profiles,
  * matches, and messages for comprehensive testing.
@@ -170,7 +170,7 @@ async function displayTestUsers() {
  */
 async function main() {
   try {
-    console.log('\n🚀 NoBS Dating Test Data Seeder\n');
+    console.log('\n🚀 VLVT Test Data Seeder\n');
 
     if (cleanOnly) {
       await cleanTestData();

@@ -135,7 +135,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<ThemeService>(
         builder: (context, themeService, _) {
           return MaterialApp(
-            title: 'NoBS Dating',
+            title: 'VLVT',
             navigatorKey: navigatorKey,
             theme: AppThemes.lightTheme,
             darkTheme: AppThemes.darkTheme,

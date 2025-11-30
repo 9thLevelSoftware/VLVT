@@ -2,7 +2,7 @@
 
 **Last Updated: November 14, 2025**
 
-NoBS Dating ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and services (the "Service").
+VLVT ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application and services (the "Service").
 
 ## 1. Information We Collect
 
@@ -196,11 +196,11 @@ Continued use after changes constitutes acceptance.
 
 If you have questions or concerns about this Privacy Policy or our data practices, contact us at:
 
-**Email:** privacy@nobsdating.app
+**Email:** privacy@getvlvt.vip
 **In-App:** Use the support feature in the app settings
 
-**Data Protection Officer:** dpo@nobsdating.app
+**Data Protection Officer:** dpo@getvlvt.vip
 
 ---
 
-**By using NoBS Dating, you acknowledge that you have read and understood this Privacy Policy.**
+**By using VLVT, you acknowledge that you have read and understood this Privacy Policy.**

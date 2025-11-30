@@ -1,4 +1,4 @@
--- NoBS Dating Test Database Seeding Script
+-- VLVT Test Database Seeding Script
 -- This script creates realistic test users, profiles, matches, and messages
 -- for comprehensive testing of the application
 

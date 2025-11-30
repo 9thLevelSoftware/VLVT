@@ -208,7 +208,7 @@ class _FeedbackFormState extends State<FeedbackForm> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Your feedback helps us improve NoBS Dating',
+                  'Your feedback helps us improve VLVT',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey,

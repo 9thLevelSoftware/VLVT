@@ -95,7 +95,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Unlock NoBS Dating Unlimited',
+                'Unlock VLVT Unlimited',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,
@@ -475,7 +475,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Unlock NoBS Dating Premium',
+                'Unlock VLVT Premium',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,

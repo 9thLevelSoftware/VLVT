@@ -1,6 +1,6 @@
 # Database Migrations
 
-This directory contains SQL migration files for the NoBSDating application.
+This directory contains SQL migration files for the VLVT application.
 
 ## Migrations
 
