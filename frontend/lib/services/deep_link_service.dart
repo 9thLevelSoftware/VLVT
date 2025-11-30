@@ -1,28 +1,29 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 import '../screens/reset_password_screen.dart';
 import 'auth_service.dart';
 
 class DeepLinkService {
+  static AppLinks? _appLinks;
   static StreamSubscription? _sub;
 
   static Future<void> init(BuildContext context, AuthService authService) async {
+    _appLinks = AppLinks();
+
     // Handle initial link (app opened via link)
     try {
-      final initialLink = await getInitialLink();
+      final initialLink = await _appLinks!.getInitialLink();
       if (initialLink != null) {
-        _handleDeepLink(context, authService, initialLink);
+        _handleDeepLink(context, authService, initialLink.toString());
       }
     } catch (e) {
       debugPrint('Error getting initial deep link: $e');
     }
 
     // Handle links while app is running
-    _sub = linkStream.listen((String? link) {
-      if (link != null) {
-        _handleDeepLink(context, authService, link);
-      }
+    _sub = _appLinks!.uriLinkStream.listen((Uri uri) {
+      _handleDeepLink(context, authService, uri.toString());
     }, onError: (err) {
       debugPrint('Error handling deep link stream: $err');
     });

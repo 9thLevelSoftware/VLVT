@@ -167,7 +167,7 @@ class AuthService extends ChangeNotifier {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        await AnalyticsService.logSignUp('email');
+        await AnalyticsService.logSignupCompleted('email');
         return {'success': true, 'message': data['message']};
       }
 
