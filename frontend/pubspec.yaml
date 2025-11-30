@@ -71,6 +71,7 @@ dependencies:
 
   flutter_markdown: any
   purchases_ui_flutter: ^9.9.9
+  uni_links: ^0.5.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
