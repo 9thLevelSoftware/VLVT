@@ -89,6 +89,12 @@ flutter:
     - assets/legal/
     - assets/images/
 
+  fonts:
+    - family: PlayfairDisplay
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay-Italic.ttf
+          style: italic
+
 # Native splash screen configuration
 flutter_native_splash:
   color: "#1A0F2E"

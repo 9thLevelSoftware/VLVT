@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +17,8 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with SingleTickerProviderStateMixin {
   bool _isLoading = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -85,7 +87,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           );
         } else {
           // Show error
-          final error = ErrorHandler.handleError(result['error'] ?? 'Login failed');
+          final error =
+              ErrorHandler.handleError(result['error'] ?? 'Login failed');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(error.message),
@@ -214,29 +217,46 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      backgroundColor: Colors.transparent,
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            // Background image - fills entire screen
+            // Background image with blur effect
             Positioned.fill(
-              child: Image.asset(
-                'assets/images/loginbackground.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: const Color(0xFF1A0F2E),
-                    child: Center(
-                      child: Text('Image failed: $error', style: const TextStyle(color: Colors.white)),
-                    ),
-                  );
-                },
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Image.asset(
+                  'assets/images/loginbackground.jpg',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-            // Content
-            SafeArea(
-              bottom: false,
+            // Dark overlay for better contrast
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.4),
+                      Colors.black.withValues(alpha: 0.7),
+                      const Color(0xFF1A0F2E).withValues(alpha: 0.9),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // Content with SafeArea
+            Positioned.fill(
+              child: SafeArea(
+                bottom: false,
               child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: SlideTransition(
@@ -245,214 +265,247 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     padding: Spacing.paddingLg,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Logo
-                        Image.asset(
-                          'assets/images/logo.png',
-                          width: 180,
-                          height: 180,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Logo - larger size for better branding
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 220,
+                        height: 220,
+                      ),
+                      Spacing.verticalSm,
+                      Text(
+                        'See what\'s waiting behind the rope.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'PlayfairDisplay',
+                          fontStyle: FontStyle.italic,
+                          fontSize: 24,
+                          color: Colors.white.withValues(alpha: 0.95),
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.5,
+                          height: 1.4,
                         ),
-                        Spacing.verticalMd,
-                        Text(
-                          'See what\'s waiting behind the rope.',
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.h4.copyWith(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                        Spacing.verticalXl,
-                        // Loading indicator or form
-                        if (_isLoading)
-                          Center(
-                            child: Container(
-                              padding: Spacing.paddingXl,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: Spacing.borderRadiusLg,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                  Spacing.verticalMd,
-                                  Text(
-                                    'Signing in...',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                      ),
+                      Spacing.verticalXl,
+                      // Loading indicator or form
+                      if (_isLoading)
+                        Center(
+                          child: Container(
+                            padding: Spacing.paddingXl,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: Spacing.borderRadiusLg,
                             ),
-                          )
-                        else ...[
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                ),
+                                Spacing.verticalMd,
+                                Text(
+                                  'Signing in...',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else ...[
                         // Email/Password Login Form
                         Form(
                           key: _formKey,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Email input
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                autocorrect: false,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white.withValues(alpha: 0.5),
-                                  hintText: 'Email',
-                                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                                  prefixIcon: Icon(Icons.email_outlined, color: Colors.white.withValues(alpha: 0.7)),
-                                  border: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: const BorderSide(color: Colors.red, width: 2),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: const BorderSide(color: Colors.red, width: 2),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-                                  if (!value.contains('@') || !value.contains('.')) {
-                                    return 'Please enter a valid email';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              Spacing.verticalMd,
-                              // Password input
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                autocorrect: false,
-                                style: const TextStyle(color: Colors.white),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: Colors.white.withValues(alpha: 0.5),
-                                  hintText: 'Password',
-                                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-                                  prefixIcon: Icon(Icons.lock_outlined, color: Colors.white.withValues(alpha: 0.7)),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                                      color: Colors.white.withValues(alpha: 0.7),
+                              // Email input - dark glassmorphism style
+                              ClipRRect(
+                                borderRadius: Spacing.borderRadiusMd,
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: TextFormField(
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    autocorrect: false,
+                                    style: const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.white.withValues(alpha: 0.1),
+                                      hintText: 'Email',
+                                      hintStyle: const TextStyle(
+                                          color: Color(0xFFD4AF37)), // Gold hint
+                                      prefixIcon: const Icon(Icons.email_outlined,
+                                          color: Color(0xFFD4AF37)), // Gold icon
+                                      border: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.3), width: 1),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.3), width: 1),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFFD4AF37), width: 2), // Gold border on focus
+                                      ),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: const BorderSide(
+                                            color: Colors.redAccent, width: 1),
+                                      ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: const BorderSide(
+                                            color: Colors.redAccent, width: 2),
+                                      ),
                                     ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Please enter your email';
+                                      }
+                                      if (!value.contains('@') ||
+                                          !value.contains('.')) {
+                                        return 'Please enter a valid email';
+                                      }
+                                      return null;
                                     },
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: const BorderSide(color: Colors.red, width: 2),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    borderSide: const BorderSide(color: Colors.red, width: 2),
-                                  ),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Please enter your password';
-                                  }
-                                  if (value.length < 6) {
-                                    return 'Password must be at least 6 characters';
-                                  }
-                                  return null;
-                                },
                               ),
                               Spacing.verticalMd,
-                              // Sign In button
+                              // Password input - dark glassmorphism style
+                              ClipRRect(
+                                borderRadius: Spacing.borderRadiusMd,
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: TextFormField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    autocorrect: false,
+                                    style: const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: Colors.white.withValues(alpha: 0.1),
+                                      hintText: 'Password',
+                                      hintStyle: const TextStyle(
+                                          color: Color(0xFFD4AF37)), // Gold hint
+                                      prefixIcon: const Icon(Icons.lock_outlined,
+                                          color: Color(0xFFD4AF37)), // Gold icon
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                          color: const Color(0xFFD4AF37), // Gold icon
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _obscurePassword = !_obscurePassword;
+                                          });
+                                        },
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.3), width: 1),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: BorderSide(
+                                            color: Colors.white.withValues(alpha: 0.3), width: 1),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFFD4AF37), width: 2), // Gold border
+                                      ),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: const BorderSide(
+                                            color: Colors.redAccent, width: 1),
+                                      ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                        borderSide: const BorderSide(
+                                            color: Colors.redAccent, width: 2),
+                                      ),
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please enter your password';
+                                      }
+                                      if (value.length < 6) {
+                                        return 'Password must be at least 6 characters';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ),
+                              Spacing.verticalLg,
+                              // Sign In button with glow effect
                               Center(
-                                child: ElevatedButton(
-                                  onPressed: _signInWithEmail,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 48),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: Spacing.borderRadiusMd,
-                                    ),
-                                    elevation: 4,
-                                    textStyle: AppTextStyles.button,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: Spacing.borderRadiusMd,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.primary.withValues(alpha: 0.5),
+                                        blurRadius: 20,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
-                                  child: const Text('Sign In'),
+                                  child: ElevatedButton(
+                                    onPressed: _signInWithEmail,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16, horizontal: 64),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: Spacing.borderRadiusMd,
+                                      ),
+                                      elevation: 0,
+                                      textStyle: AppTextStyles.button.copyWith(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                    child: const Text('Sign In'),
+                                  ),
                                 ),
                               ),
                               Spacing.verticalMd,
-                              // Forgot password and Create account links
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const ForgotPasswordScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'Forgot password?',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: Colors.white,
-                                        decoration: TextDecoration.underline,
+                              // Forgot password - centered under button
+                              Center(
+                                child: TextButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgotPasswordScreen(),
                                       ),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Forgot password?',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: Colors.white.withValues(alpha: 0.8),
                                     ),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const RegisterScreen(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      'Create account',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: Colors.white,
-                                        decoration: TextDecoration.underline,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
@@ -463,7 +516,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                           children: [
                             Expanded(
                               child: Divider(
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 thickness: 1,
                               ),
                             ),
@@ -478,40 +531,40 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             ),
                             Expanded(
                               child: Divider(
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: Colors.white.withValues(alpha: 0.7),
                                 thickness: 1,
                               ),
                             ),
                           ],
                         ),
                         Spacing.verticalXl,
-                        // OAuth buttons row - icon only
+                        // OAuth buttons row - following brand guidelines
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Google button
-                            _buildOAuthIconButton(
-                              onPressed: _signInWithGoogle,
-                              assetPath: 'assets/images/google_logo.png',
-                            ),
+                            // Google button - requires white background per guidelines
+                            _buildGoogleButton(onPressed: _signInWithGoogle),
                             Spacing.horizontalLg,
-                            // Apple button
+                            // Apple button - white logo on dark/transparent
                             _buildOAuthIconButton(
                               onPressed: _signInWithApple,
-                              assetPath: 'assets/images/apple_logo.png',
+                              assetPath: 'assets/images/apple_logo_white.png',
+                              invertColor: true,
                             ),
                             Spacing.horizontalLg,
-                            // Instagram button
+                            // Instagram button - white glyph per guidelines
                             _buildOAuthIconButton(
                               onPressed: () {
                                 // TODO: Implement Instagram OAuth
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Instagram login - coming soon'),
+                                    content:
+                                        Text('Instagram login - coming soon'),
                                   ),
                                 );
                               },
                               assetPath: 'assets/images/instagram_logo.png',
+                              invertColor: true,
                             ),
                           ],
                         ),
@@ -526,7 +579,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 color: Colors.white.withValues(alpha: 0.7),
                               ),
                               children: [
-                                const TextSpan(text: 'By signing in, you agree to our '),
+                                const TextSpan(
+                                    text: 'By signing in, you agree to our '),
                                 TextSpan(
                                   text: 'Terms of Service',
                                   style: const TextStyle(
@@ -538,8 +592,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const LegalDocumentViewer(
-                                            documentType: LegalDocumentType.termsOfService,
+                                          builder: (context) =>
+                                              const LegalDocumentViewer(
+                                            documentType: LegalDocumentType
+                                                .termsOfService,
                                           ),
                                         ),
                                       );
@@ -557,8 +613,10 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => const LegalDocumentViewer(
-                                            documentType: LegalDocumentType.privacyPolicy,
+                                          builder: (context) =>
+                                              const LegalDocumentViewer(
+                                            documentType:
+                                                LegalDocumentType.privacyPolicy,
                                           ),
                                         ),
                                       );
@@ -568,11 +626,47 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                             ),
                           ),
                         ),
+                        // Create account - at bottom
+                        Spacing.verticalXl,
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RegisterScreen(),
+                                ),
+                              );
+                            },
+                            child: RichText(
+                              text: TextSpan(
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                                children: [
+                                  const TextSpan(text: "Don't have an account? "),
+                                  TextSpan(
+                                    text: 'Join the Club',
+                                    style: TextStyle(
+                                      color: const Color(0xFFD4AF37), // Gold
+                                      fontWeight: FontWeight.w600,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: const Color(0xFFD4AF37),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Spacing.verticalLg,
                       ],
                     ],
                   ),
                 ),
               ),
+            ),
+            ),
             ),
           ],
         ),
@@ -606,12 +700,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildOAuthIconButton({
-    required VoidCallback onPressed,
-    String? assetPath,
-    IconData? icon,
-    Color? iconColor,
-  }) {
+  // Google button - requires white background with colored G logo per brand guidelines
+  Widget _buildGoogleButton({required VoidCallback onPressed}) {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
@@ -629,16 +719,59 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           ],
         ),
         child: Center(
+          child: Image.asset(
+            'assets/images/google_g_logo.png',
+            width: 28,
+            height: 28,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOAuthIconButton({
+    required VoidCallback onPressed,
+    String? assetPath,
+    IconData? icon,
+    Color? iconColor,
+    bool invertColor = false,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
+        ),
+        child: Center(
           child: assetPath != null
-              ? Image.asset(
-                  assetPath,
-                  width: 28,
-                  height: 28,
-                )
+              ? (invertColor
+                  ? ColorFiltered(
+                      colorFilter: const ColorFilter.mode(
+                        Colors.white,
+                        BlendMode.srcIn,
+                      ),
+                      child: Image.asset(
+                        assetPath,
+                        width: 24,
+                        height: 24,
+                      ),
+                    )
+                  : Image.asset(
+                      assetPath,
+                      width: 24,
+                      height: 24,
+                    ))
               : Icon(
                   icon,
-                  size: 32,
-                  color: iconColor ?? Colors.black87,
+                  size: 24,
+                  color: iconColor ?? Colors.white,
                 ),
         ),
       ),
