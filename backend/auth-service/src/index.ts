@@ -313,6 +313,251 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
   }
 });
 
+// Email verification endpoint
+app.get('/auth/email/verify', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query;
+
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ success: false, error: 'Verification token is required' });
+    }
+
+    // Find credential with this token
+    const result = await pool.query(
+      `SELECT user_id, email, verification_expires
+       FROM auth_credentials
+       WHERE verification_token = $1 AND provider = 'email'`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired verification token' });
+    }
+
+    const credential = result.rows[0];
+
+    // Check if token expired
+    if (isTokenExpired(credential.verification_expires)) {
+      return res.status(400).json({ success: false, error: 'Verification token has expired' });
+    }
+
+    // Mark as verified and clear token
+    await pool.query(
+      `UPDATE auth_credentials
+       SET email_verified = true, verification_token = NULL, verification_expires = NULL, updated_at = NOW()
+       WHERE user_id = $1 AND provider = 'email'`,
+      [credential.user_id]
+    );
+
+    // Generate JWT token for auto-login
+    const jwtToken = jwt.sign(
+      { userId: credential.user_id, provider: 'email', email: credential.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    logger.info('Email verified', { userId: credential.user_id });
+    res.json({
+      success: true,
+      message: 'Email verified successfully',
+      token: jwtToken,
+      userId: credential.user_id
+    });
+  } catch (error) {
+    logger.error('Email verification error', { error });
+    res.status(500).json({ success: false, error: 'Verification failed' });
+  }
+});
+
+// Email login endpoint
+app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required' });
+    }
+
+    // Find credential
+    const result = await pool.query(
+      `SELECT ac.user_id, ac.email, ac.password_hash, ac.email_verified, u.provider
+       FROM auth_credentials ac
+       JOIN users u ON ac.user_id = u.id
+       WHERE ac.email = $1 AND ac.provider = 'email'`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    const credential = result.rows[0];
+
+    // Verify password
+    const passwordValid = await verifyPassword(password, credential.password_hash);
+    if (!passwordValid) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+    }
+
+    // Check if email is verified
+    if (!credential.email_verified) {
+      return res.status(403).json({
+        success: false,
+        error: 'Please verify your email before logging in',
+        code: 'EMAIL_NOT_VERIFIED'
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: credential.user_id, provider: 'email', email: credential.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [credential.user_id]);
+
+    logger.info('User logged in', { userId: credential.user_id, provider: 'email' });
+    res.json({ success: true, token, userId: credential.user_id, provider: 'email' });
+  } catch (error) {
+    logger.error('Email login error', { error });
+    res.status(500).json({ success: false, error: 'Login failed' });
+  }
+});
+
+// Forgot password endpoint
+app.post('/auth/email/forgot', authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    // Always return success to prevent email enumeration
+    const successResponse = {
+      success: true,
+      message: 'If an account exists with this email, a password reset link has been sent.'
+    };
+
+    const result = await pool.query(
+      `SELECT user_id, email FROM auth_credentials WHERE email = $1 AND provider = 'email'`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json(successResponse);
+    }
+
+    const credential = result.rows[0];
+    const { token: resetToken, expires: resetExpires } = generateResetToken();
+
+    await pool.query(
+      `UPDATE auth_credentials SET reset_token = $1, reset_expires = $2, updated_at = NOW()
+       WHERE user_id = $3 AND provider = 'email'`,
+      [resetToken, resetExpires, credential.user_id]
+    );
+
+    await emailService.sendPasswordResetEmail(credential.email, resetToken);
+
+    logger.info('Password reset requested', { userId: credential.user_id });
+    res.json(successResponse);
+  } catch (error) {
+    logger.error('Forgot password error', { error });
+    res.status(500).json({ success: false, error: 'Request failed' });
+  }
+});
+
+// Reset password endpoint
+app.post('/auth/email/reset', async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Token and new password are required' });
+    }
+
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password does not meet requirements',
+        details: passwordValidation.errors
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT user_id, reset_expires FROM auth_credentials WHERE reset_token = $1 AND provider = 'email'`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired reset token' });
+    }
+
+    const credential = result.rows[0];
+
+    if (isTokenExpired(credential.reset_expires)) {
+      return res.status(400).json({ success: false, error: 'Reset token has expired' });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    await pool.query(
+      `UPDATE auth_credentials SET password_hash = $1, reset_token = NULL, reset_expires = NULL, updated_at = NOW()
+       WHERE user_id = $2 AND provider = 'email'`,
+      [passwordHash, credential.user_id]
+    );
+
+    logger.info('Password reset successful', { userId: credential.user_id });
+    res.json({ success: true, message: 'Password has been reset successfully' });
+  } catch (error) {
+    logger.error('Reset password error', { error });
+    res.status(500).json({ success: false, error: 'Reset failed' });
+  }
+});
+
+// Resend verification email endpoint
+app.post('/auth/email/resend-verification', authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    const result = await pool.query(
+      `SELECT user_id, email, email_verified FROM auth_credentials WHERE email = $1 AND provider = 'email'`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: true, message: 'If the account exists, a verification email has been sent.' });
+    }
+
+    const credential = result.rows[0];
+
+    if (credential.email_verified) {
+      return res.status(400).json({ success: false, error: 'Email is already verified' });
+    }
+
+    const { token: verificationToken, expires: verificationExpires } = generateVerificationToken();
+
+    await pool.query(
+      `UPDATE auth_credentials SET verification_token = $1, verification_expires = $2, updated_at = NOW()
+       WHERE user_id = $3 AND provider = 'email'`,
+      [verificationToken, verificationExpires, credential.user_id]
+    );
+
+    await emailService.sendVerificationEmail(credential.email, verificationToken);
+
+    logger.info('Verification email resent', { userId: credential.user_id });
+    res.json({ success: true, message: 'Verification email has been sent.' });
+  } catch (error) {
+    logger.error('Resend verification error', { error });
+    res.status(500).json({ success: false, error: 'Failed to resend verification email' });
+  }
+});
+
 // Test login endpoint (ONLY FOR DEVELOPMENT/TESTING/BETA)
 // This bypasses OAuth and allows direct login with any user ID
 // Enable in beta testing with ENABLE_TEST_ENDPOINTS=true
