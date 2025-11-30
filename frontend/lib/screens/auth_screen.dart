@@ -228,59 +228,59 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             ),
             // Content
             SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: SingleChildScrollView(
-                  padding: Spacing.paddingLg,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Logo
-                      Image.asset(
-                        'assets/images/logo.png',
-                        width: 180,
-                        height: 180,
-                      ),
-                      Spacing.verticalMd,
-                      Text(
-                        'See what\'s waiting behind the rope.',
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.h4.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontWeight: FontWeight.normal,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: SingleChildScrollView(
+                    padding: Spacing.paddingLg,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Logo
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 180,
+                          height: 180,
                         ),
-                      ),
-                      Spacing.verticalXl,
-                      // Loading indicator or form
-                      if (_isLoading)
-                        Center(
-                          child: Container(
-                            padding: Spacing.paddingXl,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: Spacing.borderRadiusLg,
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                                Spacing.verticalMd,
-                                Text(
-                                  'Signing in...',
-                                  style: AppTextStyles.bodyMedium.copyWith(
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        Spacing.verticalMd,
+                        Text(
+                          'See what\'s waiting behind the rope.',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.h4.copyWith(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.normal,
                           ),
-                        )
-                      else ...[
+                        ),
+                        Spacing.verticalXl,
+                        // Loading indicator or form
+                        if (_isLoading)
+                          Center(
+                            child: Container(
+                              padding: Spacing.paddingXl,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: Spacing.borderRadiusLg,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                  Spacing.verticalMd,
+                                  Text(
+                                    'Signing in...',
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else ...[
                         // Email/Password Login Form
                         Form(
                           key: _formKey,
@@ -565,6 +565,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 ),
               ),
             ),
+          ),
           ],
         ),
       ),
