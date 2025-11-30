@@ -24,6 +24,18 @@ jest.mock('../src/middleware/rate-limiter', () => ({
   generalLimiter: (req: any, res: any, next: any) => next(),
 }));
 
+jest.mock('../src/services/email-service', () => ({
+  emailService: {
+    sendVerificationEmail: jest.fn().mockResolvedValue(true),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+  },
+}));
+
+jest.mock('bcrypt', () => ({
+  hash: jest.fn().mockResolvedValue('hashed_password'),
+  compare: jest.fn(),
+}));
+
 import request from 'supertest';
 import { Pool } from 'pg';
 import app from '../src/index';
@@ -275,7 +287,7 @@ describe('Auth Service', () => {
   describe('JWT Token Generation', () => {
     it('should generate valid JWT with correct claims', async () => {
       // App imported at top
-      
+
 
       const response = await request(app)
         .post('/auth/google')
@@ -293,7 +305,7 @@ describe('Auth Service', () => {
 
     it('should generate token with 7 day expiration', async () => {
       // App imported at top
-      
+
 
       const response = await request(app)
         .post('/auth/google')
@@ -305,6 +317,579 @@ describe('Auth Service', () => {
 
       // 7 days = 604800 seconds
       expect(expiresIn).toBe(604800);
+    });
+  });
+
+  describe('POST /auth/email/register', () => {
+    beforeEach(() => {
+      // Mock bcrypt for password hashing
+      const bcrypt = require('bcrypt');
+      bcrypt.hash.mockResolvedValue('hashed_password_123');
+    });
+
+    it('should register with valid email and password', async () => {
+      // Mock no existing user
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      // Mock transaction client
+      const mockClient = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
+
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'newuser@example.com', password: 'SecurePass123!' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('check your email');
+
+      // Verify transaction was used
+      expect(mockPool.connect).toHaveBeenCalled();
+      expect(mockClient.release).toHaveBeenCalled();
+    });
+
+    it('should reject invalid email format', async () => {
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'invalid-email', password: 'SecurePass123!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid email format');
+    });
+
+    it('should reject weak password - too short', async () => {
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'test@example.com', password: 'Short1!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password does not meet requirements');
+      expect(response.body.details).toBeDefined();
+    });
+
+    it('should reject weak password - missing letter', async () => {
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'test@example.com', password: '12345678!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password does not meet requirements');
+      expect(response.body.details).toContain('Password must contain at least one letter');
+    });
+
+    it('should reject weak password - missing number', async () => {
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'test@example.com', password: 'NoNumbersHere!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password does not meet requirements');
+      expect(response.body.details).toContain('Password must contain at least one number');
+    });
+
+    it('should accept password with mixed case and special chars', async () => {
+      // Mock no existing user
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      // Mock transaction client
+      const mockClient = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
+
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'test@example.com', password: 'ValidPass123!' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('check your email');
+    });
+
+    it('should accept password with only lowercase and numbers', async () => {
+      // Mock no existing user
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      // Mock transaction client
+      const mockClient = {
+        query: jest.fn().mockResolvedValue({ rows: [] }),
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
+
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'test@example.com', password: 'validpass123' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('check your email');
+    });
+
+    it('should handle duplicate email (enumeration prevention)', async () => {
+      // Mock existing user
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ user_id: 'existing_user' }]
+      });
+
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'existing@example.com', password: 'SecurePass123!' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('check your email');
+
+      // Verify email service was NOT called for existing user
+      const { emailService } = require('../src/services/email-service');
+      expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it('should reject missing email', async () => {
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ password: 'SecurePass123!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Email and password are required');
+    });
+
+    it('should reject missing password', async () => {
+      const response = await request(app)
+        .post('/auth/email/register')
+        .send({ email: 'test@example.com' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Email and password are required');
+    });
+  });
+
+  describe('GET /auth/email/verify', () => {
+    it('should verify with valid token', async () => {
+      const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_test123',
+          email: 'test@example.com',
+          verification_expires: futureDate
+        }]
+      });
+
+      const response = await request(app)
+        .get('/auth/email/verify')
+        .query({ token: 'valid_verification_token' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Email verified successfully');
+      expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('userId');
+      expect(response.body.userId).toBe('email_test123');
+
+      // Verify JWT token
+      const decoded = jwt.verify(response.body.token, JWT_SECRET) as any;
+      expect(decoded.userId).toBe('email_test123');
+      expect(decoded.provider).toBe('email');
+      expect(decoded.email).toBe('test@example.com');
+    });
+
+    it('should reject invalid token', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .get('/auth/email/verify')
+        .query({ token: 'invalid_token' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid or expired verification token');
+    });
+
+    it('should reject expired token', async () => {
+      const pastDate = new Date(Date.now() - 1000); // 1 second ago
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_test123',
+          email: 'test@example.com',
+          verification_expires: pastDate
+        }]
+      });
+
+      const response = await request(app)
+        .get('/auth/email/verify')
+        .query({ token: 'expired_token' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Verification token has expired');
+    });
+
+    it('should reject missing token', async () => {
+      const response = await request(app)
+        .get('/auth/email/verify')
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Verification token is required');
+    });
+  });
+
+  describe('POST /auth/email/login', () => {
+    beforeEach(() => {
+      const bcrypt = require('bcrypt');
+      bcrypt.compare.mockResolvedValue(true); // Default to valid password
+    });
+
+    it('should login with valid credentials', async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          email: 'test@example.com',
+          password_hash: 'hashed_password',
+          email_verified: true,
+          provider: 'email'
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/email/login')
+        .send({ email: 'test@example.com', password: 'SecurePass123!' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body).toHaveProperty('token');
+      expect(response.body).toHaveProperty('userId');
+      expect(response.body.userId).toBe('email_user123');
+      expect(response.body.provider).toBe('email');
+
+      // Verify JWT token
+      const decoded = jwt.verify(response.body.token, JWT_SECRET) as any;
+      expect(decoded.userId).toBe('email_user123');
+    });
+
+    it('should reject invalid password', async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          email: 'test@example.com',
+          password_hash: 'hashed_password',
+          email_verified: true,
+          provider: 'email'
+        }]
+      });
+
+      const bcrypt = require('bcrypt');
+      bcrypt.compare.mockResolvedValueOnce(false);
+
+      const response = await request(app)
+        .post('/auth/email/login')
+        .send({ email: 'test@example.com', password: 'WrongPassword123!' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid email or password');
+    });
+
+    it('should reject unverified email', async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          email: 'test@example.com',
+          password_hash: 'hashed_password',
+          email_verified: false,
+          provider: 'email'
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/email/login')
+        .send({ email: 'test@example.com', password: 'SecurePass123!' })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('verify your email');
+      expect(response.body.code).toBe('EMAIL_NOT_VERIFIED');
+    });
+
+    it('should reject non-existent email', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/email/login')
+        .send({ email: 'nonexistent@example.com', password: 'SecurePass123!' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid email or password');
+    });
+
+    it('should reject missing email', async () => {
+      const response = await request(app)
+        .post('/auth/email/login')
+        .send({ password: 'SecurePass123!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Email and password are required');
+    });
+
+    it('should reject missing password', async () => {
+      const response = await request(app)
+        .post('/auth/email/login')
+        .send({ email: 'test@example.com' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Email and password are required');
+    });
+  });
+
+  describe('POST /auth/email/forgot', () => {
+    it('should always return success (enumeration prevention)', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/email/forgot')
+        .send({ email: 'nonexistent@example.com' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('If an account exists');
+
+      // Verify email service was NOT called
+      const { emailService } = require('../src/services/email-service');
+      expect(emailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it('should send reset email for existing account', async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          email: 'existing@example.com'
+        }]
+      });
+
+      const { emailService } = require('../src/services/email-service');
+      emailService.sendPasswordResetEmail.mockClear();
+
+      const response = await request(app)
+        .post('/auth/email/forgot')
+        .send({ email: 'existing@example.com' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('If an account exists');
+
+      // Verify email service WAS called
+      expect(emailService.sendPasswordResetEmail).toHaveBeenCalledWith(
+        'existing@example.com',
+        expect.any(String)
+      );
+    });
+
+    it('should reject missing email', async () => {
+      const response = await request(app)
+        .post('/auth/email/forgot')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Email is required');
+    });
+  });
+
+  describe('POST /auth/email/reset', () => {
+    beforeEach(() => {
+      const bcrypt = require('bcrypt');
+      bcrypt.hash.mockResolvedValue('new_hashed_password');
+    });
+
+    it('should reset password with valid token', async () => {
+      const futureDate = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          reset_expires: futureDate
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/email/reset')
+        .send({ token: 'valid_reset_token', newPassword: 'NewSecurePass123!' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Password has been reset successfully');
+
+      // Verify password was hashed and updated
+      const bcrypt = require('bcrypt');
+      expect(bcrypt.hash).toHaveBeenCalledWith('NewSecurePass123!', 12);
+    });
+
+    it('should reject invalid token', async () => {
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/email/reset')
+        .send({ token: 'invalid_token', newPassword: 'NewSecurePass123!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid or expired reset token');
+    });
+
+    it('should reject expired token', async () => {
+      const pastDate = new Date(Date.now() - 1000); // 1 second ago
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          reset_expires: pastDate
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/email/reset')
+        .send({ token: 'expired_token', newPassword: 'NewSecurePass123!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Reset token has expired');
+    });
+
+    it('should validate new password requirements', async () => {
+      const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          reset_expires: futureDate
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/email/reset')
+        .send({ token: 'valid_token', newPassword: 'weak' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Password does not meet requirements');
+      expect(response.body.details).toBeDefined();
+    });
+
+    it('should reject missing token', async () => {
+      const response = await request(app)
+        .post('/auth/email/reset')
+        .send({ newPassword: 'NewSecurePass123!' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Token and new password are required');
+    });
+
+    it('should reject missing new password', async () => {
+      const response = await request(app)
+        .post('/auth/email/reset')
+        .send({ token: 'valid_token' })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Token and new password are required');
+    });
+  });
+
+  describe('POST /auth/email/resend-verification', () => {
+    it('should always return success (enumeration prevention)', async () => {
+      // Clear and reset mock to return no rows
+      mockPool.query.mockReset();
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const { emailService } = require('../src/services/email-service');
+      emailService.sendVerificationEmail.mockClear();
+
+      const response = await request(app)
+        .post('/auth/email/resend-verification')
+        .send({ email: 'nonexistent@example.com' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('If the account exists and is unverified');
+
+      // Verify email was NOT sent
+      expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it('should not reveal if email is already verified', async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          email: 'verified@example.com',
+          email_verified: true
+        }]
+      });
+
+      const { emailService } = require('../src/services/email-service');
+      emailService.sendVerificationEmail.mockClear();
+
+      const response = await request(app)
+        .post('/auth/email/resend-verification')
+        .send({ email: 'verified@example.com' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('If the account exists and is unverified');
+
+      // Verify email was NOT sent for verified account
+      expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it('should send verification email for unverified account', async () => {
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'email_user123',
+          email: 'unverified@example.com',
+          email_verified: false
+        }]
+      });
+
+      const { emailService } = require('../src/services/email-service');
+      emailService.sendVerificationEmail.mockClear();
+
+      const response = await request(app)
+        .post('/auth/email/resend-verification')
+        .send({ email: 'unverified@example.com' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+
+      // Verify email WAS sent
+      expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(
+        'unverified@example.com',
+        expect.any(String)
+      );
+    });
+
+    it('should reject missing email', async () => {
+      const response = await request(app)
+        .post('/auth/email/resend-verification')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Email is required');
     });
   });
 });

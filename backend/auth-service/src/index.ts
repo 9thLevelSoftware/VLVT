@@ -24,7 +24,7 @@ import logger from './utils/logger';
 import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-limiter';
 import { generateVerificationToken, generateResetToken, isTokenExpired } from './utils/crypto';
 import { validatePassword, hashPassword, verifyPassword } from './utils/password';
-import emailService from './services/email-service';
+import { emailService } from './services/email-service';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -655,7 +655,7 @@ app.post('/auth/instagram', authLimiter, async (req: Request, res: Response) => 
       return res.status(401).json({ success: false, error: 'Invalid Instagram access token' });
     }
 
-    const igUser = await igResponse.json();
+    const igUser = await igResponse.json() as { id?: string; username?: string };
 
     if (!igUser.id) {
       return res.status(401).json({ success: false, error: 'Failed to get Instagram user info' });
