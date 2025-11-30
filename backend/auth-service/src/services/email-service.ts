@@ -164,7 +164,7 @@ class EmailService {
   }
 
   async sendVerificationEmail(email: string, token: string): Promise<boolean> {
-    const verificationUrl = `${this.config.appUrl}/verify-email?token=${token}`;
+    const verificationUrl = `${this.config.appUrl}/verify?token=${token}`;
 
     const html = this.getVerificationEmailTemplate(verificationUrl);
     const text = `Welcome to ${this.config.appName}!\n\nPlease verify your email address by clicking the following link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`;

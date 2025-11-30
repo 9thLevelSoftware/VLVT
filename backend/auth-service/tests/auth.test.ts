@@ -10,7 +10,9 @@ jest.mock('pg', () => {
 });
 
 jest.mock('google-auth-library');
-jest.mock('apple-signin-auth');
+jest.mock('apple-signin-auth', () => ({
+  verifyIdToken: jest.fn(),
+}));
 jest.mock('@sentry/node', () => ({
   init: jest.fn(),
   setupExpressErrorHandler: jest.fn(),
@@ -51,16 +53,11 @@ describe('Auth Service', () => {
     // Get mocked pool instance
     mockPool = new Pool();
 
-    // Mock pool.query to return successful results by default
-    mockPool.query.mockResolvedValue({
-      rows: [{
-        id: 'google_123456789',
-        provider: 'google',
-        email: 'test@example.com',
-        created_at: new Date(),
-        updated_at: new Date(),
-      }],
-    });
+    // Mock pool.query to return empty by default (tests will override as needed)
+    mockPool.query.mockResolvedValue({ rows: [] });
+
+    // Reset pool.connect to undefined (tests that need it will set it up)
+    mockPool.connect = undefined;
 
     // Don't reset modules - keep the mocks in place
     // jest.resetModules();
@@ -93,6 +90,24 @@ describe('Auth Service', () => {
     });
 
     it('should authenticate with valid Google token', async () => {
+      // Mock auth_credentials lookup (no existing credential for new user)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock email lookup (no existing email)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock UPDATE query (after user creation)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      // Mock transaction client for user creation
+      const mockClient = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] }) // BEGIN
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO users
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO auth_credentials
+          .mockResolvedValueOnce({ rows: [] }), // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
+
       const response = await request(app)
         .post('/auth/google')
         .send({ idToken: 'valid_google_token' })
@@ -106,6 +121,8 @@ describe('Auth Service', () => {
       // Verify JWT token is valid
       const decoded = jwt.verify(response.body.token, JWT_SECRET) as any;
       expect(decoded.userId).toBe('google_123456789');
+      expect(decoded.provider).toBe('google');
+      expect(decoded.email).toBe('test@example.com');
     });
 
     it('should return 400 for missing idToken', async () => {
@@ -139,42 +156,82 @@ describe('Auth Service', () => {
     });
 
     it('should create new user in database', async () => {
-      // App imported at top
-      
+      // Mock auth_credentials lookup (no existing credential for new user)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock email lookup (no existing email)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      // Mock transaction client for user creation
+      const mockClient = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] }) // BEGIN
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO users
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO auth_credentials
+          .mockResolvedValueOnce({ rows: [] }), // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
 
       await request(app)
         .post('/auth/google')
         .send({ idToken: 'valid_google_token' })
         .expect(200);
 
-      expect(mockPool.query).toHaveBeenCalledWith(
+      // Verify transaction was used for user creation
+      expect(mockPool.connect).toHaveBeenCalled();
+      expect(mockClient.query).toHaveBeenCalledWith('BEGIN');
+      expect(mockClient.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO users'),
         expect.arrayContaining(['google_123456789', 'google', 'test@example.com'])
       );
+      expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
+      expect(mockClient.release).toHaveBeenCalled();
     });
   });
 
   describe('POST /auth/apple', () => {
     beforeEach(() => {
-      // Mock Apple Sign-In verification
+      // Mock Apple Sign-In verification - returns proper claims structure
       const appleSignin = require('apple-signin-auth');
       appleSignin.verifyIdToken = jest.fn().mockResolvedValue({
         sub: 'apple_user_123',
         email: 'apple@example.com',
+        email_verified: true,
+        aud: 'com.vlvt.app',
+        iss: 'https://appleid.apple.com',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
       });
     });
 
     it('should authenticate with valid Apple token', async () => {
-      mockPool.query.mockResolvedValue({
-        rows: [{
-          id: 'apple_apple_user_123',
-          provider: 'apple',
-          email: 'apple@example.com',
-        }],
+      // Ensure Apple mock is set correctly for this test
+      const appleSignin = require('apple-signin-auth');
+      appleSignin.verifyIdToken.mockResolvedValueOnce({
+        sub: 'apple_user_123',
+        email: 'apple@example.com',
+        email_verified: true,
+        aud: 'com.vlvt.app',
+        iss: 'https://appleid.apple.com',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iat: Math.floor(Date.now() / 1000),
       });
 
-      // App imported at top
-      
+      // Mock auth_credentials lookup (no existing credential for new user)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock email lookup (no existing email)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      // Mock transaction client for user creation
+      const mockClient = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] }) // BEGIN
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO users
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO auth_credentials
+          .mockResolvedValueOnce({ rows: [] }), // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
 
       const response = await request(app)
         .post('/auth/apple')
@@ -185,6 +242,12 @@ describe('Auth Service', () => {
       expect(response.body).toHaveProperty('token');
       expect(response.body).toHaveProperty('userId');
       expect(response.body.provider).toBe('apple');
+
+      // Verify JWT token is valid
+      const decoded = jwt.verify(response.body.token, JWT_SECRET) as any;
+      expect(decoded.userId).toBe('apple_apple_user_123');
+      expect(decoded.provider).toBe('apple');
+      expect(decoded.email).toBe('apple@example.com');
     });
 
     it('should return 400 for missing identityToken', async () => {
@@ -286,8 +349,21 @@ describe('Auth Service', () => {
 
   describe('JWT Token Generation', () => {
     it('should generate valid JWT with correct claims', async () => {
-      // App imported at top
+      // Mock auth_credentials lookup (no existing credential for new user)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock email lookup (no existing email)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
+      // Mock transaction client for user creation
+      const mockClient = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] }) // BEGIN
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO users
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO auth_credentials
+          .mockResolvedValueOnce({ rows: [] }), // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
 
       const response = await request(app)
         .post('/auth/google')
@@ -304,8 +380,21 @@ describe('Auth Service', () => {
     });
 
     it('should generate token with 7 day expiration', async () => {
-      // App imported at top
+      // Mock auth_credentials lookup (no existing credential for new user)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock email lookup (no existing email)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
+      // Mock transaction client for user creation
+      const mockClient = {
+        query: jest.fn()
+          .mockResolvedValueOnce({ rows: [] }) // BEGIN
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO users
+          .mockResolvedValueOnce({ rows: [] }) // INSERT INTO auth_credentials
+          .mockResolvedValueOnce({ rows: [] }), // COMMIT
+        release: jest.fn(),
+      };
+      mockPool.connect = jest.fn().mockResolvedValue(mockClient);
 
       const response = await request(app)
         .post('/auth/google')
@@ -435,6 +524,10 @@ describe('Auth Service', () => {
     });
 
     it('should handle duplicate email (enumeration prevention)', async () => {
+      // Clear email service mocks
+      const { emailService } = require('../src/services/email-service');
+      emailService.sendVerificationEmail.mockClear();
+
       // Mock existing user
       mockPool.query.mockResolvedValueOnce({
         rows: [{ user_id: 'existing_user' }]
@@ -449,7 +542,6 @@ describe('Auth Service', () => {
       expect(response.body.message).toContain('check your email');
 
       // Verify email service was NOT called for existing user
-      const { emailService } = require('../src/services/email-service');
       expect(emailService.sendVerificationEmail).not.toHaveBeenCalled();
     });
 
@@ -478,6 +570,7 @@ describe('Auth Service', () => {
     it('should verify with valid token', async () => {
       const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
+      // Mock SELECT query for verification token
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_test123',
@@ -485,6 +578,8 @@ describe('Auth Service', () => {
           verification_expires: futureDate
         }]
       });
+      // Mock UPDATE query to mark as verified
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
         .get('/auth/email/verify')
@@ -553,6 +648,7 @@ describe('Auth Service', () => {
     });
 
     it('should login with valid credentials', async () => {
+      // Mock SELECT query for credentials
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_user123',
@@ -562,6 +658,8 @@ describe('Auth Service', () => {
           provider: 'email'
         }]
       });
+      // Mock UPDATE query for updated_at
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
         .post('/auth/email/login')
@@ -674,12 +772,15 @@ describe('Auth Service', () => {
     });
 
     it('should send reset email for existing account', async () => {
+      // Mock SELECT query for existing account
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_user123',
           email: 'existing@example.com'
         }]
       });
+      // Mock UPDATE query for reset token
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const { emailService } = require('../src/services/email-service');
       emailService.sendPasswordResetEmail.mockClear();
