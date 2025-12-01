@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../services/profile_api_service.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_button.dart';
 
 
@@ -189,9 +190,9 @@ class _PhotoManagerWidgetState extends State<PhotoManagerWidget> {
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Add up to 6 photos. First photo will be your profile picture.',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
+          style: TextStyle(fontSize: 12, color: VlvtColors.textMuted),
         ),
         const SizedBox(height: 16),
         GridView.builder(
@@ -211,17 +212,17 @@ class _PhotoManagerWidgetState extends State<PhotoManagerWidget> {
                 onTap: _isUploading ? null : _showPhotoSourceDialog,
                 child: Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 2),
+                    border: Border.all(color: VlvtColors.borderStrong, width: 2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: _isUploading
                       ? const Center(child: CircularProgressIndicator())
-                      : const Column(
+                      : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_photo_alternate, size: 32, color: Colors.grey),
-                            SizedBox(height: 4),
-                            Text('Add Photo', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                            Icon(Icons.add_photo_alternate, size: 32, color: VlvtColors.textMuted),
+                            const SizedBox(height: 4),
+                            Text('Add Photo', style: TextStyle(fontSize: 10, color: VlvtColors.textMuted)),
                           ],
                         ),
                 ),
@@ -240,13 +241,13 @@ class _PhotoManagerWidgetState extends State<PhotoManagerWidget> {
                         : '${context.read<ProfileApiService>().baseUrl}${_photos[index]}',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                      color: VlvtColors.surface,
+                      child: Icon(Icons.broken_image, color: VlvtColors.textMuted),
                     ),
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
-                        color: Colors.grey[200],
+                        color: VlvtColors.surface,
                         child: Center(
                           child: CircularProgressIndicator(
                             value: loadingProgress.expectedTotalBytes != null

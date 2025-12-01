@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/safety_service.dart';
 import '../services/profile_api_service.dart';
 import '../models/profile.dart';
+import '../theme/vlvt_colors.dart';
 import '../widgets/vlvt_button.dart';
 
 class SafetySettingsScreen extends StatefulWidget {
@@ -142,7 +143,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   SizedBox(height: 16),
                   Text(
                     'We typically respond within 24 hours.',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: VlvtColors.textMuted),
                   ),
                 ],
               ),
@@ -190,7 +191,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   'Blocked users cannot see your profile or send you messages.',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: VlvtColors.textMuted,
                   ),
                 ),
               ],
@@ -221,7 +222,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+                        color: VlvtColors.textMuted,
                       ),
                     ),
                     SizedBox(height: 8),
@@ -229,7 +230,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                       'You have not blocked anyone yet.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: VlvtColors.textMuted,
                       ),
                     ),
                   ],
@@ -244,7 +245,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
 
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.grey,
+                  backgroundColor: VlvtColors.surface,
                   child: Text(
                     name[0].toUpperCase(),
                     style: const TextStyle(color: Colors.white),
@@ -319,11 +320,11 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'If you\'re experiencing harassment or feel unsafe, please contact our support team.',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: VlvtColors.textMuted,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -389,9 +390,9 @@ class _SafetyTip extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 description,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: VlvtColors.textMuted,
                 ),
               ),
             ],

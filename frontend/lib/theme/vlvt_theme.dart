@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'vlvt_colors.dart';
 import 'vlvt_text_styles.dart';
 import 'vlvt_decorations.dart';
+import 'vlvt_theme_extension.dart';
 
 /// VLVT "Digital VIP" Theme
 ///
@@ -15,6 +16,9 @@ class VlvtTheme {
   static ThemeData get darkTheme => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
+
+    // VLVT Theme Extension for gold/glass tokens
+    extensions: [VlvtThemeExtension.dark],
 
     // Color scheme
     colorScheme: const ColorScheme.dark(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/discovery_preferences_service.dart';
+import '../theme/vlvt_colors.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_card.dart';
 
@@ -207,9 +208,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                       _selectedInterests.isEmpty
                           ? 'No interests selected'
                           : '${_selectedInterests.length} selected',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey,
+                        color: VlvtColors.textMuted,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -251,12 +252,12 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
               const SizedBox(height: 16),
 
               // Info text
-              const Center(
+              Center(
                 child: Text(
                   'Filters help you find more compatible matches',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: VlvtColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),

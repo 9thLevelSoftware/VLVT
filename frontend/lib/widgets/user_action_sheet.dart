@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
 import '../services/safety_service.dart';
+import '../theme/vlvt_colors.dart';
 import 'report_dialog.dart';
 import 'vlvt_button.dart';
 
@@ -162,7 +163,7 @@ class UserActionSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: VlvtColors.borderStrong,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

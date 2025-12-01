@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'vlvt_button.dart';
+import '../theme/vlvt_colors.dart';
 
 /// Enhanced empty state widget with icons, helpful messaging, and CTAs
 class EmptyStateWidget extends StatelessWidget {
@@ -154,7 +155,7 @@ class MatchesEmptyState {
   static Widget noSearchResults() {
     return const EmptyStateWidget(
       icon: Icons.search_off_rounded,
-      iconColor: Colors.grey,
+      iconColor: VlvtColors.textMuted,
       title: 'No matches found',
       message: 'Try adjusting your search terms or clear filters to see all your matches.',
     );

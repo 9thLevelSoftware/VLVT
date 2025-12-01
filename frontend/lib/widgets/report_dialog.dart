@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_input.dart';
 import 'vlvt_button.dart';
 
@@ -168,11 +169,11 @@ class _ReportDialogState extends State<ReportDialog> {
               blur: false,
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Reports are anonymous and will be reviewed by our moderation team.',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey,
+                color: VlvtColors.textMuted,
                 fontStyle: FontStyle.italic,
               ),
             ),

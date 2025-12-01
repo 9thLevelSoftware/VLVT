@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/paywall_screen.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_button.dart';
 
 class PremiumGateDialog extends StatelessWidget {
@@ -54,7 +55,7 @@ class PremiumGateDialog extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[700],
+                color: VlvtColors.textSecondary,
               ),
             ),
             const SizedBox(height: 24),

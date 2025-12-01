@@ -365,9 +365,7 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).brightness == Brightness.dark
-                ? VlvtColors.surface
-                : Colors.grey.shade100,
+            color: VlvtColors.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

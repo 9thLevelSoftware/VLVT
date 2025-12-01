@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_input.dart';
 import 'vlvt_button.dart';
 
@@ -175,9 +176,9 @@ class _FeedbackFormState extends State<FeedbackForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: VlvtColors.surfaceElevated,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -209,11 +210,11 @@ class _FeedbackFormState extends State<FeedbackForm> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Your feedback helps us improve VLVT',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey,
+                    color: VlvtColors.textMuted,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -242,9 +243,9 @@ class _FeedbackFormState extends State<FeedbackForm> {
                           });
                         }
                       },
-                      selectedColor: Colors.deepPurple,
+                      selectedColor: VlvtColors.gold,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
+                        color: isSelected ? VlvtColors.textOnGold : VlvtColors.textPrimary,
                       ),
                     );
                   }).toList(),
@@ -310,9 +311,9 @@ class _FeedbackFormState extends State<FeedbackForm> {
                 const SizedBox(height: 8),
                 Text(
                   '${_feedbackController.text.length}/1000 characters',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: VlvtColors.textMuted,
                   ),
                   textAlign: TextAlign.right,
                 ),
@@ -328,11 +329,11 @@ class _FeedbackFormState extends State<FeedbackForm> {
                 const SizedBox(height: 12),
 
                 // Privacy Notice
-                const Text(
+                Text(
                   'Device and app information will be included to help us debug issues.',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: VlvtColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),

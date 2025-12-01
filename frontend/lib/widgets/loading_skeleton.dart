@@ -1,28 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import '../constants/spacing.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_card.dart';
 
 /// Base shimmer wrapper for skeleton loading
+///
+/// Uses dark theme colors appropriate for the VLVT "Digital VIP" aesthetic.
+/// The shimmer effect uses subtle gold highlights for a luxurious feel.
 class SkeletonShimmer extends StatelessWidget {
   final Widget child;
+  final bool useGoldHighlight;
 
   const SkeletonShimmer({
     super.key,
     required this.child,
+    this.useGoldHighlight = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+      // Dark base color matching VLVT surface
+      baseColor: VlvtColors.surface,
+      // Subtle highlight - can be gold-tinted or neutral
+      highlightColor: useGoldHighlight
+          ? VlvtColors.gold.withValues(alpha: 0.15)
+          : VlvtColors.surfaceElevated,
       child: child,
     );
   }
 }
 
 /// Basic skeleton box
+///
+/// A placeholder box used within shimmer effects.
+/// Uses dark surface color to match the VLVT theme.
 class SkeletonBox extends StatelessWidget {
   final double? width;
   final double? height;
@@ -41,7 +54,7 @@ class SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: VlvtColors.surfaceElevated,
         borderRadius: borderRadius ?? Spacing.borderRadiusSm,
       ),
     );
