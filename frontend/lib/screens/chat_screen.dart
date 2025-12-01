@@ -8,6 +8,7 @@ import '../services/socket_service.dart';
 import '../services/profile_api_service.dart';
 import '../services/subscription_service.dart';
 import '../services/message_queue_service.dart';
+import '../services/cache_service.dart';
 import '../models/match.dart';
 import '../models/message.dart';
 import '../models/profile.dart';
@@ -387,10 +388,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => UserActionSheet(
+      builder: (sheetContext) => UserActionSheet(
         otherUserProfile: _otherUserProfile!,
         match: _match!,
-        onActionComplete: () => Navigator.of(context).pop(),
+        onActionComplete: () {
+          // Invalidate caches so matches list refreshes properly
+          final authService = context.read<AuthService>();
+          final cacheService = context.read<CacheService>();
+          final userId = authService.userId;
+          if (userId != null) {
+            cacheService.invalidateMatches(userId);
+          }
+          cacheService.invalidateMessages(_match!.id);
+          cacheService.invalidateLastMessage(_match!.id);
+
+          // Navigate back to matches list
+          Navigator.of(context).pop();
+        },
       ),
     );
   }
