@@ -16,6 +16,7 @@ import '../widgets/user_action_sheet.dart';
 import '../widgets/premium_gate_dialog.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -397,7 +398,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
+      return Scaffold(appBar: AppBar(), body: const Center(child: VlvtLoader()));
     }
     if (_errorMessage != null) {
       return Scaffold(
@@ -427,7 +428,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 child: Stack(
                   children: [
                     Hero(
-                      tag: 'profile_${_otherUserId!}',
+                      tag: 'avatar_$_otherUserId',
                       child: CircleAvatar(
                         radius: 18,
                         backgroundImage: CachedNetworkImageProvider(
@@ -576,6 +577,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Tighter spacing for grouped messages (same sender, close in time)
     // With reverse:true, we use top margin instead of bottom
     final topMargin = isGrouped ? 4.0 : 12.0;
+
+    // Differential border radius for modern chat bubble style
+    // The corner near the "tail" (bottom-right for sender, bottom-left for receiver) is smaller
+    final borderRadius = isCurrentUser
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+            bottomLeft: Radius.circular(20),
+            bottomRight: Radius.circular(6), // Tail corner
+          )
+        : const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+            bottomLeft: Radius.circular(6), // Tail corner
+            bottomRight: Radius.circular(20),
+          );
+
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -591,7 +609,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
               decoration: BoxDecoration(
                 color: isFailed ? VlvtColors.error.withValues(alpha: 0.1) : (isCurrentUser ? VlvtColors.chatBubbleSent : VlvtColors.chatBubbleReceived),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: borderRadius,
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(message.text, style: TextStyle(fontSize: 16, color: isFailed ? VlvtColors.error : (isCurrentUser ? VlvtColors.chatTextSent : VlvtColors.chatTextReceived))),

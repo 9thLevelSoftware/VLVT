@@ -422,9 +422,22 @@ class _MatchesScreenState extends State<MatchesScreen> {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 24),
         color: VlvtColors.crimson,
-        child: const Icon(Icons.delete, color: Colors.white),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Unmatch',
+              style: VlvtTextStyles.labelMedium.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.person_remove, color: Colors.white),
+          ],
+        ),
       ),
       confirmDismiss: (direction) async {
         await _handleUnmatch(match);
@@ -434,7 +447,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
         leading: Stack(
           children: [
             Hero(
-              tag: 'match_list_$otherUserId', // Unique tag to avoid conflict with discovery
+              tag: 'avatar_$otherUserId', // Consistent tag for hero animation to ChatScreen
               child: CircleAvatar(
                 backgroundColor: VlvtColors.primary,
                 backgroundImage: profile?.photos?.isNotEmpty == true

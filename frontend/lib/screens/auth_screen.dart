@@ -12,6 +12,7 @@ import '../utils/error_handler.dart';
 import 'legal_document_viewer.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
+import '../widgets/vlvt_loader.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -303,9 +304,9 @@ class _AuthScreenState extends State<AuthScreen>
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
+                                const VlvtProgressIndicator(
+                                  size: 40,
+                                  strokeWidth: 3,
                                 ),
                                 Spacing.verticalMd,
                                 Text(

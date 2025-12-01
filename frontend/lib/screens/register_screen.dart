@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -7,6 +8,7 @@ import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
+import '../widgets/vlvt_loader.dart';
 import 'verification_pending_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -143,58 +145,79 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      backgroundColor: Colors.transparent,
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.translucent,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).brightness == Brightness.dark
-                    ? VlvtColors.primaryDark
-                    : VlvtColors.primary,
-                Theme.of(context).brightness == Brightness.dark
-                    ? VlvtColors.primaryDark.withValues(alpha: 0.7)
-                    : VlvtColors.primary.withValues(alpha: 0.7),
-              ],
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background image with blur effect (matching AuthScreen)
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: Image.asset(
+                  'assets/images/loginbackground.jpg',
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: Spacing.paddingLg,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Back button
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+            // Dark overlay for better contrast
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.4),
+                      Colors.black.withValues(alpha: 0.7),
+                      const Color(0xFF1A0F2E).withValues(alpha: 0.9),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
                   ),
-                  const Spacer(),
-                  // Title
-                  Text(
-                    'Create Account',
-                    textAlign: TextAlign.center,
-                    style: VlvtTextStyles.displaySmall.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Spacing.verticalMd,
-                  Text(
-                    'Join VLVT and start making meaningful connections',
-                    textAlign: TextAlign.center,
-                    style: VlvtTextStyles.bodyMedium.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  Spacing.verticalXl,
+                ),
+              ),
+            ),
+            // Content
+            Positioned.fill(
+              child: SafeArea(
+                bottom: false,
+                child: SingleChildScrollView(
+                  padding: Spacing.paddingLg,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Back button
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                      Spacing.verticalXl,
+                      // Title
+                      Text(
+                        'Create Account',
+                        textAlign: TextAlign.center,
+                        style: VlvtTextStyles.displaySmall.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacing.verticalMd,
+                      Text(
+                        'Join VLVT and start making meaningful connections',
+                        textAlign: TextAlign.center,
+                        style: VlvtTextStyles.bodyMedium.copyWith(
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                      Spacing.verticalXl,
                   // Loading indicator or form
                   if (_isLoading)
                     Center(
@@ -207,8 +230,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            const VlvtProgressIndicator(
+                              size: 40,
+                              strokeWidth: 3,
                             ),
                             Spacing.verticalMd,
                             Text(
@@ -348,14 +372,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onPressed: () => Navigator.pop(context),
                             ),
                           ),
+                          Spacing.verticalXl,
                         ],
                       ),
                     ),
-                  const Spacer(),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
