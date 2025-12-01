@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 
@@ -179,19 +180,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                         ),
                         Spacing.verticalXl,
-                        ElevatedButton(
+                        VlvtButton.primary(
+                          label: 'Back to Login',
                           onPressed: _backToLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: VlvtColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: Spacing.borderRadiusMd,
-                            ),
-                            elevation: 4,
-                            textStyle: VlvtTextStyles.button,
-                          ),
-                          child: const Text('Back to Login'),
+                          expanded: true,
                         ),
                       ],
                     )
@@ -347,33 +339,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                           Spacing.verticalXl,
                           // Reset password button
-                          ElevatedButton(
+                          VlvtButton.primary(
+                            label: 'Reset Password',
                             onPressed: _resetPassword,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: VlvtColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: Spacing.borderRadiusMd,
-                              ),
-                              elevation: 4,
-                              textStyle: VlvtTextStyles.button,
-                            ),
-                            child: const Text('Reset Password'),
+                            expanded: true,
                           ),
                           Spacing.verticalMd,
                           // Back to login link
                           Center(
-                            child: TextButton(
+                            child: VlvtButton.text(
+                              label: 'Back to Login',
                               onPressed: _backToLogin,
-                              child: Text(
-                                'Back to Login',
-                                style: VlvtTextStyles.bodySmall.copyWith(
-                                  color: Colors.white,
-                                  decoration: TextDecoration.underline,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                             ),
                           ),
                         ],

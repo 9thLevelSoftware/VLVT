@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import '../widgets/vlvt_button.dart';
 
 enum LegalDocumentType {
   termsOfService,
@@ -84,9 +85,9 @@ class _LegalDocumentViewerState extends State<LegalDocumentViewer> {
                           style: const TextStyle(fontSize: 16),
                         ),
                         const SizedBox(height: 24),
-                        ElevatedButton(
+                        VlvtButton.primary(
+                          label: 'Retry',
                           onPressed: _loadDocument,
-                          child: const Text('Retry'),
                         ),
                       ],
                     ),

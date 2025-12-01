@@ -5,6 +5,7 @@ import '../services/subscription_service.dart';
 import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
 import '../theme/vlvt_colors.dart';
+import '../widgets/vlvt_button.dart';
 
 class PaywallScreen extends StatefulWidget {
   final bool showBackButton;
@@ -171,7 +172,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
               if (subscriptionService.isLoading)
                 const Center(child: CircularProgressIndicator())
               else ...[
-                ElevatedButton(
+                VlvtButton.primary(
+                  label: 'Subscribe Now',
                   onPressed: () async {
                     final package = _selectedPlanIndex == 0
                         ? yearlyPackage
@@ -186,24 +188,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       await subscriptionService.presentPaywall();
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: VlvtColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Subscribe Now',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  expanded: true,
                 ),
                 const SizedBox(height: 12),
-                TextButton(
+                VlvtButton.text(
+                  label: 'Restore Purchases',
                   onPressed: () async {
                     final restored = await subscriptionService.restorePurchases();
                     if (restored && mounted) {
@@ -213,10 +202,6 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       Navigator.of(context).pop();
                     }
                   },
-                  child: const Text(
-                    'Restore Purchases',
-                    style: TextStyle(fontSize: 14),
-                  ),
                 ),
               ],
               const SizedBox(height: 16),

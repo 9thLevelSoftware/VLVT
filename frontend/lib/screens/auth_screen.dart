@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -370,43 +371,16 @@ class _AuthScreenState extends State<AuthScreen>
                               ),
                               Spacing.verticalLg,
                               // Sign In button with glow effect
-                              Center(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: VlvtColors.primary.withValues(alpha: 0.5),
-                                        blurRadius: 20,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: ElevatedButton(
-                                    onPressed: _signInWithEmail,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: VlvtColors.primary,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 16, horizontal: 64),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: Spacing.borderRadiusMd,
-                                      ),
-                                      elevation: 0,
-                                      textStyle: VlvtTextStyles.button.copyWith(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
-                                    child: const Text('Sign In'),
-                                  ),
-                                ),
+                              VlvtButton.primary(
+                                label: 'Sign In',
+                                onPressed: _signInWithEmail,
+                                expanded: true,
                               ),
                               Spacing.verticalMd,
                               // Forgot password - centered under button
                               Center(
-                                child: TextButton(
+                                child: VlvtButton.text(
+                                  label: 'Forgot password?',
                                   onPressed: () {
                                     Navigator.push(
                                       context,
@@ -416,14 +390,6 @@ class _AuthScreenState extends State<AuthScreen>
                                       ),
                                     );
                                   },
-                                  child: Text(
-                                    'Forgot password?',
-                                    style: VlvtTextStyles.bodySmall.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.8),
-                                      decoration: TextDecoration.underline,
-                                      decorationColor: Colors.white.withValues(alpha: 0.8),
-                                    ),
-                                  ),
                                 ),
                               ),
                             ],

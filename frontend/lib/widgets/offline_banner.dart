@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../constants/spacing.dart';
+import 'vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 
@@ -47,13 +48,9 @@ class OfflineBanner extends StatelessWidget {
                   ),
                 ),
                 if (onRetry != null)
-                  TextButton(
+                  VlvtButton.text(
+                    label: 'Retry',
                     onPressed: onRetry,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                    ),
-                    child: const Text('Retry'),
                   ),
               ],
             ),

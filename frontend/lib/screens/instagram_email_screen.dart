@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -253,34 +254,17 @@ class _InstagramEmailScreenState extends State<InstagramEmailScreen> with Single
                               ),
                               Spacing.verticalMd,
                               // Continue button
-                              ElevatedButton(
+                              VlvtButton.primary(
+                                label: 'Continue',
                                 onPressed: _completeRegistration,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: VlvtColors.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                  ),
-                                  elevation: 4,
-                                  textStyle: VlvtTextStyles.button,
-                                ),
-                                child: const Text('Continue'),
+                                expanded: true,
                               ),
                               Spacing.verticalMd,
                               // Cancel button
-                              OutlinedButton(
+                              VlvtButton.secondary(
+                                label: 'Cancel',
                                 onPressed: _cancel,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: BorderSide(color: Colors.white.withValues(alpha: 0.8), width: 2),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                  ),
-                                  textStyle: VlvtTextStyles.button,
-                                ),
-                                child: const Text('Cancel'),
+                                expanded: true,
                               ),
                             ],
                           ),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -334,33 +335,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           Spacing.verticalXl,
                           // Register button
-                          ElevatedButton(
+                          VlvtButton.primary(
+                            label: 'Create Account',
                             onPressed: _register,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: VlvtColors.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: Spacing.borderRadiusMd,
-                              ),
-                              elevation: 4,
-                              textStyle: VlvtTextStyles.button,
-                            ),
-                            child: const Text('Create Account'),
+                            expanded: true,
                           ),
                           Spacing.verticalMd,
                           // Sign in link
                           Center(
-                            child: TextButton(
+                            child: VlvtButton.text(
+                              label: 'Already have an account? Sign in',
                               onPressed: () => Navigator.pop(context),
-                              child: Text(
-                                'Already have an account? Sign in',
-                                style: VlvtTextStyles.bodySmall.copyWith(
-                                  color: Colors.white,
-                                  decoration: TextDecoration.underline,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                             ),
                           ),
                         ],

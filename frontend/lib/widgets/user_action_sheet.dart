@@ -4,6 +4,7 @@ import '../models/profile.dart';
 import '../models/match.dart';
 import '../services/safety_service.dart';
 import 'report_dialog.dart';
+import 'vlvt_button.dart';
 
 class UserActionSheet extends StatelessWidget {
   final Profile otherUserProfile;
@@ -28,17 +29,13 @@ class UserActionSheet extends StatelessWidget {
           'If you have an existing match, it will be removed.',
         ),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          VlvtButton.danger(
+            label: 'Block',
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Block'),
           ),
         ],
       ),
@@ -115,17 +112,13 @@ class UserActionSheet extends StatelessWidget {
           'This action cannot be undone.',
         ),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          VlvtButton.danger(
+            label: 'Unmatch',
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Unmatch'),
           ),
         ],
       ),
@@ -209,12 +202,10 @@ class UserActionSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
+            child: VlvtButton.secondary(
+              label: 'Cancel',
+              onPressed: () => Navigator.of(context).pop(),
+              expanded: true,
             ),
           ),
           const SizedBox(height: 8),

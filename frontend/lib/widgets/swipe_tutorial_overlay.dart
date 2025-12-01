@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'vlvt_button.dart';
 
 /// Tutorial overlay that shows users how to use swipe gestures
 /// on the Discovery screen
@@ -129,26 +130,9 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                         const SizedBox(height: 40),
 
                         // Dismiss button
-                        ElevatedButton(
+                        VlvtButton.primary(
+                          label: 'Got It!',
                           onPressed: _dismiss,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 48,
-                              vertical: 16,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                          ),
-                          child: const Text(
-                            'Got It!',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 16),
                         Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/subscription_service.dart';
 import '../screens/paywall_screen.dart';
+import 'vlvt_button.dart';
 
 class UpgradeBanner extends StatelessWidget {
   const UpgradeBanner({super.key});
@@ -64,25 +65,11 @@ class UpgradeBanner extends StatelessWidget {
                   ],
                 ),
               ),
-              ElevatedButton(
+              VlvtButton.primary(
+                label: 'Subscribe',
                 onPressed: () async {
                   await PaywallScreen.show(context, source: 'upgrade_banner');
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: const Text(
-                  'Subscribe',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
               ),
             ],
           ),

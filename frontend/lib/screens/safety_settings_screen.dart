@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/safety_service.dart';
 import '../services/profile_api_service.dart';
 import '../models/profile.dart';
+import '../widgets/vlvt_button.dart';
 
 class SafetySettingsScreen extends StatefulWidget {
   const SafetySettingsScreen({super.key});
@@ -69,13 +70,13 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         title: const Text('Unblock User'),
         content: Text('Are you sure you want to unblock $userName?'),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          VlvtButton.primary(
+            label: 'Unblock',
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Unblock'),
           ),
         ],
       ),
@@ -146,9 +147,9 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                 ],
               ),
               actions: [
-                TextButton(
+                VlvtButton.text(
+                  label: 'Close',
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
                 ),
               ],
             ),
@@ -254,13 +255,9 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   'Blocked on ${_formatDate(blocked['createdAt'])}',
                   style: const TextStyle(fontSize: 12),
                 ),
-                trailing: ElevatedButton(
+                trailing: VlvtButton.secondary(
+                  label: 'Unblock',
                   onPressed: () => _handleUnblock(userId, name),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Unblock'),
                 ),
               );
             })),
@@ -330,14 +327,10 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton.icon(
+                VlvtButton.primary(
+                  label: 'Contact Support',
                   onPressed: _contactSupport,
-                  icon: const Icon(Icons.support_agent),
-                  label: const Text('Contact Support'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                  ),
+                  icon: Icons.support_agent,
                 ),
               ],
             ),

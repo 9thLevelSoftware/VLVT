@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../services/auth_service.dart';
 import '../config/app_config.dart';
 import '../theme/vlvt_colors.dart';
+import '../widgets/vlvt_button.dart';
 
 /// Test Login Screen - DEVELOPMENT ONLY
 /// Provides easy access to test user accounts for testing the app
@@ -349,15 +350,9 @@ class _TestLoginScreenState extends State<TestLoginScreen> {
                         ),
                       ],
                     ),
-                    trailing: ElevatedButton(
+                    trailing: VlvtButton.primary(
+                      label: 'Login',
                       onPressed: _isLoading ? null : () => _loginAsTestUser(user),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? VlvtColors.primary
-                            : VlvtColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Login'),
                     ),
                     isThreeLine: true,
                   ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import '../config/app_config.dart';
+import '../widgets/vlvt_button.dart';
 
 /// RevenueCat Configuration Constants
 class RevenueCatConfig {
@@ -293,9 +294,9 @@ class SubscriptionService extends ChangeNotifier {
           'Please contact support for assistance.',
         ),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'OK',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
           ),
         ],
       ),
@@ -324,23 +325,23 @@ class SubscriptionService extends ChangeNotifier {
         ),
         actions: [
           if (!_hasPremiumAccess)
-            TextButton(
+            VlvtButton.primary(
+              label: 'Upgrade',
               onPressed: () {
                 Navigator.of(ctx).pop();
                 presentPaywall();
               },
-              child: const Text('Upgrade'),
             ),
-          TextButton(
+          VlvtButton.text(
+            label: 'Restore Purchases',
             onPressed: () {
               Navigator.of(ctx).pop();
               restorePurchases();
             },
-            child: const Text('Restore Purchases'),
           ),
-          TextButton(
+          VlvtButton.text(
+            label: 'Close',
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),

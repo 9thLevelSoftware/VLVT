@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/vlvt_colors.dart';
+import '../widgets/vlvt_button.dart';
 import 'paywall_screen.dart';
 
 class SearchResultsScreen extends StatelessWidget {
@@ -76,54 +77,26 @@ class SearchResultsScreen extends StatelessWidget {
               const SizedBox(height: 48),
 
               // Upgrade button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    await PaywallScreen.show(context, source: 'search_results');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: VlvtColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Upgrade to Premium',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+              VlvtButton.primary(
+                label: 'Upgrade to Premium',
+                onPressed: () async {
+                  await PaywallScreen.show(context, source: 'search_results');
+                },
+                expanded: true,
               ),
               const SizedBox(height: 16),
 
               // Why we charge link
-              TextButton(
+              VlvtButton.text(
+                label: 'Why do we charge up-front?',
                 onPressed: () => _showWhyWeChargeModal(context),
-                child: Text(
-                  'Why do we charge up-front?',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: VlvtColors.gold,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
               ),
               const SizedBox(height: 24),
 
               // Search again button
-              OutlinedButton(
+              VlvtButton.secondary(
+                label: 'Search Again',
                 onPressed: () => Navigator.of(context).pop(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text('Search Again'),
               ),
             ],
           ),
@@ -245,19 +218,10 @@ class WhyWeChargeDialog extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Close button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: VlvtColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('Got it!'),
-                ),
+              VlvtButton.primary(
+                label: 'Got it!',
+                onPressed: () => Navigator.of(context).pop(),
+                expanded: true,
               ),
             ],
           ),

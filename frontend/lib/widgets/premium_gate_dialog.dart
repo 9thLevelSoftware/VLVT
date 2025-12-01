@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/paywall_screen.dart';
+import 'vlvt_button.dart';
 
 class PremiumGateDialog extends StatelessWidget {
   final String title;
@@ -85,43 +86,21 @@ class PremiumGateDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  // Use RevenueCat's native paywall if configured, otherwise fallback to custom
-                  await PaywallScreen.show(context, source: 'premium_gate');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Continue with Premium',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+            VlvtButton.primary(
+              label: 'Continue with Premium',
+              onPressed: () async {
+                Navigator.of(context).pop();
+                // Use RevenueCat's native paywall if configured, otherwise fallback to custom
+                await PaywallScreen.show(context, source: 'premium_gate');
+              },
+              expanded: true,
             ),
             const SizedBox(height: 12),
-            TextButton(
+            VlvtButton.text(
+              label: 'Maybe Later',
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text(
-                'Maybe Later',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
             ),
           ],
         ),

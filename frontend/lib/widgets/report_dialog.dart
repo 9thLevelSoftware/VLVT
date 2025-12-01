@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'vlvt_input.dart';
+import 'vlvt_button.dart';
 
 class ReportDialog extends StatefulWidget {
   final String userName;
@@ -179,26 +180,14 @@ class _ReportDialogState extends State<ReportDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        VlvtButton.text(
+          label: 'Cancel',
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        VlvtButton.danger(
+          label: 'Submit Report',
           onPressed: _isSubmitting ? null : _handleSubmit,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : const Text('Submit Report'),
+          loading: _isSubmitting,
         ),
       ],
     );

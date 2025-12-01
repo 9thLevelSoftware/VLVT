@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'vlvt_button.dart';
 
 /// Enhanced empty state widget with icons, helpful messaging, and CTAs
 class EmptyStateWidget extends StatelessWidget {
@@ -89,42 +90,20 @@ class EmptyStateWidget extends StatelessWidget {
 
             // Primary action button
             if (actionLabel != null && onAction != null)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: onAction,
-                  icon: const Icon(Icons.arrow_forward),
-                  label: Text(actionLabel!),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
+              VlvtButton.primary(
+                label: actionLabel!,
+                onPressed: onAction,
+                icon: Icons.arrow_forward,
+                expanded: true,
               ),
 
             // Secondary action button
             if (secondaryActionLabel != null && onSecondaryAction != null) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: onSecondaryAction,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(secondaryActionLabel!),
-                ),
+              VlvtButton.secondary(
+                label: secondaryActionLabel!,
+                onPressed: onSecondaryAction,
+                expanded: true,
               ),
             ],
           ],

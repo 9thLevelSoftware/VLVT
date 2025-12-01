@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/theme_service.dart';
+import 'vlvt_button.dart';
 
 /// Widget for toggling between light and dark themes
 class ThemeToggleWidget extends StatelessWidget {
@@ -113,9 +114,9 @@ class ThemeToggleWidget extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Close',
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),

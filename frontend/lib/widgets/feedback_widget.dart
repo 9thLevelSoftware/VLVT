@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'vlvt_input.dart';
+import 'vlvt_button.dart';
 
 /// Beta Feedback Widget
 ///
@@ -318,32 +319,11 @@ class _FeedbackFormState extends State<FeedbackForm> {
                 const SizedBox(height: 24),
 
                 // Submit Button
-                ElevatedButton(
+                VlvtButton.primary(
+                  label: 'Submit Feedback',
                   onPressed: _isSubmitting ? null : _submitFeedback,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text(
-                          'Submit Feedback',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
+                  loading: _isSubmitting,
+                  expanded: true,
                 ),
                 const SizedBox(height: 12),
 

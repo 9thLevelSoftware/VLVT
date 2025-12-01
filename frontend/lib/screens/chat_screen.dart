@@ -15,6 +15,7 @@ import '../utils/date_utils.dart';
 import '../widgets/user_action_sheet.dart';
 import '../widgets/premium_gate_dialog.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -402,7 +403,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text(_errorMessage!, style: TextStyle(color: VlvtColors.error)),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _fetchMatchThenLoadData, child: const Text('Retry')),
+          VlvtButton.primary(label: 'Retry', onPressed: _fetchMatchThenLoadData),
         ])),
       );
     }

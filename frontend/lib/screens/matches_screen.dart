@@ -14,6 +14,7 @@ import '../widgets/user_action_sheet.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/vlvt_loader.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'chat_screen.dart';
@@ -300,17 +301,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
           style: VlvtTextStyles.bodyMedium,
         ),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context, false),
-            style: TextButton.styleFrom(foregroundColor: VlvtColors.textSecondary),
-            child: const Text('Cancel'),
           ),
-          TextButton(
+          VlvtButton.danger(
+            label: 'Unmatch',
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-              foregroundColor: VlvtColors.crimson,
-            ),
-            child: const Text('Unmatch'),
           ),
         ],
       ),
@@ -669,13 +666,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            VlvtButton.primary(
+              label: 'Retry',
               onPressed: () => _loadData(forceRefresh: true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: VlvtColors.gold,
-                foregroundColor: VlvtColors.textOnGold,
-              ),
-              child: const Text('Retry'),
             ),
           ],
         ),

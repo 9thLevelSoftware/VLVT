@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/discovery_preferences_service.dart';
+import '../widgets/vlvt_button.dart';
 
 class DiscoveryFiltersScreen extends StatefulWidget {
   const DiscoveryFiltersScreen({super.key});
@@ -92,12 +93,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
       appBar: AppBar(
         title: const Text('Discovery Filters'),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Clear All',
             onPressed: _clearFilters,
-            child: const Text(
-              'Clear All',
-              style: TextStyle(color: Colors.white),
-            ),
           ),
         ],
       ),
@@ -252,20 +250,10 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
               const SizedBox(height: 32),
 
               // Apply Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _applyFilters,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text(
-                    'Apply Filters',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ),
+              VlvtButton.primary(
+                label: 'Apply Filters',
+                onPressed: _applyFilters,
+                expanded: true,
               ),
 
               const SizedBox(height: 16),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/spacing.dart';
+import 'vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 
@@ -104,42 +105,30 @@ class ConfirmationDialog extends StatelessWidget {
       ),
       actions: [
         // Cancel button (secondary)
-        TextButton(
+        VlvtButton.text(
+          label: cancelText,
           onPressed: () {
             Navigator.of(context).pop(false);
             onCancel?.call();
           },
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
-          child: Text(
-            cancelText,
-            style: VlvtTextStyles.labelLarge.copyWith(
-              color: VlvtColors.textSecondary,
-            ),
-          ),
         ),
         Spacing.horizontalSm,
-        // Confirm button (primary)
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pop(true);
-            onConfirm?.call();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                isDestructive ? destructiveColor : VlvtColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: Spacing.borderRadiusSm,
-            ),
-          ),
-          child: Text(
-            confirmText,
-            style: VlvtTextStyles.labelLarge.copyWith(color: Colors.white),
-          ),
-        ),
+        // Confirm button (primary or danger)
+        isDestructive
+            ? VlvtButton.danger(
+                label: confirmText,
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                  onConfirm?.call();
+                },
+              )
+            : VlvtButton.primary(
+                label: confirmText,
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                  onConfirm?.call();
+                },
+              ),
       ],
     );
   }

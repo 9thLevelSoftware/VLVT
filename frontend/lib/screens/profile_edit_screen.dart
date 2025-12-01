@@ -6,6 +6,7 @@ import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/photo_manager_widget.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 
@@ -294,35 +295,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   maxPhotos: 6,
                 ),
                 const SizedBox(height: 32),
-                FilledButton.icon(
-                  onPressed: _isLoading ? null : _saveProfile,
-                  icon: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_isLoading
+                VlvtButton.primary(
+                  label: _isLoading
                       ? 'Saving...'
                       : widget.isFirstTimeSetup
                           ? 'Create Profile'
-                          : 'Save Changes'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
+                          : 'Save Changes',
+                  onPressed: _isLoading ? null : _saveProfile,
+                  icon: Icons.save,
+                  loading: _isLoading,
+                  expanded: true,
                 ),
                 if (!widget.isFirstTimeSetup) ...[
                   const SizedBox(height: 12),
-                  OutlinedButton(
+                  VlvtButton.secondary(
+                    label: 'Cancel',
                     onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text('Cancel'),
+                    expanded: true,
                   ),
                 ],
               ],

@@ -14,6 +14,7 @@ import '../widgets/empty_state_widget.dart';
 import '../widgets/swipe_tutorial_overlay.dart';
 import '../widgets/match_overlay.dart';
 import '../widgets/vlvt_loader.dart';
+import '../widgets/vlvt_button.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
 import '../theme/vlvt_colors.dart';
@@ -505,37 +506,34 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         ),
         actions: [
           if (hasFilters) ...[
-            TextButton(
+            VlvtButton.text(
+              label: 'Clear Filters',
               onPressed: () async {
                 Navigator.pop(context);
                 // Reset all filters to defaults
                 await prefsService.clearFilters();
                 await _loadProfiles();
               },
-              style: TextButton.styleFrom(
-                foregroundColor: VlvtColors.gold,
-              ),
-              child: const Text('Clear Filters'),
             ),
-            TextButton(
+            VlvtButton.text(
+              label: 'Adjust Filters',
               onPressed: () {
                 Navigator.pop(context);
                 _navigateToFilters();
               },
-              child: const Text('Adjust Filters'),
             ),
           ],
-          TextButton(
+          VlvtButton.text(
+            label: 'Show All Again',
             onPressed: () async {
               Navigator.pop(context);
               await prefsService.clearSeenProfiles();
               await _loadProfiles();
             },
-            child: const Text('Show All Again'),
           ),
-          TextButton(
+          VlvtButton.text(
+            label: 'OK',
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
           ),
         ],
       ),
@@ -698,13 +696,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                 ),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
+              VlvtButton.primary(
+                label: 'Retry',
                 onPressed: _loadProfiles,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: VlvtColors.gold,
-                  foregroundColor: VlvtColors.textOnGold,
-                ),
-                child: const Text('Retry'),
               ),
             ],
           ),

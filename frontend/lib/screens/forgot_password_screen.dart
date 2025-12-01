@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -299,35 +300,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                               ),
                               Spacing.verticalMd,
                               // Send Reset Link button
-                              ElevatedButton(
+                              VlvtButton.primary(
+                                label: 'Send Reset Link',
                                 onPressed: _sendResetLink,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: VlvtColors.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: Spacing.borderRadiusMd,
-                                  ),
-                                  elevation: 4,
-                                  textStyle: VlvtTextStyles.button,
-                                ),
-                                child: const Text('Send Reset Link'),
+                                expanded: true,
                               ),
                             ],
                           ),
                         ),
                       Spacing.verticalXxl,
                       // Back to login link
-                      TextButton(
+                      VlvtButton.text(
+                        label: 'Back to login',
                         onPressed: () => Navigator.of(context).pop(),
-                        child: Text(
-                          'Back to login',
-                          style: VlvtTextStyles.bodyMedium.copyWith(
-                            color: Colors.white,
-                            decoration: TextDecoration.underline,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                       const Spacer(),
                     ],

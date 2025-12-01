@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import '../services/auth_service.dart';
 import '../constants/spacing.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -215,47 +216,19 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                       ),
                       Spacing.verticalXxl,
                       // Resend verification email button
-                      ElevatedButton(
+                      VlvtButton.primary(
+                        label: _cooldownSeconds > 0
+                            ? 'Resend in $_cooldownSeconds seconds'
+                            : 'Resend verification email',
                         onPressed: (_cooldownSeconds > 0 || _isResending) ? null : _resendVerificationEmail,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: VlvtColors.primary,
-                          disabledBackgroundColor: Colors.white.withValues(alpha: 0.3),
-                          disabledForegroundColor: Colors.white.withValues(alpha: 0.5),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: Spacing.borderRadiusMd,
-                          ),
-                          elevation: 4,
-                          textStyle: VlvtTextStyles.button,
-                        ),
-                        child: _isResending
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(VlvtColors.primary),
-                                ),
-                              )
-                            : Text(
-                                _cooldownSeconds > 0
-                                    ? 'Resend in $_cooldownSeconds seconds'
-                                    : 'Resend verification email',
-                              ),
+                        loading: _isResending,
+                        expanded: true,
                       ),
                       Spacing.verticalMd,
                       // Back to login link
-                      TextButton(
+                      VlvtButton.text(
+                        label: 'Back to login',
                         onPressed: _backToLogin,
-                        child: Text(
-                          'Back to login',
-                          style: VlvtTextStyles.bodyMedium.copyWith(
-                            color: Colors.white,
-                            decoration: TextDecoration.underline,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                       Spacing.verticalXl,
                       // Additional help text

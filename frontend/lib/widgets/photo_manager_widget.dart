@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../services/profile_api_service.dart';
+import 'vlvt_button.dart';
 
 
 /// Simplified Photo Manager Widget for Profile Photos
@@ -85,14 +86,13 @@ class _PhotoManagerWidgetState extends State<PhotoManagerWidget> {
         title: const Text('Delete Photo'),
         content: const Text('Are you sure you want to delete this photo?'),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          VlvtButton.danger(
+            label: 'Delete',
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
           ),
         ],
       ),
