@@ -151,6 +151,22 @@ app.post('/matches', authMiddleware, matchLimiter, validateMatch, async (req: Re
       });
     }
 
+    // Ensure both users exist in the database (auto-create if needed for dev/test)
+    // This handles the case where auth happens on Railway but chat service runs locally
+    for (const uid of [userId1, userId2]) {
+      const userExists = await pool.query('SELECT id FROM users WHERE id = $1', [uid]);
+      if (userExists.rows.length === 0) {
+        // Determine provider from userId format
+        const provider = uid.startsWith('google_') ? 'google' : uid.startsWith('apple_') ? 'apple' : 'unknown';
+        await pool.query(
+          `INSERT INTO users (id, provider, email) VALUES ($1, $2, $3)
+           ON CONFLICT (id) DO NOTHING`,
+          [uid, provider, `${uid}@placeholder.local`]
+        );
+        logger.info('Auto-created user for match', { userId: uid, provider });
+      }
+    }
+
     // Check for existing match in both directions
     const existingMatch = await pool.query(
       `SELECT id, user_id_1, user_id_2, created_at
@@ -190,13 +206,13 @@ app.post('/matches', authMiddleware, matchLimiter, validateMatch, async (req: Re
     // Send push notifications to both users about the match
     // Get user names for the notifications
     const profilesResult = await pool.query(
-      'SELECT id, name FROM profiles WHERE id IN ($1, $2)',
+      'SELECT user_id, name FROM profiles WHERE user_id IN ($1, $2)',
       [userId1, userId2]
     );
 
     if (profilesResult.rows.length === 2) {
-      const user1Profile = profilesResult.rows.find((p: any) => p.id === userId1);
-      const user2Profile = profilesResult.rows.find((p: any) => p.id === userId2);
+      const user1Profile = profilesResult.rows.find((p: any) => p.user_id === userId1);
+      const user2Profile = profilesResult.rows.find((p: any) => p.user_id === userId2);
 
       if (user1Profile && user2Profile) {
         // Send notification to user1 about matching with user2 (don't await - fire and forget)
@@ -220,8 +236,16 @@ app.post('/matches', authMiddleware, matchLimiter, validateMatch, async (req: Re
         createdAt: match.created_at
       }
     });
-  } catch (error) {
-    logger.error('Failed to create match', { error, authenticatedUserId: req.user?.userId });
+  } catch (error: any) {
+    logger.error('Failed to create match', {
+      error: error.message,
+      stack: error.stack,
+      code: error.code,
+      detail: error.detail,
+      authenticatedUserId: req.user?.userId,
+      userId1: req.body.userId1,
+      userId2: req.body.userId2
+    });
     res.status(500).json({ success: false, error: 'Failed to create match' });
   }
 });

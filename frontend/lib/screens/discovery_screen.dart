@@ -597,12 +597,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
       final filters = prefsService.filters;
 
       // Track filters applied
+      // Note: Firebase Analytics only accepts String or num values
       await AnalyticsService.logFiltersApplied({
         'min_age': filters.minAge,
         'max_age': filters.maxAge,
         'max_distance': filters.maxDistance,
         'interests_count': filters.selectedInterests.length,
-        'has_active_filters': filters.hasActiveFilters,
+        'has_active_filters': filters.hasActiveFilters ? 1 : 0,
       });
 
       _currentProfileIndex = 0;
