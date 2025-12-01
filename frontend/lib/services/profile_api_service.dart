@@ -74,10 +74,18 @@ class ProfileApiService extends ChangeNotifier {
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
+      debugPrint('Discovery API: GET $uri');
+      debugPrint('Discovery API: Token present: ${_authService.token != null}');
+
       final response = await http.get(
         uri,
         headers: _getAuthHeaders(),
       );
+
+      debugPrint('Discovery API: Response status: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        debugPrint('Discovery API: Response body: ${response.body}');
+      }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

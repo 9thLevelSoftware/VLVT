@@ -617,22 +617,24 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
 
     if (userLocation && maxDistance) {
       // P1: Use Haversine formula to calculate distance and filter
-      // Optimized with OFFSET instead of ORDER BY RANDOM()
+      // Use subquery to filter by calculated distance (can't use HAVING without GROUP BY)
       query = `
-        SELECT
-          user_id, name, age, bio, photos, interests, latitude, longitude,
-          (
-            6371 * acos(
-              cos(radians($${paramIndex})) * cos(radians(latitude)) *
-              cos(radians(longitude) - radians($${paramIndex + 1})) +
-              sin(radians($${paramIndex})) * sin(radians(latitude))
-            )
-          ) AS distance
-        FROM profiles
-        WHERE ${whereClause}
-          AND latitude IS NOT NULL
-          AND longitude IS NOT NULL
-        HAVING distance <= $${paramIndex + 2}
+        SELECT * FROM (
+          SELECT
+            user_id, name, age, bio, photos, interests, latitude, longitude,
+            (
+              6371 * acos(
+                cos(radians($${paramIndex})) * cos(radians(latitude)) *
+                cos(radians(longitude) - radians($${paramIndex + 1})) +
+                sin(radians($${paramIndex})) * sin(radians(latitude))
+              )
+            ) AS distance
+          FROM profiles
+          WHERE ${whereClause}
+            AND latitude IS NOT NULL
+            AND longitude IS NOT NULL
+        ) AS profiles_with_distance
+        WHERE distance <= $${paramIndex + 2}
         ORDER BY user_id
         OFFSET ${randomOffset}
         LIMIT ${limit}

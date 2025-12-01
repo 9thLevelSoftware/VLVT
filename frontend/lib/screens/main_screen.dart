@@ -38,7 +38,10 @@ class MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialTab;
-    _initializeSubscription();
+    // Defer subscription initialization to avoid calling notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeSubscription();
+    });
   }
   
   Future<void> _initializeSubscription() async {
