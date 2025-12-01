@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/vlvt_background.dart';
 
 class SplashScreen extends StatefulWidget {
   final VoidCallback onComplete;
@@ -62,14 +63,41 @@ class _SplashScreenState extends State<SplashScreen>
     // Start logo animation
     _logoController.forward();
 
-    // Wait for logo animation + hold time
-    await Future.delayed(const Duration(milliseconds: 2000));
+    // Pre-cache critical assets in parallel with animation
+    final preCacheFuture = _preCacheAssets();
+
+    // Wait for BOTH animation and pre-caching (with minimum display time)
+    await Future.wait([
+      preCacheFuture,
+      Future.delayed(const Duration(milliseconds: 2000)),
+    ]);
 
     // Fade out
     await _fadeController.forward();
 
     // Complete
     widget.onComplete();
+  }
+
+  /// Pre-cache heavy assets used in subsequent screens
+  Future<void> _preCacheAssets() async {
+    try {
+      await Future.wait([
+        // Pre-cache the auth screen background
+        precacheImage(
+          const AssetImage('assets/images/loginbackground.jpg'),
+          context,
+        ),
+        // Pre-cache the logo for other screens
+        precacheImage(
+          const AssetImage('assets/images/logo.png'),
+          context,
+        ),
+      ]);
+    } catch (e) {
+      // Silently fail - assets will load normally if pre-cache fails
+      debugPrint('Asset pre-cache failed: $e');
+    }
   }
 
   @override
@@ -84,17 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: FadeTransition(
         opacity: _fadeAnimation,
-        child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF2D1B4E), // Deep purple
-                Color(0xFF1A0F2E), // Darker purple
-              ],
-            ),
-          ),
+        child: VlvtBackground.premium(
           child: Center(
             child: AnimatedBuilder(
               animation: _logoController,

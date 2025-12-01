@@ -173,6 +173,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
           _currentProfileIndex = 0;
         }
       });
+
+      // Pre-cache upcoming profile images for smoother swiping
+      _precacheNextProfiles();
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load profiles: $e';
@@ -255,6 +258,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
       }
 
       if (mounted) {
+        // Heavy haptic feedback for actual match (not already existing)
+        if (!alreadyExists) {
+          HapticFeedback.heavyImpact();
+        }
+
         // Show heart particles animation
         setState(() {
           _showHeartParticles = true;
@@ -329,6 +337,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         _photoPageController?.dispose();
         _photoPageController = null;
         _saveCurrentIndex();
+        // Pre-cache upcoming profile images
+        _precacheNextProfiles();
       } else {
         _showEndOfProfilesMessage();
       }
@@ -339,6 +349,39 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
     if (_photoPageController == null && photoCount > 0) {
       _photoPageController = PageController(initialPage: 0);
     }
+  }
+
+  /// Pre-cache images for upcoming profiles to eliminate loading spinners
+  void _precacheNextProfiles() {
+    if (_filteredProfiles.isEmpty) return;
+
+    final profileService = context.read<ProfileApiService>();
+
+    // Pre-cache next 2 profiles
+    for (int i = 1; i <= 2; i++) {
+      final nextIndex = _currentProfileIndex + i;
+      if (nextIndex < _filteredProfiles.length) {
+        final photos = _filteredProfiles[nextIndex].photos;
+        if (photos != null && photos.isNotEmpty) {
+          for (final photoUrl in photos.take(2)) {
+            // Pre-fetch first 2 photos of each upcoming profile
+            final url = photoUrl.startsWith('http')
+                ? photoUrl
+                : '${profileService.baseUrl}$photoUrl';
+            // Use CachedNetworkImageProvider to trigger cache
+            CachedNetworkImageProvider(url).resolve(ImageConfiguration.empty);
+          }
+        }
+      }
+    }
+  }
+
+  /// Calculate parallax alignment based on card drag position
+  Alignment _getParallaxAlignment() {
+    // Invert drag direction for depth effect
+    // Card moving right -> image shifts left (reveals more right side)
+    final parallaxX = (_cardPosition.dx / 300).clamp(-1.0, 1.0) * -0.3;
+    return Alignment(parallaxX, 0.0);
   }
 
   void _showUndo() {
@@ -929,6 +972,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                     child: PageView.builder(
                                                       controller: _photoPageController,
                                                       onPageChanged: (index) {
+                                                        // Subtle haptic for photo scroll
+                                                        HapticFeedback.selectionClick();
                                                         setState(() {
                                                           _currentPhotoIndex = index;
                                                         });
@@ -938,12 +983,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                         final photoUrl = profile.photos![index];
                                                         final profileService = context.read<ProfileApiService>();
                                                         return Hero(
-                                                          tag: 'profile_${profile.userId}', // Simplified tag for single hero
+                                                          tag: 'discovery_${profile.userId}', // Unique tag for discovery screen
                                                           child: CachedNetworkImage(
                                                             imageUrl: photoUrl.startsWith('http')
                                                                 ? photoUrl
                                                                 : '${profileService.baseUrl}$photoUrl',
                                                             fit: BoxFit.cover,
+                                                            alignment: _getParallaxAlignment(), // Parallax effect on drag
                                                             placeholder: (context, url) => Container(
                                                               color: Colors.white.withValues(alpha: 0.2),
                                                               child: const Center(

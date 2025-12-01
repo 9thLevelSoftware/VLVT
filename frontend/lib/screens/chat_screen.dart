@@ -516,18 +516,29 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             );
           }
           final message = _messages![index];
-          return _buildMessageBubble(message, message.senderId == currentUserId);
+          final isCurrentUser = message.senderId == currentUserId;
+
+          // Message grouping logic
+          final previousMessage = index > 0 ? _messages![index - 1] : null;
+          final isSameSender = previousMessage?.senderId == message.senderId;
+          final isCloseInTime = previousMessage != null &&
+              message.timestamp.difference(previousMessage.timestamp).inMinutes < 2;
+          final isGrouped = isSameSender && isCloseInTime;
+
+          return _buildMessageBubble(message, isCurrentUser, isGrouped: isGrouped);
         },
       ),
     );
   }
 
-  Widget _buildMessageBubble(Message message, bool isCurrentUser) {
+  Widget _buildMessageBubble(Message message, bool isCurrentUser, {bool isGrouped = false}) {
     final isFailed = message.status == MessageStatus.failed;
+    // Tighter spacing for grouped messages (same sender, close in time)
+    final bottomMargin = isGrouped ? 4.0 : 12.0;
     return Align(
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
+        margin: EdgeInsets.only(bottom: bottomMargin),
         child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
           if (isCurrentUser && isFailed) ...[
             IconButton(icon: const Icon(Icons.refresh, size: 20), color: VlvtColors.error, onPressed: () => _retryMessage(message), tooltip: 'Retry'),

@@ -434,7 +434,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
         leading: Stack(
           children: [
             Hero(
-              tag: 'profile_$otherUserId',
+              tag: 'match_list_$otherUserId', // Unique tag to avoid conflict with discovery
               child: CircleAvatar(
                 backgroundColor: VlvtColors.primary,
                 backgroundImage: profile?.photos?.isNotEmpty == true
@@ -579,123 +579,165 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
     return Scaffold(
       backgroundColor: VlvtColors.background,
-      appBar: AppBar(
-        backgroundColor: VlvtColors.background,
-        title: _isSearching
-            ? VlvtInput(
-                controller: _searchController,
-                focusNode: FocusNode()..requestFocus(),
-                hintText: 'Search matches...',
-                blur: false,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
-              )
-            : Text('Matches', style: VlvtTextStyles.h2),
-        actions: [
-          if (_isSearching)
-            IconButton(
-              icon: const Icon(Icons.clear, color: VlvtColors.textSecondary),
-              onPressed: () {
-                setState(() {
-                  _isSearching = false;
-                  _searchQuery = '';
-                  _searchController.clear();
-                });
-              },
-            )
-          else ...[
-            IconButton(
-              icon: const Icon(Icons.search, color: VlvtColors.gold),
-              onPressed: () {
-                setState(() {
-                  _isSearching = true;
-                });
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.sort, color: VlvtColors.gold),
-              onPressed: _showSortDialog,
-            ),
-          ],
-        ],
-      ),
       body: RefreshIndicator(
         color: VlvtColors.gold,
         onRefresh: _handleRefresh,
-        child: _buildBody(filteredMatches, userId),
+        child: CustomScrollView(
+          slivers: [
+            // Collapsible SliverAppBar with elegant title
+            SliverAppBar(
+              expandedHeight: 100.0,
+              floating: true,
+              pinned: true,
+              backgroundColor: VlvtColors.background,
+              flexibleSpace: FlexibleSpaceBar(
+                title: _isSearching
+                    ? null
+                    : Text(
+                        'Matches',
+                        style: VlvtTextStyles.h2.copyWith(
+                          fontFamily: 'PlayfairDisplay',
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                centerTitle: false,
+                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+              ),
+              actions: [
+                if (_isSearching)
+                  IconButton(
+                    icon: const Icon(Icons.clear, color: VlvtColors.textSecondary),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = false;
+                        _searchQuery = '';
+                        _searchController.clear();
+                      });
+                    },
+                  )
+                else ...[
+                  IconButton(
+                    icon: const Icon(Icons.search, color: VlvtColors.gold),
+                    onPressed: () {
+                      setState(() {
+                        _isSearching = true;
+                      });
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.sort, color: VlvtColors.gold),
+                    onPressed: _showSortDialog,
+                  ),
+                ],
+              ],
+            ),
+            // Search bar when searching
+            if (_isSearching)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: VlvtInput(
+                    controller: _searchController,
+                    focusNode: FocusNode()..requestFocus(),
+                    hintText: 'Search matches...',
+                    blur: false,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                  ),
+                ),
+              ),
+            // Content
+            ..._buildSliverBody(filteredMatches, userId),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBody(List<Match> filteredMatches, String userId) {
+  List<Widget> _buildSliverBody(List<Match> filteredMatches, String userId) {
     // Show loading indicator on initial load
     if (_isLoading && _matches.isEmpty) {
-      return const Center(child: VlvtLoader());
+      return [
+        const SliverFillRemaining(
+          child: Center(child: VlvtLoader()),
+        ),
+      ];
     }
 
     // Show error state
     if (_error != null && _matches.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 80,
-              color: VlvtColors.crimson,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Error loading matches',
-              style: VlvtTextStyles.h2.copyWith(
-                color: VlvtColors.crimson,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                _error!,
-                style: VlvtTextStyles.bodyMedium.copyWith(
-                  color: VlvtColors.textSecondary,
+      return [
+        SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 80,
+                  color: VlvtColors.crimson,
                 ),
-                textAlign: TextAlign.center,
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading matches',
+                  style: VlvtTextStyles.h2.copyWith(
+                    color: VlvtColors.crimson,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    _error!,
+                    style: VlvtTextStyles.bodyMedium.copyWith(
+                      color: VlvtColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                VlvtButton.primary(
+                  label: 'Retry',
+                  onPressed: () => _loadData(forceRefresh: true),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            VlvtButton.primary(
-              label: 'Retry',
-              onPressed: () => _loadData(forceRefresh: true),
-            ),
-          ],
+          ),
         ),
-      );
+      ];
     }
 
     // Show empty state (no matches at all)
     if (_matches.isEmpty) {
-      return MatchesEmptyState.noMatches(
-        onGoToDiscovery: () {
-          // Navigate to discovery screen - switch to first tab
-          final tabController = DefaultTabController.of(context);
-          tabController.animateTo(0);
-        },
-      );
+      return [
+        SliverFillRemaining(
+          child: MatchesEmptyState.noMatches(
+            onGoToDiscovery: () {
+              final tabController = DefaultTabController.of(context);
+              tabController.animateTo(0);
+            },
+          ),
+        ),
+      ];
     }
 
     // Show "no results" state (filtered results are empty)
     if (filteredMatches.isEmpty) {
-      return MatchesEmptyState.noSearchResults();
+      return [
+        SliverFillRemaining(
+          child: MatchesEmptyState.noSearchResults(),
+        ),
+      ];
     }
 
-    // Show matches list
-    return Column(
-      children: [
-        if (_lastUpdated != null)
-          Container(
+    // Show matches list with sliver
+    return [
+      if (_lastUpdated != null)
+        SliverToBoxAdapter(
+          child: Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
             color: VlvtColors.surfaceElevated,
             child: Center(
@@ -705,17 +747,17 @@ class _MatchesScreenState extends State<MatchesScreen> {
               ),
             ),
           ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: filteredMatches.length,
-            itemBuilder: (context, index) {
-              final match = filteredMatches[index];
-              return _buildMatchItem(match, userId);
-            },
-          ),
         ),
-      ],
-    );
+      SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final match = filteredMatches[index];
+            return _buildMatchItem(match, userId);
+          },
+          childCount: filteredMatches.length,
+        ),
+      ),
+    ];
   }
 
   String _getRelativeTime(DateTime dateTime) {
