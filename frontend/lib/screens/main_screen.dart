@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/subscription_service.dart';
@@ -5,6 +6,8 @@ import '../services/auth_service.dart';
 import '../services/profile_api_service.dart';
 import '../models/profile.dart';
 import '../widgets/upgrade_banner.dart';
+import '../widgets/vlvt_loader.dart';
+import '../theme/vlvt_colors.dart';
 import 'discovery_screen.dart';
 import 'matches_screen.dart';
 import 'profile_screen.dart';
@@ -51,11 +54,12 @@ class MainScreenState extends State<MainScreen> {
     final authService = context.watch<AuthService>();
     final profileService = context.watch<ProfileApiService>();
 
-    // Loading state
+    // Loading state - use VLVT loader
     if (subscriptionService.isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
+      return Scaffold(
+        backgroundColor: VlvtColors.background,
+        body: const Center(
+          child: VlvtLoader(),
         ),
       );
     }
@@ -73,11 +77,12 @@ class MainScreenState extends State<MainScreen> {
     return FutureBuilder<Profile>(
       future: profileService.getProfile(userId),
       builder: (context, snapshot) {
-        // Loading state
+        // Loading state - use VLVT loader
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
+          return Scaffold(
+            backgroundColor: VlvtColors.background,
+            body: const Center(
+              child: VlvtLoader(),
             ),
           );
         }
@@ -152,6 +157,8 @@ class MainScreenState extends State<MainScreen> {
         }
 
         return Scaffold(
+          backgroundColor: VlvtColors.background,
+          extendBody: true,
           body: Column(
             children: [
               // Show upgrade banner for free users
@@ -162,17 +169,108 @@ class MainScreenState extends State<MainScreen> {
               ),
             ],
           ),
-          bottomNavigationBar: BottomNavigationBar(
+          bottomNavigationBar: _buildFrostedNavBar(
             currentIndex: safeIndex,
+            items: navItems,
             onTap: (index) {
               setState(() {
                 _currentIndex = index;
               });
             },
-            items: navItems,
           ),
         );
       },
+    );
+  }
+
+  /// Builds a frosted glass bottom navigation bar
+  Widget _buildFrostedNavBar({
+    required int currentIndex,
+    required List<BottomNavigationBarItem> items,
+    required ValueChanged<int> onTap,
+  }) {
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: VlvtColors.surface.withValues(alpha: 0.85),
+            border: Border(
+              top: BorderSide(
+                color: VlvtColors.gold.withValues(alpha: 0.2),
+                width: 0.5,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: List.generate(items.length, (index) {
+                  final item = items[index];
+                  final isSelected = index == currentIndex;
+
+                  return GestureDetector(
+                    onTap: () => onTap(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Icon with optional glow
+                          Container(
+                            decoration: isSelected
+                                ? BoxDecoration(
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: VlvtColors.gold.withValues(alpha: 0.4),
+                                        blurRadius: 12,
+                                        spreadRadius: 0,
+                                      ),
+                                    ],
+                                  )
+                                : null,
+                            child: IconTheme(
+                              data: IconThemeData(
+                                color: isSelected
+                                    ? VlvtColors.gold
+                                    : VlvtColors.textMuted,
+                                size: 24,
+                              ),
+                              child: item.icon,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Label
+                          Text(
+                            item.label ?? '',
+                            style: TextStyle(
+                              fontFamily: 'Montserrat',
+                              fontSize: 11,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isSelected
+                                  ? VlvtColors.gold
+                                  : VlvtColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

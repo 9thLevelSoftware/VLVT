@@ -7,9 +7,12 @@ import '../models/profile.dart';
 import 'profile_edit_screen.dart';
 import 'safety_settings_screen.dart';
 import '../widgets/feedback_widget.dart';
-import '../widgets/theme_toggle_widget.dart';
+import '../widgets/vlvt_loader.dart';
+import '../widgets/vlvt_card.dart';
+import '../widgets/vlvt_button.dart';
+import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import '../config/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -47,33 +50,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final subscriptionService = context.watch<SubscriptionService>();
     final profileService = context.watch<ProfileApiService>();
     final userId = authService.userId;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (userId == null) {
       return Scaffold(
+        backgroundColor: VlvtColors.background,
         appBar: AppBar(
-          title: const Text('Profile'),
+          backgroundColor: VlvtColors.background,
+          title: Text('Profile', style: VlvtTextStyles.h2),
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout),
+              icon: const Icon(Icons.logout, color: VlvtColors.gold),
               onPressed: () async {
                 await authService.signOut();
               },
             ),
           ],
         ),
-        body: const Center(
-          child: Text('User not authenticated'),
+        body: Center(
+          child: Text('User not authenticated', style: VlvtTextStyles.bodyMedium),
         ),
       );
     }
 
     return Scaffold(
+      backgroundColor: VlvtColors.background,
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: VlvtColors.background,
+        title: Text('Profile', style: VlvtTextStyles.h2),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: VlvtColors.gold),
             onPressed: () async {
               await authService.signOut();
             },
@@ -87,7 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(),
+                child: VlvtLoader(),
               );
             }
 
@@ -98,15 +104,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     Text(
                       'Error loading profile: ${snapshot.error}',
-                      style: TextStyle(color: AppColors.error(context)),
+                      style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.crimson),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
+                    VlvtButton.primary(
+                      label: 'Retry',
                       onPressed: () {
                         setState(() {});
                       },
-                      child: const Text('Retry'),
                     ),
                   ],
                 ),
@@ -122,13 +128,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Center(
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-                        child: const Icon(
-                          Icons.person,
-                          size: 60,
-                          color: Colors.white,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: VlvtColors.gold, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: VlvtColors.gold.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundColor: VlvtColors.primary,
+                          child: const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -136,149 +155,136 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Center(
                       child: Text(
                         profile?.name ?? 'Your Name',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: VlvtTextStyles.displayMedium,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Center(
                       child: Text(
                         userId,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary(context),
+                        style: VlvtTextStyles.bodySmall.copyWith(
+                          color: VlvtColors.textMuted,
                         ),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Subscription Status',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                    VlvtCard(
+                      goldAccent: subscriptionService.hasPremiumAccess,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Subscription Status',
+                            style: VlvtTextStyles.h3.copyWith(color: VlvtColors.gold),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Icon(
+                                subscriptionService.hasPremiumAccess
+                                    ? Icons.check_circle
+                                    : Icons.cancel,
+                                color: subscriptionService.hasPremiumAccess
+                                    ? VlvtColors.success
+                                    : VlvtColors.crimson,
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Icon(
-                                  subscriptionService.hasPremiumAccess
-                                      ? Icons.check_circle
-                                      : Icons.cancel,
+                              const SizedBox(width: 8),
+                              Text(
+                                subscriptionService.hasPremiumAccess
+                                    ? 'Premium Active'
+                                    : 'No Active Subscription',
+                                style: VlvtTextStyles.bodyLarge.copyWith(
                                   color: subscriptionService.hasPremiumAccess
-                                      ? AppColors.success(context)
-                                      : AppColors.error(context),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  subscriptionService.hasPremiumAccess
-                                      ? 'Premium Active'
-                                      : 'No Active Subscription',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: subscriptionService.hasPremiumAccess
-                                        ? AppColors.success(context)
-                                        : AppColors.error(context),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: subscriptionService.hasPremiumAccess
-                                  ? OutlinedButton.icon(
-                                      onPressed: () {
-                                        subscriptionService.presentCustomerCenter(context);
-                                      },
-                                      icon: const Icon(Icons.settings),
-                                      label: const Text('Manage Subscription'),
-                                    )
-                                  : ElevatedButton.icon(
-                                      onPressed: () async {
-                                        await subscriptionService.presentPaywallIfNeeded();
-                                      },
-                                      icon: const Icon(Icons.star),
-                                      label: const Text('Upgrade to Premium'),
-                                    ),
-                            ),
-                            if (!subscriptionService.hasPremiumAccess) ...[
-                              const SizedBox(height: 8),
-                              Center(
-                                child: TextButton(
-                                  onPressed: () async {
-                                    final restored = await subscriptionService.restorePurchases();
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(restored
-                                              ? 'Purchases restored successfully!'
-                                              : 'No purchases to restore'),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  child: const Text('Restore Purchases'),
+                                      ? VlvtColors.success
+                                      : VlvtColors.crimson,
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: subscriptionService.hasPremiumAccess
+                                ? VlvtButton.secondary(
+                                    label: 'Manage Subscription',
+                                    icon: Icons.settings,
+                                    onPressed: () {
+                                      subscriptionService.presentCustomerCenter(context);
+                                    },
+                                  )
+                                : VlvtButton.primary(
+                                    label: 'Upgrade to Premium',
+                                    icon: Icons.star,
+                                    expanded: true,
+                                    onPressed: () async {
+                                      await subscriptionService.presentPaywallIfNeeded();
+                                    },
+                                  ),
+                          ),
+                          if (!subscriptionService.hasPremiumAccess) ...[
+                            const SizedBox(height: 8),
+                            Center(
+                              child: VlvtButton.text(
+                                label: 'Restore Purchases',
+                                onPressed: () async {
+                                  final restored = await subscriptionService.restorePurchases();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(restored
+                                            ? 'Purchases restored successfully!'
+                                            : 'No purchases to restore'),
+                                        backgroundColor: VlvtColors.surface,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
                           ],
-                        ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Profile Information',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            if (profile?.age != null) ...[
-                              _buildInfoRow('Age', profile!.age.toString()),
-                              const Divider(),
-                            ],
-                            if (profile?.bio != null) ...[
-                              _buildInfoRow('Bio', profile!.bio!),
-                              const Divider(),
-                            ],
-                            if (profile?.interests != null && profile!.interests!.isNotEmpty)
-                              _buildInfoRow('Interests', profile.interests!.join(', ')),
-                            if (!_hasProfileInfo(profile))
-                              Text(
-                                'No profile information available',
-                                style: TextStyle(color: AppColors.textSecondary(context)),
-                              ),
+                    VlvtCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Profile Information',
+                            style: VlvtTextStyles.h3.copyWith(color: VlvtColors.gold),
+                          ),
+                          const SizedBox(height: 12),
+                          if (profile?.age != null) ...[
+                            _buildInfoRow('Age', profile!.age.toString()),
+                            Divider(color: VlvtColors.borderSubtle),
                           ],
-                        ),
+                          if (profile?.bio != null) ...[
+                            _buildInfoRow('Bio', profile!.bio!),
+                            Divider(color: VlvtColors.borderSubtle),
+                          ],
+                          if (profile?.interests != null && profile!.interests!.isNotEmpty)
+                            _buildInfoRow('Interests', profile.interests!.join(', ')),
+                          if (!_hasProfileInfo(profile))
+                            Text(
+                              'No profile information available',
+                              style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textMuted),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
+                    VlvtButton.primary(
+                      label: 'Edit Profile',
+                      icon: Icons.edit,
+                      expanded: true,
                       onPressed: () => _navigateToEditProfile(profile),
-                      icon: const Icon(Icons.edit),
-                      label: const Text('Edit Profile'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
+                    VlvtButton.secondary(
+                      label: 'Safety & Privacy',
+                      icon: Icons.security,
+                      expanded: true,
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -286,14 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.security),
-                      label: const Text('Safety & Privacy'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
                     ),
-                    const SizedBox(height: 24),
-                    const ThemeToggleWidget(),
                   ],
                 ),
               ),
@@ -328,17 +327,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.textSecondary(context),
+            style: VlvtTextStyles.labelMedium.copyWith(
+              color: VlvtColors.textMuted,
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 16,
+              style: VlvtTextStyles.bodyMedium.copyWith(
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.start,

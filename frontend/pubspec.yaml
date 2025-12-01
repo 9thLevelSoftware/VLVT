@@ -94,6 +94,12 @@ flutter:
       fonts:
         - asset: assets/fonts/PlayfairDisplay-Italic.ttf
           style: italic
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Montserrat-SemiBold.ttf
+          weight: 600
 
 # Native splash screen configuration
 flutter_native_splash:

@@ -12,9 +12,10 @@ import '../models/message.dart';
 import '../utils/date_utils.dart';
 import '../widgets/user_action_sheet.dart';
 import '../widgets/empty_state_widget.dart';
-import '../widgets/loading_skeleton.dart';
+import '../widgets/vlvt_loader.dart';
+import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import 'chat_screen.dart';
-import '../config/app_colors.dart';
 
 enum SortOption { recentActivity, newestMatches, nameAZ }
 
@@ -239,46 +240,39 @@ class _MatchesScreenState extends State<MatchesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sort by'),
+        backgroundColor: VlvtColors.surfaceElevated,
+        title: Text('Sort by', style: VlvtTextStyles.h3.copyWith(color: VlvtColors.gold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            RadioListTile<SortOption>(
-              title: const Text('Recent Activity'),
-              value: SortOption.recentActivity,
-              groupValue: _sortOption,
-              onChanged: (value) {
-                setState(() {
-                  _sortOption = value!;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            RadioListTile<SortOption>(
-              title: const Text('Newest Matches'),
-              value: SortOption.newestMatches,
-              groupValue: _sortOption,
-              onChanged: (value) {
-                setState(() {
-                  _sortOption = value!;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            RadioListTile<SortOption>(
-              title: const Text('Name (A-Z)'),
-              value: SortOption.nameAZ,
-              groupValue: _sortOption,
-              onChanged: (value) {
-                setState(() {
-                  _sortOption = value!;
-                });
-                Navigator.pop(context);
-              },
-            ),
+            _buildSortOption('Recent Activity', SortOption.recentActivity),
+            _buildSortOption('Newest Matches', SortOption.newestMatches),
+            _buildSortOption('Name (A-Z)', SortOption.nameAZ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSortOption(String title, SortOption value) {
+    final isSelected = _sortOption == value;
+    return ListTile(
+      title: Text(
+        title,
+        style: VlvtTextStyles.bodyMedium.copyWith(
+          color: isSelected ? VlvtColors.gold : VlvtColors.textPrimary,
+        ),
+      ),
+      leading: Icon(
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+        color: isSelected ? VlvtColors.gold : VlvtColors.textMuted,
+      ),
+      onTap: () {
+        setState(() {
+          _sortOption = value;
+        });
+        Navigator.pop(context);
+      },
     );
   }
 
@@ -298,17 +292,22 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Unmatch'),
-        content: Text('Are you sure you want to unmatch with $name? This action cannot be undone.'),
+        backgroundColor: VlvtColors.surfaceElevated,
+        title: Text('Unmatch', style: VlvtTextStyles.h2),
+        content: Text(
+          'Are you sure you want to unmatch with $name? This action cannot be undone.',
+          style: VlvtTextStyles.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(foregroundColor: VlvtColors.textSecondary),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.error(context),
+              foregroundColor: VlvtColors.crimson,
             ),
             child: const Text('Unmatch'),
           ),
@@ -359,7 +358,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to unmatch: $e'),
-            backgroundColor: AppColors.error(context),
+            backgroundColor: VlvtColors.crimson,
           ),
         );
         setState(() {
@@ -426,7 +425,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error(context),
+        color: VlvtColors.crimson,
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (direction) async {
@@ -439,7 +438,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
             Hero(
               tag: 'profile_$otherUserId',
               child: CircleAvatar(
-                backgroundColor: AppColors.primaryLight,
+                backgroundColor: VlvtColors.primary,
                 backgroundImage: profile?.photos?.isNotEmpty == true
                     ? CachedNetworkImageProvider(
                         profile!.photos!.first.startsWith('http')
@@ -461,7 +460,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.red,
+                    color: VlvtColors.gold,
                     shape: BoxShape.circle,
                   ),
                   constraints: const BoxConstraints(
@@ -472,7 +471,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     child: Text(
                       unreadCount > 9 ? '9+' : unreadCount.toString(),
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: VlvtColors.textOnGold,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -487,9 +486,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
             Expanded(
               child: Text(
                 '$name, $age',
-                style: TextStyle(
+                style: VlvtTextStyles.bodyLarge.copyWith(
                   fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
-                  color: AppColors.textPrimary(context),
+                  color: VlvtColors.textPrimary,
                 ),
               ),
             ),
@@ -502,8 +501,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
               subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: lastMessage != null ? AppColors.textPrimary(context) : AppColors.textSecondary(context),
+              style: VlvtTextStyles.bodySmall.copyWith(
+                color: lastMessage != null ? VlvtColors.textPrimary : VlvtColors.textSecondary,
                 fontStyle: lastMessage != null ? FontStyle.normal : FontStyle.italic,
                 fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
               ),
@@ -511,9 +510,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
             if (lastMessage != null)
               Text(
                 formatTimestamp(lastMessage.timestamp),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary(context),
+                style: VlvtTextStyles.labelSmall.copyWith(
+                  color: VlvtColors.textMuted,
                 ),
               ),
           ],
@@ -524,9 +522,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
           children: [
             Text(
               formatTimestamp(match.createdAt),
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary(context),
+              style: VlvtTextStyles.labelSmall.copyWith(
+                color: VlvtColors.textMuted,
               ),
             ),
             if (unreadCount > 0)
@@ -534,15 +531,16 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
+                  color: VlvtColors.gold,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   unreadCount > 9 ? '9+' : unreadCount.toString(),
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: VlvtColors.textOnGold,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
+                    fontFamily: 'Montserrat',
                   ),
                 ),
               ),
@@ -568,11 +566,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
     if (userId == null) {
       return Scaffold(
+        backgroundColor: VlvtColors.background,
         appBar: AppBar(
-          title: const Text('Matches'),
+          backgroundColor: VlvtColors.background,
+          title: Text('Matches', style: VlvtTextStyles.h2),
         ),
-        body: const Center(
-          child: Text('User not authenticated'),
+        body: Center(
+          child: Text('User not authenticated', style: VlvtTextStyles.bodyMedium),
         ),
       );
     }
@@ -580,7 +580,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final filteredMatches = _getFilteredAndSortedMatches();
 
     return Scaffold(
+      backgroundColor: VlvtColors.background,
       appBar: AppBar(
+        backgroundColor: VlvtColors.background,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
@@ -588,20 +590,20 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search matches...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: AppColors.textDisabled(context)),
+                  hintStyle: TextStyle(color: VlvtColors.textMuted),
                 ),
-                style: TextStyle(color: AppColors.textPrimary(context)),
+                style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textPrimary),
                 onChanged: (value) {
                   setState(() {
                     _searchQuery = value;
                   });
                 },
               )
-            : const Text('Matches'),
+            : Text('Matches', style: VlvtTextStyles.h2),
         actions: [
           if (_isSearching)
             IconButton(
-              icon: const Icon(Icons.clear),
+              icon: const Icon(Icons.clear, color: VlvtColors.textSecondary),
               onPressed: () {
                 setState(() {
                   _isSearching = false;
@@ -612,7 +614,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
             )
           else ...[
             IconButton(
-              icon: const Icon(Icons.search),
+              icon: const Icon(Icons.search, color: VlvtColors.gold),
               onPressed: () {
                 setState(() {
                   _isSearching = true;
@@ -620,13 +622,14 @@ class _MatchesScreenState extends State<MatchesScreen> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.sort),
+              icon: const Icon(Icons.sort, color: VlvtColors.gold),
               onPressed: _showSortDialog,
             ),
           ],
         ],
       ),
       body: RefreshIndicator(
+        color: VlvtColors.gold,
         onRefresh: _handleRefresh,
         child: _buildBody(filteredMatches, userId),
       ),
@@ -636,7 +639,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   Widget _buildBody(List<Match> filteredMatches, String userId) {
     // Show loading indicator on initial load
     if (_isLoading && _matches.isEmpty) {
-      return const MatchListSkeleton();
+      return const Center(child: VlvtLoader());
     }
 
     // Show error state
@@ -645,18 +648,16 @@ class _MatchesScreenState extends State<MatchesScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.error_outline,
               size: 80,
-              color: AppColors.error(context),
+              color: VlvtColors.crimson,
             ),
             const SizedBox(height: 16),
             Text(
               'Error loading matches',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.error(context),
+              style: VlvtTextStyles.h2.copyWith(
+                color: VlvtColors.crimson,
               ),
             ),
             const SizedBox(height: 8),
@@ -664,9 +665,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 _error!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary(context),
+                style: VlvtTextStyles.bodyMedium.copyWith(
+                  color: VlvtColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -674,6 +674,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () => _loadData(forceRefresh: true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: VlvtColors.gold,
+                foregroundColor: VlvtColors.textOnGold,
+              ),
               child: const Text('Retry'),
             ),
           ],
@@ -703,11 +707,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
         if (_lastUpdated != null)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            color: AppColors.surfaceElevated(context),
+            color: VlvtColors.surfaceElevated,
             child: Center(
               child: Text(
                 'Updated ${_getRelativeTime(_lastUpdated!)}',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary(context)),
+                style: VlvtTextStyles.labelSmall.copyWith(color: VlvtColors.textMuted),
               ),
             ),
           ),

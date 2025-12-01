@@ -11,14 +11,15 @@ import '../services/analytics_service.dart';
 import '../services/location_service.dart';
 import '../widgets/premium_gate_dialog.dart';
 import '../widgets/empty_state_widget.dart';
-import '../widgets/loading_skeleton.dart';
 import '../widgets/swipe_tutorial_overlay.dart';
 import '../widgets/match_overlay.dart';
+import '../widgets/vlvt_loader.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
+import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import 'discovery_filters_screen.dart';
 import 'dart:async';
-import '../config/app_colors.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -478,7 +479,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         SnackBar(
           content: const Text('Action undone'),
           duration: const Duration(seconds: 1),
-          backgroundColor: AppColors.info(context),
+          backgroundColor: VlvtColors.primary,
         ),
       );
     }
@@ -512,9 +513,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                 await _loadProfiles();
               },
               style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.primaryDark
-                    : AppColors.primaryLight,
+                foregroundColor: VlvtColors.gold,
               ),
               child: const Text('Clear Filters'),
             ),
@@ -616,7 +615,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         children: [
           Icon(
             Icons.arrow_back,
-            color: AppColors.error(context).withOpacity(0.6),
+            color: VlvtColors.crimson.withValues(alpha: 0.6),
             size: 20,
           ),
           const SizedBox(width: 8),
@@ -624,14 +623,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
             'Swipe to interact',
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.textSecondary(context).withOpacity(0.6),
+              color: VlvtColors.textSecondary.withValues(alpha: 0.6),
               fontWeight: FontWeight.w500,
+              fontFamily: 'Montserrat',
             ),
           ),
           const SizedBox(width: 8),
           Icon(
             Icons.arrow_forward,
-            color: AppColors.success(context).withOpacity(0.6),
+            color: VlvtColors.success.withValues(alpha: 0.6),
             size: 20,
           ),
         ],
@@ -645,35 +645,39 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
     final subscriptionService = context.watch<SubscriptionService>();
     final hasActiveFilters = prefsService.filters.hasActiveFilters;
     final likesRemaining = subscriptionService.getLikesRemaining();
-    final showLikesCounter = subscriptionService.isDemoMode;
+    final showLikesCounter = subscriptionService.isFreeUser;
 
     if (_isLoading) {
       return Scaffold(
+        backgroundColor: VlvtColors.background,
         appBar: AppBar(
-          title: const Text('Discovery'),
+          backgroundColor: VlvtColors.background,
+          title: Text('Discovery', style: VlvtTextStyles.h2),
           actions: [
             IconButton(
               icon: Icon(
                 Icons.filter_list,
-                color: hasActiveFilters ? Colors.amber : null,
+                color: hasActiveFilters ? VlvtColors.gold : VlvtColors.textSecondary,
               ),
               onPressed: _navigateToFilters,
             ),
           ],
         ),
-        body: const ProfileCardSkeleton(),
+        body: const Center(child: VlvtLoader()),
       );
     }
 
     if (_errorMessage != null) {
       return Scaffold(
+        backgroundColor: VlvtColors.background,
         appBar: AppBar(
-          title: const Text('Discovery'),
+          backgroundColor: VlvtColors.background,
+          title: Text('Discovery', style: VlvtTextStyles.h2),
           actions: [
             IconButton(
               icon: Icon(
                 Icons.filter_list,
-                color: hasActiveFilters ? Colors.amber : null,
+                color: hasActiveFilters ? VlvtColors.gold : VlvtColors.textSecondary,
               ),
               onPressed: _navigateToFilters,
             ),
@@ -683,19 +687,23 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: AppColors.error(context)),
+              const Icon(Icons.error_outline, size: 64, color: VlvtColors.crimson),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(fontSize: 16, color: AppColors.error(context)),
+                  style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.crimson),
                   textAlign: TextAlign.center,
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadProfiles,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: VlvtColors.gold,
+                  foregroundColor: VlvtColors.textOnGold,
+                ),
                 child: const Text('Retry'),
               ),
             ],
@@ -706,13 +714,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
 
     if (_filteredProfiles.isEmpty || _currentProfileIndex >= _filteredProfiles.length) {
       return Scaffold(
+        backgroundColor: VlvtColors.background,
         appBar: AppBar(
-          title: const Text('Discovery'),
+          backgroundColor: VlvtColors.background,
+          title: Text('Discovery', style: VlvtTextStyles.h2),
           actions: [
             IconButton(
               icon: Icon(
                 Icons.filter_list,
-                color: hasActiveFilters ? Colors.amber : null,
+                color: hasActiveFilters ? VlvtColors.gold : VlvtColors.textSecondary,
               ),
               onPressed: _navigateToFilters,
             ),
@@ -734,14 +744,16 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
     final profile = _filteredProfiles[_currentProfileIndex];
 
     return Scaffold(
+      backgroundColor: VlvtColors.background,
       appBar: AppBar(
+        backgroundColor: VlvtColors.background,
         title: Column(
           children: [
-            const Text('Discovery'),
+            Text('Discovery', style: VlvtTextStyles.h2),
             if (_remainingProfiles > 0)
               Text(
                 '$_remainingProfiles profile${_remainingProfiles == 1 ? '' : 's'} left',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+                style: VlvtTextStyles.labelSmall.copyWith(color: VlvtColors.textSecondary),
               ),
           ],
         ),
@@ -754,13 +766,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: likesRemaining > 0
-                        ? AppColors.success(context).withOpacity(0.2)
-                        : AppColors.error(context).withOpacity(0.2),
+                        ? VlvtColors.success.withValues(alpha: 0.2)
+                        : VlvtColors.crimson.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: likesRemaining > 0
-                          ? AppColors.success(context)
-                          : AppColors.error(context),
+                          ? VlvtColors.success
+                          : VlvtColors.crimson,
                     ),
                   ),
                   child: Row(
@@ -770,8 +782,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                         Icons.favorite,
                         size: 16,
                         color: likesRemaining > 0
-                            ? AppColors.success(context)
-                            : AppColors.error(context),
+                            ? VlvtColors.success
+                            : VlvtColors.crimson,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -779,9 +791,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
+                          fontFamily: 'Montserrat',
                           color: likesRemaining > 0
-                              ? AppColors.success(context)
-                              : AppColors.error(context),
+                              ? VlvtColors.success
+                              : VlvtColors.crimson,
                         ),
                       ),
                     ],
@@ -796,15 +809,16 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.warning(context),
+                    color: VlvtColors.gold,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     'Filtered',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textPrimary(context), // Changed to textPrimary for better contrast if needed, but warning bg is usually light or dark enough.
+                      color: VlvtColors.textOnGold,
                       fontWeight: FontWeight.bold,
+                      fontFamily: 'Montserrat',
                     ),
                   ),
                 ),
@@ -813,7 +827,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
           IconButton(
             icon: Icon(
               Icons.filter_list,
-              color: hasActiveFilters ? AppColors.warning(context) : null,
+              color: hasActiveFilters ? VlvtColors.gold : VlvtColors.textSecondary,
             ),
             onPressed: _navigateToFilters,
           ),
@@ -829,14 +843,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
-                    color: AppColors.warning(context).withOpacity(0.2),
+                    color: VlvtColors.gold.withValues(alpha: 0.15),
                     child: Text(
                       'Only $_remainingProfiles profile${_remainingProfiles == 1 ? '' : 's'} remaining. Adjust filters for more!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.warning(context),
+                        fontFamily: 'Montserrat',
+                        color: VlvtColors.gold,
                       ),
                     ),
                   ),
@@ -878,8 +893,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                   builder: (context, child) {
                                     return Card(
                                       elevation: 8,
+                                      color: VlvtColors.surface,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
+                                        side: BorderSide(
+                                          color: VlvtColors.gold.withValues(alpha: 0.3),
+                                          width: 1,
+                                        ),
                                       ),
                                       child: Stack(
                                         children: [
@@ -889,12 +909,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    Theme.of(context).brightness == Brightness.dark
-                                        ? AppColors.primaryDark.withOpacity(0.3)
-                                        : AppColors.primaryLight.withOpacity(0.3),
-                                    Theme.of(context).brightness == Brightness.dark
-                                        ? AppColors.primaryDark
-                                        : AppColors.primaryLight,
+                                    VlvtColors.primary.withValues(alpha: 0.4),
+                                    VlvtColors.surface,
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(16),
@@ -935,7 +951,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                                 : '${profileService.baseUrl}$photoUrl',
                                                             fit: BoxFit.cover,
                                                             placeholder: (context, url) => Container(
-                                                              color: Colors.white.withOpacity(0.2),
+                                                              color: Colors.white.withValues(alpha: 0.2),
                                                               child: const Center(
                                                                 child: CircularProgressIndicator(
                                                                   color: Colors.white,
@@ -943,7 +959,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                               ),
                                                             ),
                                                             errorWidget: (context, url, error) => Container(
-                                                              color: Colors.white.withOpacity(0.2),
+                                                              color: Colors.white.withValues(alpha: 0.2),
                                                               child: const Icon(
                                                                 Icons.broken_image,
                                                                 size: 80,
@@ -970,7 +986,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                           shape: BoxShape.circle,
                                                           color: _currentPhotoIndex == index
                                                               ? Colors.white
-                                                              : Colors.white.withOpacity(0.4),
+                                                              : Colors.white.withValues(alpha: 0.4),
                                                         ),
                                                       ),
                                                     ),
@@ -989,31 +1005,26 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                       const SizedBox(height: 24),
                                       Text(
                                         '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
-                                        style: const TextStyle(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                        style: VlvtTextStyles.displayMedium.copyWith(
+                                          color: VlvtColors.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
                                         profile.bio ?? 'No bio available',
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white,
+                                        style: VlvtTextStyles.bodyLarge.copyWith(
+                                          color: VlvtColors.textSecondary,
                                         ),
                                       ),
                                       if (profile.interests != null && profile.interests!.isNotEmpty) ...[
                                         const SizedBox(height: 24),
-                                        const Divider(color: Colors.white54),
+                                        Divider(color: VlvtColors.gold.withValues(alpha: 0.3)),
                                         const SizedBox(height: 16),
-                                        const Text(
+                                        Text(
                                           'Interests',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                          style: VlvtTextStyles.h3.copyWith(
+                                            color: VlvtColors.gold,
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -1024,27 +1035,30 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                           children: profile.interests!.map((interest) {
                                             return Chip(
                                               label: Text(interest),
-                                              backgroundColor: Colors.white.withOpacity(0.2),
-                                              labelStyle: const TextStyle(color: Colors.white),
+                                              backgroundColor: VlvtColors.gold.withValues(alpha: 0.15),
+                                              labelStyle: VlvtTextStyles.labelSmall.copyWith(
+                                                color: VlvtColors.gold,
+                                              ),
+                                              side: BorderSide(
+                                                color: VlvtColors.gold.withValues(alpha: 0.3),
+                                              ),
                                             );
                                           }).toList(),
                                         ),
                                       ],
                                       if (_isExpanded) ...[
                                         const SizedBox(height: 24),
-                                        const Divider(color: Colors.white54),
+                                        Divider(color: VlvtColors.gold.withValues(alpha: 0.3)),
                                         const SizedBox(height: 16),
-                                        const Row(
+                                        Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
-                                            Icon(Icons.info_outline, color: Colors.white70, size: 20),
-                                            SizedBox(width: 8),
+                                            Icon(Icons.info_outline, color: VlvtColors.textSecondary, size: 20),
+                                            const SizedBox(width: 8),
                                             Text(
                                               'More Info',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white70,
+                                              style: VlvtTextStyles.labelMedium.copyWith(
+                                                color: VlvtColors.textSecondary,
                                               ),
                                             ),
                                           ],
@@ -1054,12 +1068,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                           profile.distance != null
                                               ? 'Distance: ${LocationService.formatDistance(profile.distance! * 1000)}' // Convert km to meters
                                               : 'Distance: Not available',
-                                          style: const TextStyle(color: Colors.white70),
+                                          style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textSecondary),
                                         ),
                                         const SizedBox(height: 8),
-                                        const Text(
+                                        Text(
                                           'Tap card to collapse',
-                                          style: TextStyle(color: Colors.white54, fontSize: 12),
+                                          style: VlvtTextStyles.bodySmall.copyWith(color: VlvtColors.textMuted),
                                         ),
                                       ],
                                     ],
@@ -1084,7 +1098,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                       ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: AppColors.success(context),
+                                          color: VlvtColors.success,
                                           width: 4,
                                         ),
                                         borderRadius: BorderRadius.circular(8),
@@ -1092,12 +1106,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                       child: Text(
                                         'LIKE',
                                         style: TextStyle(
-                                          color: AppColors.success(context),
+                                          color: VlvtColors.success,
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Montserrat',
                                           shadows: [
                                             Shadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color: Colors.black.withValues(alpha: 0.3),
                                               blurRadius: 4,
                                             ),
                                           ],
@@ -1121,7 +1136,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                       ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: AppColors.error(context),
+                                          color: VlvtColors.crimson,
                                           width: 4,
                                         ),
                                         borderRadius: BorderRadius.circular(8),
@@ -1129,12 +1144,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                       child: Text(
                                         'PASS',
                                         style: TextStyle(
-                                          color: AppColors.error(context),
+                                          color: VlvtColors.crimson,
                                           fontSize: 32,
                                           fontWeight: FontWeight.bold,
+                                          fontFamily: 'Montserrat',
                                           shadows: [
                                             Shadow(
-                                              color: Colors.black.withOpacity(0.3),
+                                              color: Colors.black.withValues(alpha: 0.3),
                                               blurRadius: 4,
                                             ),
                                           ],
@@ -1181,8 +1197,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                             HapticFeedback.lightImpact();
                             _onPass();
                           },
-                          backgroundColor: AppColors.error(context),
-                          child: const Icon(Icons.close, size: 24),
+                          backgroundColor: VlvtColors.crimson,
+                          child: const Icon(Icons.close, size: 24, color: Colors.white),
                         ),
                       ),
                       if (_showUndoButton)
@@ -1193,8 +1209,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                             HapticFeedback.lightImpact();
                             _onUndo();
                           },
-                          backgroundColor: AppColors.info(context),
-                          child: const Icon(Icons.undo, size: 20),
+                          backgroundColor: VlvtColors.primary,
+                          child: const Icon(Icons.undo, size: 20, color: Colors.white),
                         ),
                       // Like button - smaller and semi-transparent
                       Opacity(
@@ -1212,8 +1228,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                             HapticFeedback.mediumImpact();
                             _onLike();
                           },
-                          backgroundColor: AppColors.success(context),
-                          child: const Icon(Icons.favorite, size: 24),
+                          backgroundColor: VlvtColors.success,
+                          child: const Icon(Icons.favorite, size: 24, color: Colors.white),
                         ),
                       ),
                     ],
@@ -1239,19 +1255,22 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.info(context),
+                      color: VlvtColors.primary,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Text(
+                    child: Text(
                       'Tap UNDO to revert last action',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: VlvtTextStyles.labelMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

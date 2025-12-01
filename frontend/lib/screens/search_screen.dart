@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/profile_api_service.dart';
-import '../config/app_colors.dart';
+import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
+import '../widgets/vlvt_button.dart';
 import 'search_results_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -157,11 +159,11 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
+      backgroundColor: VlvtColors.background,
       appBar: AppBar(
-        title: const Text('Find Your Match'),
+        backgroundColor: VlvtColors.background,
+        title: Text('Find Your Match', style: VlvtTextStyles.h2),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -173,26 +175,29 @@ class _SearchScreenState extends State<SearchScreen> {
             Center(
               child: Column(
                 children: [
-                  Icon(
-                    Icons.search,
-                    size: 64,
-                    color: isDark ? AppColors.primaryDark : AppColors.primaryLight,
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: VlvtColors.gold.withValues(alpha: 0.15),
+                      border: Border.all(color: VlvtColors.gold.withValues(alpha: 0.3)),
+                    ),
+                    child: const Icon(
+                      Icons.search,
+                      size: 48,
+                      color: VlvtColors.gold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'See who\'s out there',
+                    style: VlvtTextStyles.displaySmall,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'See who\'s out there',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary(context),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
                     'Set your preferences and discover how many people match',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary(context),
+                    style: VlvtTextStyles.bodyMedium.copyWith(
+                      color: VlvtColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -207,13 +212,17 @@ class _SearchScreenState extends State<SearchScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border(context)),
+                color: VlvtColors.glassBackgroundStrong,
+                border: Border.all(color: VlvtColors.borderStrong),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
                   isExpanded: true,
                   value: _selectedDistance,
+                  dropdownColor: VlvtColors.surfaceElevated,
+                  style: VlvtTextStyles.bodyMedium,
+                  icon: const Icon(Icons.arrow_drop_down, color: VlvtColors.gold),
                   items: _distanceOptions.map((distance) {
                     return DropdownMenuItem<int>(
                       value: distance,
@@ -264,34 +273,12 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(height: 32),
 
             // Search button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isSearching ? null : _performSearch,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isSearching
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'Search',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
+            VlvtButton.primary(
+              label: 'Search',
+              icon: Icons.search,
+              expanded: true,
+              loading: _isSearching,
+              onPressed: _isSearching ? null : _performSearch,
             ),
             const SizedBox(height: 16),
           ],
@@ -303,10 +290,8 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary(context),
+      style: VlvtTextStyles.labelLarge.copyWith(
+        color: VlvtColors.gold,
       ),
     );
   }
@@ -317,8 +302,6 @@ class _SearchScreenState extends State<SearchScreen> {
     required Function(String) onToggle,
     bool required = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -328,20 +311,17 @@ class _SearchScreenState extends State<SearchScreen> {
           label: Text(option),
           selected: isSelected,
           onSelected: (_) => onToggle(option),
-          selectedColor: (isDark ? AppColors.primaryDark : AppColors.primaryLight).withValues(alpha: 0.3),
-          checkmarkColor: isDark ? AppColors.primaryDark : AppColors.primaryLight,
-          labelStyle: TextStyle(
-            color: isSelected
-                ? (isDark ? AppColors.primaryDark : AppColors.primaryLight)
-                : AppColors.textPrimary(context),
+          backgroundColor: VlvtColors.glassBackgroundStrong,
+          selectedColor: VlvtColors.gold.withValues(alpha: 0.2),
+          checkmarkColor: VlvtColors.gold,
+          labelStyle: VlvtTextStyles.labelMedium.copyWith(
+            color: isSelected ? VlvtColors.gold : VlvtColors.textPrimary,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: BorderSide(
-              color: isSelected
-                  ? (isDark ? AppColors.primaryDark : AppColors.primaryLight)
-                  : AppColors.border(context),
+              color: isSelected ? VlvtColors.gold : VlvtColors.borderStrong,
             ),
           ),
         );

@@ -646,7 +646,7 @@ class _AuthScreenState extends State<AuthScreen>
                                 children: [
                                   const TextSpan(text: "Don't have an account? "),
                                   TextSpan(
-                                    text: 'Join the Club',
+                                    text: 'Get on the list',
                                     style: TextStyle(
                                       color: const Color(0xFFD4AF37), // Gold
                                       fontWeight: FontWeight.w600,
@@ -670,32 +670,6 @@ class _AuthScreenState extends State<AuthScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAuthButton({
-    required VoidCallback onPressed,
-    required IconData icon,
-    required String label,
-    required Color backgroundColor,
-    required Color foregroundColor,
-    double iconSize = 24,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, color: foregroundColor, size: iconSize),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor,
-        foregroundColor: foregroundColor,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: Spacing.borderRadiusMd,
-        ),
-        elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: 0.3),
-        textStyle: AppTextStyles.button,
       ),
     );
   }
