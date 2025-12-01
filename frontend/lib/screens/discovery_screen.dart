@@ -495,37 +495,53 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
 
   Future<void> _onUndo() async {
     if (_lastProfile == null || _lastAction == null) return;
+    if (!mounted) return;
+
+    debugPrint('Undo: Starting undo for ${_lastProfile?.userId}');
+    debugPrint('Undo: Current index: $_currentProfileIndex, profiles count: ${_filteredProfiles.length}');
 
     _undoTimer?.cancel();
 
-    final prefsService = context.read<DiscoveryPreferencesService>();
+    try {
+      final prefsService = context.read<DiscoveryPreferencesService>();
 
-    // Track undo event
-    await AnalyticsService.logProfileUndo(_lastAction!);
+      // Track undo event (don't await to avoid blocking)
+      AnalyticsService.logProfileUndo(_lastAction!);
 
-    // Undo the last action in preferences
-    await prefsService.undoLastAction();
+      // Remove the action from preferences using silent version to avoid triggering rebuild
+      await prefsService.undoLastActionSilent();
 
-    // Go back to previous profile
-    setState(() {
-      if (_currentProfileIndex > 0) {
-        _currentProfileIndex--;
-      }
-      _showUndoButton = false;
-      _lastProfile = null;
-      _lastAction = null;
-      _lastMatch = null;
+      if (!mounted) return;
+
+      // Calculate new index before setState
+      final newIndex = _currentProfileIndex > 0 ? _currentProfileIndex - 1 : 0;
+
+      debugPrint('Undo: Setting new index to $newIndex');
+
+      setState(() {
+        _currentProfileIndex = newIndex;
+        _currentPhotoIndex = 0;
+        _showUndoButton = false;
+        _lastProfile = null;
+        _lastAction = null;
+        _lastMatch = null;
+      });
+
+      // Save index after setState
       _saveCurrentIndex();
-    });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Action undone'),
-          duration: const Duration(seconds: 1),
-          backgroundColor: VlvtColors.primary,
-        ),
-      );
+      debugPrint('Undo: Completed. New index: $_currentProfileIndex');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Action undone'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Undo: Error - $e');
     }
   }
 

@@ -193,6 +193,15 @@ class DiscoveryPreferencesService extends ChangeNotifier {
     }
   }
 
+  /// Undo last action without notifying listeners (for use when caller handles UI update)
+  Future<void> undoLastActionSilent() async {
+    if (_profileActions.isNotEmpty) {
+      _profileActions.removeLast();
+      await _saveProfileActions();
+      // Don't call notifyListeners() - caller is responsible for UI update
+    }
+  }
+
   ProfileAction? getLastAction() {
     return _profileActions.isNotEmpty ? _profileActions.last : null;
   }
