@@ -18,9 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize spotlight effect
   initSpotlight();
-
-  // Initialize vanilla-tilt for app mockup
-  initTilt();
 });
 
 /**
@@ -203,24 +200,3 @@ function initSpotlight() {
   });
 }
 
-/**
- * Initialize vanilla-tilt for 3D hover effect on app mockup
- */
-function initTilt() {
-  if (typeof VanillaTilt === 'undefined') {
-    console.warn('VanillaTilt not loaded');
-    return;
-  }
-
-  const tiltElements = document.querySelectorAll('.tilt-card');
-  if (tiltElements.length === 0) return;
-
-  // VanillaTilt auto-initializes via data attributes, but we ensure it's ready
-  VanillaTilt.init(tiltElements, {
-    max: 12,
-    speed: 400,
-    glare: true,
-    'max-glare': 0.15,
-    perspective: 1000
-  });
-}
