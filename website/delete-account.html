@@ -9,18 +9,22 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <style>
     .deletion-box {
-      background: #FEF2F2;
-      border: 2px solid #EF4444;
+      background: rgba(220, 38, 38, 0.15);
+      border: 2px solid var(--crimson);
       border-radius: 1rem;
       padding: 2rem;
       margin: 2rem 0;
     }
     .deletion-box h3 {
-      color: #DC2626;
+      color: var(--crimson);
       margin-top: 0;
     }
+    .deletion-box p {
+      color: var(--text-primary);
+    }
     .steps {
-      background: white;
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 1rem;
       padding: 2rem;
       margin: 2rem 0;
@@ -32,8 +36,8 @@
       align-items: flex-start;
     }
     .step-number {
-      background: var(--gradient);
-      color: white;
+      background: var(--gold-gradient);
+      color: var(--text-on-gold);
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -45,10 +49,11 @@
     }
     .step-content h4 {
       margin: 0 0 0.5rem 0;
+      color: var(--text-primary);
     }
     .step-content p {
       margin: 0;
-      color: var(--gray);
+      color: var(--text-secondary);
     }
     .form-group {
       margin-bottom: 1.5rem;
@@ -57,15 +62,19 @@
       display: block;
       margin-bottom: 0.5rem;
       font-weight: 600;
+      color: var(--text-primary);
     }
     .form-group input,
     .form-group textarea,
     .form-group select {
       width: 100%;
       padding: 0.75rem;
-      border: 1px solid #D1D5DB;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: var(--surface-input);
+      color: var(--text-primary);
       border-radius: 0.5rem;
       font-size: 1rem;
+      font-family: 'Montserrat', sans-serif;
     }
     .form-group textarea {
       min-height: 100px;
@@ -80,29 +89,35 @@
       width: auto;
       margin-top: 0.25rem;
     }
+    .checkbox-group label {
+      color: var(--text-secondary);
+    }
     .submit-btn {
-      background: #DC2626;
+      background: var(--crimson);
       color: white;
       border: none;
       padding: 1rem 2rem;
       border-radius: 0.5rem;
       font-size: 1rem;
       font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
       cursor: pointer;
       transition: background 0.3s;
     }
     .submit-btn:hover {
-      background: #B91C1C;
+      background: var(--crimson-light);
     }
     .data-list {
-      background: #F3F4F6;
+      background: var(--surface-elevated);
       padding: 1.5rem;
       border-radius: 0.5rem;
       margin: 1rem 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .data-list ul {
       margin: 0;
       padding-left: 1.5rem;
+      color: var(--text-secondary);
     }
     .data-list li {
       margin-bottom: 0.5rem;
@@ -267,7 +282,7 @@
     <div class="container">
       <div>
         <h4>VLVT</h4>
-        <p style="color: #9CA3AF;">Dating made simple.</p>
+        <p style="color: #9CA3AF;">Exclusive connections, refined experience.</p>
       </div>
       <div>
         <h4>Legal</h4>

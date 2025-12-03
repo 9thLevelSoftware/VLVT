@@ -1,12 +1,57 @@
-/* VLVT Website Styles */
+/* VLVT Website Styles - Aligned with App Design System */
+
+/* Font Faces */
+@font-face {
+  font-family: 'PlayfairDisplay';
+  src: url('fonts/PlayfairDisplay-Italic.ttf') format('truetype');
+  font-style: italic;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('fonts/Montserrat-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('fonts/Montserrat-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+}
+
 :root {
-  --primary: #8B5CF6;
-  --primary-dark: #7C3AED;
-  --secondary: #EC4899;
-  --dark: #1F2937;
-  --light: #F9FAFB;
-  --gray: #6B7280;
-  --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  /* VLVT App Color System */
+  --background: #0D0D0D;
+  --surface: #1A1A1A;
+  --surface-elevated: #242424;
+  --surface-input: #1F1F1F;
+  
+  /* Primary Colors (Velvet Purple) */
+  --primary: #6B3FA0;
+  --primary-light: #8B5FC0;
+  --primary-dark: #4A2870;
+  
+  /* Gold (Metallic Accent) */
+  --gold: #D4AF37;
+  --gold-light: #F2D26D;
+  --gold-dark: #B8960F;
+  
+  /* Accent Colors */
+  --crimson: #C41E3A;
+  --crimson-light: #E63950;
+  --success: #2ECC71;
+  --warning: #F39C12;
+  
+  /* Text Colors */
+  --text-primary: #F2F2F2;
+  --text-secondary: #B3B3B3;
+  --text-muted: #808080;
+  --text-on-gold: #0D0D0D;
+  
+  /* Gradients */
+  --gold-gradient: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+  --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
 }
 
 * {
@@ -16,17 +61,18 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   line-height: 1.6;
-  color: var(--dark);
-  background: var(--light);
+  color: var(--text-primary);
+  background: var(--background);
 }
 
 /* Navigation */
 nav {
-  background: white;
+  background: var(--surface);
   padding: 1rem 2rem;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -41,13 +87,16 @@ nav .container {
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 700;
-  background: var(--gradient);
+  font-family: 'PlayfairDisplay', serif;
+  font-style: italic;
+  font-size: 1.8rem;
+  font-weight: 400;
+  background: var(--gold-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-decoration: none;
+  letter-spacing: 0.5px;
 }
 
 nav ul {
@@ -57,61 +106,90 @@ nav ul {
 }
 
 nav a {
-  color: var(--gray);
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.3s;
 }
 
 nav a:hover {
-  color: var(--primary);
+  color: var(--gold);
 }
 
 /* Hero Section */
 .hero {
-  background: var(--gradient);
+  background: linear-gradient(135deg, rgba(107, 63, 160, 0.8) 0%, rgba(74, 40, 112, 0.9) 100%),
+              url('loginbackground.jpg') center/cover;
   color: white;
   padding: 6rem 2rem;
   text-align: center;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 13, 13, 0.3);
+  z-index: 0;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero h1 {
-  font-size: 3rem;
+  font-family: 'PlayfairDisplay', serif;
+  font-style: italic;
+  font-size: 3.5rem;
+  font-weight: 400;
   margin-bottom: 1rem;
+  letter-spacing: 0.5px;
 }
 
 .hero p {
+  font-family: 'Montserrat', sans-serif;
   font-size: 1.25rem;
-  opacity: 0.9;
+  opacity: 0.95;
   max-width: 600px;
   margin: 0 auto 2rem;
+  color: var(--text-primary);
 }
 
 .btn {
   display: inline-block;
-  padding: 1rem 2rem;
+  padding: 1rem 2.5rem;
   border-radius: 50px;
   text-decoration: none;
+  font-family: 'Montserrat', sans-serif;
   font-weight: 600;
-  transition: transform 0.3s, box-shadow 0.3s;
+  font-size: 16px;
+  letter-spacing: 0.8px;
+  transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
 }
 
 .btn-white {
   background: white;
-  color: var(--primary);
+  color: var(--text-on-gold);
 }
 
 .btn-white:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+  background: var(--gold-light);
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: white;
+  background: var(--gold-gradient);
+  color: var(--text-on-gold);
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
 }
 
 /* Store Buttons */
@@ -128,15 +206,20 @@ nav a:hover {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 10px;
   color: white;
   text-decoration: none;
-  transition: background 0.3s;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  transition: background 0.3s, border-color 0.3s;
 }
 
 .store-btn:hover {
-  background: rgba(255,255,255,0.3);
+  background: rgba(212, 175, 55, 0.2);
+  border-color: var(--gold);
 }
 
 /* Sections */
@@ -147,15 +230,22 @@ nav a:hover {
 }
 
 .section h2 {
-  font-size: 2rem;
+  font-family: 'PlayfairDisplay', serif;
+  font-style: italic;
+  font-size: 2.5rem;
+  font-weight: 400;
   margin-bottom: 1rem;
-  color: var(--dark);
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+  text-align: center;
 }
 
 .section h3 {
+  font-family: 'Montserrat', sans-serif;
   font-size: 1.5rem;
+  font-weight: 600;
   margin: 2rem 0 1rem;
-  color: var(--dark);
+  color: var(--text-primary);
 }
 
 /* Features Grid */
@@ -163,15 +253,23 @@ nav a:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
-  margin-top: 2rem;
+  margin-top: 3rem;
 }
 
 .feature {
-  background: white;
+  background: var(--surface);
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   text-align: center;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+.feature:hover {
+  transform: translateY(-5px);
+  border-color: var(--gold);
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.2);
 }
 
 .feature-icon {
@@ -181,55 +279,70 @@ nav a:hover {
 
 .feature h3 {
   margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  text-align: center;
 }
 
 .feature p {
-  color: var(--gray);
+  color: var(--text-secondary);
 }
 
 /* Legal Pages */
 .legal-page {
-  background: white;
+  background: var(--surface);
   padding: 3rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   margin: 2rem auto;
   max-width: 900px;
 }
 
 .legal-page h1 {
+  font-family: 'PlayfairDisplay', serif;
+  font-style: italic;
   font-size: 2.5rem;
+  font-weight: 400;
   margin-bottom: 0.5rem;
-  background: var(--gradient);
+  background: var(--gold-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: 0.3px;
 }
 
 .legal-page .last-updated {
-  color: var(--gray);
+  color: var(--text-muted);
   margin-bottom: 2rem;
 }
 
 .legal-page h2 {
+  font-family: 'Montserrat', sans-serif;
   font-size: 1.5rem;
+  font-weight: 600;
   margin: 2rem 0 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
 }
 
 .legal-page h3 {
+  font-family: 'Montserrat', sans-serif;
   font-size: 1.2rem;
+  font-weight: 600;
   margin: 1.5rem 0 0.5rem;
+  color: var(--text-primary);
 }
 
 .legal-page p {
   margin-bottom: 1rem;
-  color: var(--dark);
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .legal-page ul, .legal-page ol {
   margin: 1rem 0 1rem 2rem;
+  color: var(--text-secondary);
 }
 
 .legal-page li {
@@ -237,20 +350,25 @@ nav a:hover {
 }
 
 .legal-page strong {
-  color: var(--dark);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 /* Support Page */
 .support-card {
-  background: white;
+  background: var(--surface);
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   margin-bottom: 2rem;
 }
 
 .support-card h3 {
   margin-bottom: 1rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .contact-item {
@@ -261,35 +379,41 @@ nav a:hover {
 }
 
 .contact-item a {
-  color: var(--primary);
+  color: var(--gold);
   text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
 }
 
 .contact-item a:hover {
+  color: var(--gold-light);
   text-decoration: underline;
 }
 
 /* FAQ */
 .faq-item {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding: 1.5rem 0;
 }
 
 .faq-item h4 {
-  color: var(--dark);
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
 }
 
 .faq-item p {
-  color: var(--gray);
+  color: var(--text-secondary);
 }
 
 /* Footer */
 footer {
-  background: var(--dark);
-  color: white;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
   padding: 3rem 2rem;
   margin-top: 4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 footer .container {
@@ -302,6 +426,9 @@ footer .container {
 
 footer h4 {
   margin-bottom: 1rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  color: var(--gold);
 }
 
 footer ul {
@@ -313,21 +440,21 @@ footer li {
 }
 
 footer a {
-  color: #9CA3AF;
+  color: var(--text-secondary);
   text-decoration: none;
   transition: color 0.3s;
 }
 
 footer a:hover {
-  color: white;
+  color: var(--gold);
 }
 
 .footer-bottom {
   text-align: center;
   padding-top: 2rem;
   margin-top: 2rem;
-  border-top: 1px solid #374151;
-  color: #9CA3AF;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
 }
 
 /* Responsive */
