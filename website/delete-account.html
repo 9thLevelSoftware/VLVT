@@ -6,34 +6,47 @@
   <meta name="description" content="VLVT - Request account deletion and data removal.">
   <title>Delete Account - VLVT</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="favicon.png">
+  <!-- <link rel="icon" type="image/png" href="favicon.png"> -->
   <style>
     .deletion-box {
-      background: rgba(220, 38, 38, 0.15);
+      background: rgba(196, 30, 58, 0.15);
       border: 2px solid var(--crimson);
-      border-radius: 1rem;
-      padding: 2rem;
-      margin: 2rem 0;
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin: var(--space-xl) 0;
     }
     .deletion-box h3 {
       color: var(--crimson);
       margin-top: 0;
+      margin-bottom: var(--space-md);
     }
     .deletion-box p {
       color: var(--text-primary);
+      margin-bottom: var(--space-md);
     }
+    .deletion-box ul {
+      color: var(--text-secondary);
+      margin-left: var(--space-lg);
+    }
+    .deletion-box li {
+      margin-bottom: var(--space-sm);
+    }
+
     .steps {
       background: var(--surface);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 1rem;
-      padding: 2rem;
-      margin: 2rem 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      margin: var(--space-xl) 0;
     }
     .step {
       display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      gap: var(--space-md);
+      margin-bottom: var(--space-lg);
       align-items: flex-start;
+    }
+    .step:last-child {
+      margin-bottom: 0;
     }
     .step-number {
       background: var(--gold-gradient);
@@ -48,19 +61,20 @@
       flex-shrink: 0;
     }
     .step-content h4 {
-      margin: 0 0 0.5rem 0;
+      margin: 0 0 var(--space-xs) 0;
       color: var(--text-primary);
     }
     .step-content p {
       margin: 0;
       color: var(--text-secondary);
     }
+
     .form-group {
-      margin-bottom: 1.5rem;
+      margin-bottom: var(--space-lg);
     }
     .form-group label {
       display: block;
-      margin-bottom: 0.5rem;
+      margin-bottom: var(--space-sm);
       font-weight: 600;
       color: var(--text-primary);
     }
@@ -68,13 +82,20 @@
     .form-group textarea,
     .form-group select {
       width: 100%;
-      padding: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: var(--space-md);
+      border: 1px solid var(--border-default);
       background: var(--surface-input);
       color: var(--text-primary);
-      border-radius: 0.5rem;
+      border-radius: var(--radius-sm);
       font-size: 1rem;
       font-family: 'Montserrat', sans-serif;
+      transition: border-color var(--transition-fast);
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--gold);
     }
     .form-group textarea {
       min-height: 100px;
@@ -83,67 +104,72 @@
     .checkbox-group {
       display: flex;
       align-items: flex-start;
-      gap: 0.5rem;
+      gap: var(--space-sm);
     }
     .checkbox-group input {
       width: auto;
-      margin-top: 0.25rem;
+      margin-top: 4px;
     }
     .checkbox-group label {
       color: var(--text-secondary);
+      font-weight: 400;
     }
     .submit-btn {
       background: var(--crimson);
       color: white;
       border: none;
-      padding: 1rem 2rem;
-      border-radius: 0.5rem;
+      padding: var(--space-md) var(--space-xl);
+      border-radius: var(--radius-sm);
       font-size: 1rem;
       font-weight: 600;
       font-family: 'Montserrat', sans-serif;
       cursor: pointer;
-      transition: background 0.3s;
+      transition: background var(--transition-fast);
     }
     .submit-btn:hover {
       background: var(--crimson-light);
     }
+
     .data-list {
       background: var(--surface-elevated);
-      padding: 1.5rem;
-      border-radius: 0.5rem;
-      margin: 1rem 0;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: var(--space-lg);
+      border-radius: var(--radius-sm);
+      margin: var(--space-md) 0;
+      border: 1px solid var(--border-subtle);
+    }
+    .data-list p {
+      margin-bottom: var(--space-sm);
     }
     .data-list ul {
       margin: 0;
-      padding-left: 1.5rem;
+      padding-left: var(--space-lg);
       color: var(--text-secondary);
     }
     .data-list li {
-      margin-bottom: 0.5rem;
+      margin-bottom: var(--space-xs);
     }
   </style>
 </head>
-<body>
-  <nav>
-    <div class="container">
-      <a href="/" class="logo">VLVT</a>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/privacy.html">Privacy</a></li>
-        <li><a href="/terms.html">Terms</a></li>
-        <li><a href="/support.html">Support</a></li>
+<body class="legal-page">
+  <!-- Navigation -->
+  <nav class="nav" id="navbar">
+    <div class="nav-container">
+      <a href="./" class="nav-logo">VLVT</a>
+      <ul class="nav-links">
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="support.html">Support</a></li>
       </ul>
     </div>
   </nav>
 
-  <section class="section">
-    <div class="legal-page">
+  <main class="legal-container">
+    <div class="legal-card">
       <h1>Delete Your Account</h1>
       <p>We're sorry to see you go. This page explains how to delete your VLVT account and request removal of your personal data.</p>
 
       <div class="deletion-box">
-        <h3>⚠️ Important: Account Deletion is Permanent</h3>
+        <h3>&#9888; Important: Account Deletion is Permanent</h3>
         <p>Once your account is deleted:</p>
         <ul>
           <li>Your profile will be immediately removed from discovery</li>
@@ -190,8 +216,8 @@
 
       <h2>Option 2: Request Deletion via Email</h2>
       <p>If you can't access the app or prefer to request deletion by email, send a request to:</p>
-      <p style="text-align: center; font-size: 1.25rem; margin: 1.5rem 0;">
-        <a href="mailto:privacy@getvlvt.com?subject=Account%20Deletion%20Request">📧 privacy@getvlvt.com</a>
+      <p class="text-center" style="font-size: 1.25rem; margin: var(--space-lg) 0;">
+        <a href="mailto:privacy@getvlvt.com?subject=Account%20Deletion%20Request">&#128231; privacy@getvlvt.com</a>
       </p>
       <p>Please include:</p>
       <ul>
@@ -269,40 +295,56 @@
       <h2>Cancel Your Subscription First</h2>
       <p>If you have an active subscription, deleting your account does <strong>not</strong> automatically cancel it. To avoid future charges:</p>
       <ul>
-        <li><strong>iOS:</strong> Go to Settings → Apple ID → Subscriptions → VLVT → Cancel</li>
-        <li><strong>Android:</strong> Go to Play Store → Menu → Subscriptions → VLVT → Cancel</li>
+        <li><strong>iOS:</strong> Go to Settings > Apple ID > Subscriptions > VLVT > Cancel</li>
+        <li><strong>Android:</strong> Go to Play Store > Menu > Subscriptions > VLVT > Cancel</li>
       </ul>
 
       <h2>Questions?</h2>
       <p>If you have any questions about the deletion process, contact us at <a href="mailto:support@getvlvt.com">support@getvlvt.com</a></p>
     </div>
-  </section>
+  </main>
 
-  <footer>
-    <div class="container">
-      <div>
-        <h4>VLVT</h4>
-        <p style="color: var(--text-secondary);">Exclusive connections, refined experience.</p>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-logo">VLVT</span>
+        <p class="footer-tagline">Exclusive connections, refined experience.</p>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Legal</h4>
-        <ul>
-          <li><a href="/privacy.html">Privacy Policy</a></li>
-          <li><a href="/terms.html">Terms of Service</a></li>
-          <li><a href="/delete-account.html">Delete Account</a></li>
+        <ul class="footer-links">
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="delete-account.html">Delete Account</a></li>
         </ul>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Support</h4>
-        <ul>
-          <li><a href="/support.html">Help Center</a></li>
+        <ul class="footer-links">
+          <li><a href="support.html">Help Center</a></li>
           <li><a href="mailto:support@getvlvt.com">Contact Us</a></li>
         </ul>
       </div>
     </div>
+
     <div class="footer-bottom">
       <p>&copy; 2025 VLVT. All rights reserved.</p>
     </div>
   </footer>
+
+  <script>
+    // Simple navbar scroll effect
+    window.addEventListener('scroll', function() {
+      const navbar = document.getElementById('navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+  </script>
 </body>
 </html>

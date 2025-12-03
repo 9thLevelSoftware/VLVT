@@ -6,25 +6,25 @@
   <meta name="description" content="VLVT Privacy Policy - Learn how we collect, use, and protect your data.">
   <title>Privacy Policy - VLVT</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="favicon.png">
+  <!-- <link rel="icon" type="image/png" href="favicon.png"> -->
 </head>
-<body>
-  <nav>
-    <div class="container">
-      <a href="/" class="logo">VLVT</a>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/privacy.html">Privacy</a></li>
-        <li><a href="/terms.html">Terms</a></li>
-        <li><a href="/support.html">Support</a></li>
+<body class="legal-page">
+  <!-- Navigation -->
+  <nav class="nav" id="navbar">
+    <div class="nav-container">
+      <a href="./" class="nav-logo">VLVT</a>
+      <ul class="nav-links">
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="support.html">Support</a></li>
       </ul>
     </div>
   </nav>
 
-  <section class="section">
-    <div class="legal-page">
+  <main class="legal-container">
+    <div class="legal-card">
       <h1>Privacy Policy</h1>
-      <p class="last-updated"><strong>Last Updated:</strong> November 30, 2025</p>
+      <p class="last-updated">Last Updated: November 30, 2025</p>
 
       <h2>Introduction</h2>
       <p>Welcome to VLVT ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data. This privacy policy explains how we collect, use, disclose, and safeguard your information when you use our mobile application.</p>
@@ -148,33 +148,49 @@
         <li><strong>Support:</strong> <a href="mailto:support@getvlvt.com">support@getvlvt.com</a></li>
       </ul>
     </div>
-  </section>
+  </main>
 
-  <footer>
-    <div class="container">
-      <div>
-        <h4>VLVT</h4>
-        <p style="color: var(--text-secondary);">Exclusive connections, refined experience.</p>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-logo">VLVT</span>
+        <p class="footer-tagline">Exclusive connections, refined experience.</p>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Legal</h4>
-        <ul>
-          <li><a href="/privacy.html">Privacy Policy</a></li>
-          <li><a href="/terms.html">Terms of Service</a></li>
-          <li><a href="/delete-account.html">Delete Account</a></li>
+        <ul class="footer-links">
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="delete-account.html">Delete Account</a></li>
         </ul>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Support</h4>
-        <ul>
-          <li><a href="/support.html">Help Center</a></li>
+        <ul class="footer-links">
+          <li><a href="support.html">Help Center</a></li>
           <li><a href="mailto:support@getvlvt.com">Contact Us</a></li>
         </ul>
       </div>
     </div>
+
     <div class="footer-bottom">
       <p>&copy; 2025 VLVT. All rights reserved.</p>
     </div>
   </footer>
+
+  <script>
+    // Simple navbar scroll effect
+    window.addEventListener('scroll', function() {
+      const navbar = document.getElementById('navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+  </script>
 </body>
 </html>

@@ -6,25 +6,25 @@
   <meta name="description" content="VLVT Terms of Service - Rules and guidelines for using our dating app.">
   <title>Terms of Service - VLVT</title>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="favicon.png">
+  <!-- <link rel="icon" type="image/png" href="favicon.png"> -->
 </head>
-<body>
-  <nav>
-    <div class="container">
-      <a href="/" class="logo">VLVT</a>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/privacy.html">Privacy</a></li>
-        <li><a href="/terms.html">Terms</a></li>
-        <li><a href="/support.html">Support</a></li>
+<body class="legal-page">
+  <!-- Navigation -->
+  <nav class="nav" id="navbar">
+    <div class="nav-container">
+      <a href="./" class="nav-logo">VLVT</a>
+      <ul class="nav-links">
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="support.html">Support</a></li>
       </ul>
     </div>
   </nav>
 
-  <section class="section">
-    <div class="legal-page">
+  <main class="legal-container">
+    <div class="legal-card">
       <h1>Terms of Service</h1>
-      <p class="last-updated"><strong>Last Updated:</strong> November 30, 2025</p>
+      <p class="last-updated">Last Updated: November 30, 2025</p>
 
       <h2>1. Acceptance of Terms</h2>
       <p>By accessing or using VLVT ("the Service," "the App," "we," "our," or "us"), you agree to be bound by these Terms of Service and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using the Service.</p>
@@ -157,33 +157,49 @@
         <li><strong>Support:</strong> <a href="mailto:support@getvlvt.com">support@getvlvt.com</a></li>
       </ul>
     </div>
-  </section>
+  </main>
 
-  <footer>
-    <div class="container">
-      <div>
-        <h4>VLVT</h4>
-        <p style="color: var(--text-secondary);">Exclusive connections, refined experience.</p>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-logo">VLVT</span>
+        <p class="footer-tagline">Exclusive connections, refined experience.</p>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Legal</h4>
-        <ul>
-          <li><a href="/privacy.html">Privacy Policy</a></li>
-          <li><a href="/terms.html">Terms of Service</a></li>
-          <li><a href="/delete-account.html">Delete Account</a></li>
+        <ul class="footer-links">
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="delete-account.html">Delete Account</a></li>
         </ul>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Support</h4>
-        <ul>
-          <li><a href="/support.html">Help Center</a></li>
+        <ul class="footer-links">
+          <li><a href="support.html">Help Center</a></li>
           <li><a href="mailto:support@getvlvt.com">Contact Us</a></li>
         </ul>
       </div>
     </div>
+
     <div class="footer-bottom">
       <p>&copy; 2025 VLVT. All rights reserved.</p>
     </div>
   </footer>
+
+  <script>
+    // Simple navbar scroll effect
+    window.addEventListener('scroll', function() {
+      const navbar = document.getElementById('navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    });
+  </script>
 </body>
 </html>

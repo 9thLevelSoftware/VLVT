@@ -3,102 +3,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="VLVT - A modern dating app focused on genuine connections. No games, no BS.">
-  <title>VLVT - Dating Made Simple</title>
+  <meta name="description" content="VLVT - We swiped left on modern dating apps. One price, everything unlocked. No games, no BS. Step past the velvet rope.">
+  <title>VLVT - Step Past the Velvet Rope</title>
+
+  <!-- Preload fonts -->
+  <link rel="preload" href="fonts/PlayfairDisplay-Italic.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="fonts/Montserrat-Regular.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="fonts/Montserrat-SemiBold.ttf" as="font" type="font/ttf" crossorigin>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css">
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" type="image/png" href="favicon.png">
+  <!-- <link rel="icon" type="image/png" href="favicon.png"> -->
 </head>
 <body>
-  <nav>
-    <div class="container">
-      <a href="/" class="logo">VLVT</a>
-      <ul>
-        <li><a href="/">Home</a></li>
-        <li><a href="/privacy.html">Privacy</a></li>
-        <li><a href="/terms.html">Terms</a></li>
-        <li><a href="/support.html">Support</a></li>
+  <!-- Navigation -->
+  <nav class="nav" id="navbar">
+    <div class="nav-container">
+      <a href="./" class="nav-logo">VLVT</a>
+      <ul class="nav-links">
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="support.html">Support</a></li>
       </ul>
     </div>
   </nav>
 
+  <!-- Hero Section -->
   <section class="hero">
-    <h1>See what's waiting behind the rope.</h1>
-    <p>VLVT is where exclusive connections happen. Step past the velvet rope and discover a curated dating experience designed for those who value authenticity and genuine chemistry.</p>
-    <a href="#download" class="btn btn-white">Download Now</a>
-    <div class="store-buttons" id="download">
-      <a href="https://play.google.com/store/apps/details?id=app.nobsdating" class="store-btn">
-        <span>Google Play</span>
-      </a>
-      <a href="#" class="store-btn">
-        <span>App Store (Coming Soon)</span>
-      </a>
+    <div class="hero-background"></div>
+    <div class="hero-gradient-overlay"></div>
+    <div id="particles-js"></div>
+
+    <div class="hero-content">
+      <h1 class="display-large hero-headline" data-aos="fade-up" data-aos-duration="1000">
+        We swiped left on modern dating apps.
+      </h1>
+      <p class="hero-subhead" data-aos="fade-up" data-aos-delay="300" data-aos-duration="800">
+        So we built the antidote.
+      </p>
+      <div class="hero-cta" data-aos="fade-up" data-aos-delay="600" data-aos-duration="600">
+        <a href="#download" class="btn btn-primary btn-large btn-pulse">Step Inside</a>
+        <div class="store-buttons" id="download">
+          <a href="https://play.google.com/store/apps/details?id=app.nobsdating" class="store-btn">
+            <span class="store-btn-icon">&#9654;</span>
+            <span>Google Play</span>
+          </a>
+          <a href="#" class="store-btn">
+            <span class="store-btn-icon">&#63743;</span>
+            <span>App Store (Coming Soon)</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="velvet-rope"></div>
+  </section>
+
+  <!-- The Problem Section -->
+  <section class="section section-dark spotlight-section">
+    <div class="section-inner">
+      <h2 class="display-medium section-headline" data-aos="fade-in" data-aos-duration="800">
+        Dating apps don't want you to find love.
+      </h2>
+      <p class="section-subhead" data-aos="fade-in" data-aos-delay="200" data-aos-duration="800">
+        They want you swiping forever. Buying boosts. Chasing fake matches. We think that's garbage.
+      </p>
     </div>
   </section>
 
+  <!-- Our Answer - Features Section -->
   <section class="section">
-    <h2>Why Choose VLVT?</h2>
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">✨</div>
-        <h3>Exclusive Experience</h3>
-        <p>Join a curated community where quality connections take priority over endless swiping.</p>
+    <h2 class="display-medium section-headline" data-aos="fade-up">
+      Our Answer
+    </h2>
+    <p class="section-subhead" data-aos="fade-up" data-aos-delay="100">
+      A dating app that actually wants you to succeed.
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+        <span class="feature-icon">&#128179;</span>
+        <h3 class="feature-title">One Price. Everything Unlocked.</h3>
+        <p class="feature-description">No Gold, Platinum, or Diamond tiers. You're already a VIP.</p>
       </div>
-      <div class="feature">
-        <div class="feature-icon">🔒</div>
-        <h3>Privacy First</h3>
-        <p>Your data belongs to you. We use industry-standard encryption and never sell your information.</p>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+        <span class="feature-icon">&#128683;</span>
+        <h3 class="feature-title">No Pay-to-Win</h3>
+        <p class="feature-description">You can't buy your way to the top. You just have to be interesting.</p>
       </div>
-      <div class="feature">
-        <div class="feature-icon">💎</div>
-        <h3>Premium Quality</h3>
-        <p>A refined interface with elegant design that puts your experience first.</p>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+        <span class="feature-icon">&#129302;</span>
+        <h3 class="feature-title">Real Humans Only</h3>
+        <p class="feature-description">No AI profiles. No fake notifications. No ego-stroking algorithms.</p>
       </div>
-      <div class="feature">
-        <div class="feature-icon">🛡️</div>
-        <h3>Safe & Secure</h3>
-        <p>Advanced safety features and dedicated support to keep our community respectful.</p>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+        <span class="feature-icon">&#128274;</span>
+        <h3 class="feature-title">Your Face Stays Yours</h3>
+        <p class="feature-description">We'll never use your photos for ads. Ever.</p>
+      </div>
+
+      <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+        <span class="feature-icon">&#128737;</span>
+        <h3 class="feature-title">Paywall = Bouncer</h3>
+        <p class="feature-description">Scammers are cheap. Our subscription keeps the trash out.</p>
       </div>
     </div>
   </section>
 
-  <section class="section" style="text-align: center;">
-    <h2>Ready to Step Inside?</h2>
-    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Join the exclusive community and discover meaningful connections.</p>
-    <a href="#download" class="btn btn-primary">Get Started</a>
+  <!-- Trust Signals Section -->
+  <section class="section section-dark">
+    <div class="section-inner text-center">
+      <h2 class="display-medium section-headline" data-aos="fade-up">
+        Step past the velvet rope.
+      </h2>
+
+      <div class="trust-strip" data-aos="fade-up" data-aos-delay="200">
+        <div class="trust-item">
+          <span class="trust-item-icon">&#128274;</span>
+          <span>Privacy-first</span>
+        </div>
+        <div class="trust-item">
+          <span class="trust-item-icon">&#10003;</span>
+          <span>No data selling</span>
+        </div>
+        <div class="trust-item">
+          <span class="trust-item-icon">&#128165;</span>
+          <span>No BS</span>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <footer>
-    <div class="container">
-      <div>
-        <h4>VLVT</h4>
-        <p style="color: var(--text-secondary);">Exclusive connections, refined experience.</p>
+  <!-- Final CTA Section -->
+  <section class="cta-section">
+    <div class="hero-gradient-overlay"></div>
+    <div class="cta-content">
+      <h2 class="display-medium cta-headline" data-aos="fade-up">
+        Ready to date like an adult?
+      </h2>
+      <p class="cta-subhead" data-aos="fade-up" data-aos-delay="100">
+        Join the exclusive community and discover meaningful connections.
+      </p>
+
+      <div class="store-buttons" data-aos="fade-up" data-aos-delay="200">
+        <a href="https://play.google.com/store/apps/details?id=app.nobsdating" class="store-btn">
+          <span class="store-btn-icon">&#9654;</span>
+          <span>Google Play</span>
+        </a>
+        <a href="#" class="store-btn">
+          <span class="store-btn-icon">&#63743;</span>
+          <span>App Store (Coming Soon)</span>
+        </a>
       </div>
-      <div>
+
+      <p class="cta-fine-print" data-aos="fade-up" data-aos-delay="300">
+        7-day free trial. Cancel anytime.
+      </p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="footer-logo">VLVT</span>
+        <p class="footer-tagline">Exclusive connections, refined experience.</p>
+      </div>
+
+      <div class="footer-section">
         <h4>Legal</h4>
-        <ul>
-          <li><a href="/privacy.html">Privacy Policy</a></li>
-          <li><a href="/terms.html">Terms of Service</a></li>
-          <li><a href="/delete-account.html">Delete Account</a></li>
+        <ul class="footer-links">
+          <li><a href="privacy.html">Privacy Policy</a></li>
+          <li><a href="terms.html">Terms of Service</a></li>
+          <li><a href="delete-account.html">Delete Account</a></li>
         </ul>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Support</h4>
-        <ul>
-          <li><a href="/support.html">Help Center</a></li>
+        <ul class="footer-links">
+          <li><a href="support.html">Help Center</a></li>
           <li><a href="mailto:support@getvlvt.com">Contact Us</a></li>
         </ul>
       </div>
-      <div>
+
+      <div class="footer-section">
         <h4>Download</h4>
-        <ul>
+        <ul class="footer-links">
           <li><a href="https://play.google.com/store/apps/details?id=app.nobsdating">Google Play</a></li>
           <li><a href="#">App Store</a></li>
         </ul>
       </div>
     </div>
+
     <div class="footer-bottom">
       <p>&copy; 2025 VLVT. All rights reserved.</p>
     </div>
   </footer>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="animations.js"></script>
 </body>
 </html>
