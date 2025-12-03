@@ -35,24 +35,32 @@
     <div class="hero-gradient-overlay"></div>
     <div id="particles-js"></div>
 
-    <div class="hero-content">
-      <h1 class="display-large hero-headline" data-aos="fade-up" data-aos-duration="1000">
-        We swiped left on modern dating apps.
-      </h1>
-      <p class="hero-subhead" data-aos="fade-up" data-aos-delay="300" data-aos-duration="800">
-        So we built the antidote.
-      </p>
-      <div class="hero-cta" data-aos="fade-up" data-aos-delay="600" data-aos-duration="600">
-        <a href="#download" class="btn btn-primary btn-large btn-pulse">Step Inside</a>
-        <div class="store-buttons" id="download">
-          <a href="https://play.google.com/store/apps/details?id=app.nobsdating" class="store-btn">
-            <span class="store-btn-icon">&#9654;</span>
-            <span>Google Play</span>
-          </a>
-          <a href="#" class="store-btn">
-            <span class="store-btn-icon">&#63743;</span>
-            <span>App Store (Coming Soon)</span>
-          </a>
+    <div class="hero-container">
+      <div class="hero-content">
+        <h1 class="display-large hero-headline" data-aos="fade-up" data-aos-duration="1000">
+          We swiped left on <br><span class="text-gold">modern dating.</span>
+        </h1>
+        <p class="hero-subhead" data-aos="fade-up" data-aos-delay="200" data-aos-duration="800">
+          No games. No boosters. Just the antidote.
+        </p>
+        <div class="hero-cta" data-aos="fade-up" data-aos-delay="400" data-aos-duration="600">
+          <a href="#download" class="btn btn-primary btn-large btn-pulse">Step Inside</a>
+          <div class="store-buttons" id="download">
+            <a href="https://play.google.com/store/apps/details?id=app.nobsdating" class="store-btn">
+              <span class="store-btn-icon">&#9654;</span>
+              <span>Google Play</span>
+            </a>
+            <a href="#" class="store-btn">
+              <span class="store-btn-icon">&#63743;</span>
+              <span>App Store (Coming Soon)</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual" data-aos="fade-left" data-aos-delay="300" data-aos-duration="1000">
+        <div class="tilt-card" data-tilt data-tilt-max="12" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.15">
+          <img src="assets/generated/app_mockup.png" alt="VLVT App Interface" class="app-mockup">
         </div>
       </div>
     </div>
@@ -61,7 +69,7 @@
   </section>
 
   <!-- The Problem Section -->
-  <section class="section section-dark spotlight-section">
+  <section class="section section-dark spotlight-section" id="problem-section">
     <div class="section-inner">
       <h2 class="display-medium section-headline" data-aos="fade-in" data-aos-duration="800">
         Dating apps don't want you to find love.
@@ -70,6 +78,7 @@
         They want you swiping forever. Buying boosts. Chasing fake matches. We think that's garbage.
       </p>
     </div>
+    <div class="spotlight" id="spotlight"></div>
   </section>
 
   <!-- Our Answer - Features Section -->
@@ -83,31 +92,31 @@
 
     <div class="features-grid">
       <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
-        <span class="feature-icon">&#128179;</span>
+        <img src="assets/generated/icon_price.png" alt="One Price" class="feature-icon-img">
         <h3 class="feature-title">One Price. Everything Unlocked.</h3>
         <p class="feature-description">No Gold, Platinum, or Diamond tiers. You're already a VIP.</p>
       </div>
 
       <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
-        <span class="feature-icon">&#128683;</span>
+        <img src="assets/generated/icon_nopay.png" alt="No Pay-to-Win" class="feature-icon-img">
         <h3 class="feature-title">No Pay-to-Win</h3>
         <p class="feature-description">You can't buy your way to the top. You just have to be interesting.</p>
       </div>
 
       <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
-        <span class="feature-icon">&#129302;</span>
+        <img src="assets/generated/icon_human.png" alt="Real Humans" class="feature-icon-img">
         <h3 class="feature-title">Real Humans Only</h3>
         <p class="feature-description">No AI profiles. No fake notifications. No ego-stroking algorithms.</p>
       </div>
 
       <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
-        <span class="feature-icon">&#128274;</span>
+        <img src="assets/generated/icon_lock.png" alt="Privacy" class="feature-icon-img">
         <h3 class="feature-title">Your Face Stays Yours</h3>
         <p class="feature-description">We'll never use your photos for ads. Ever.</p>
       </div>
 
       <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
-        <span class="feature-icon">&#128737;</span>
+        <img src="assets/generated/icon_bouncer.png" alt="Paywall Bouncer" class="feature-icon-img">
         <h3 class="feature-title">Paywall = Bouncer</h3>
         <p class="feature-description">Scammers are cheap. Our subscription keeps the trash out.</p>
       </div>
@@ -123,15 +132,15 @@
 
       <div class="trust-strip" data-aos="fade-up" data-aos-delay="200">
         <div class="trust-item">
-          <span class="trust-item-icon">&#128274;</span>
+          <img src="assets/generated/icon_lock.png" alt="Privacy" class="trust-icon-img">
           <span>Privacy-first</span>
         </div>
         <div class="trust-item">
-          <span class="trust-item-icon">&#10003;</span>
+          <span class="trust-item-icon trust-check">&#10003;</span>
           <span>No data selling</span>
         </div>
         <div class="trust-item">
-          <span class="trust-item-icon">&#128165;</span>
+          <span class="trust-item-icon trust-check">&#10003;</span>
           <span>No BS</span>
         </div>
       </div>
@@ -208,6 +217,7 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
   <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.7.2/vanilla-tilt.min.js"></script>
   <script src="animations.js"></script>
 </body>
 </html>
