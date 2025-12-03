@@ -25,6 +25,10 @@ import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-li
 import { generateVerificationToken, generateResetToken, isTokenExpired } from './utils/crypto';
 import { validatePassword, hashPassword, verifyPassword } from './utils/password';
 import { emailService } from './services/email-service';
+import { validateInputMiddleware, validateEmail, validateUserId, validateArray } from './utils/input-validation';
+import { globalErrorHandler, notFoundHandler, asyncHandler, AppError, ErrorResponses } from './middleware/error-handler';
+import { initializeSwagger } from './docs/swagger';
+import cacheManager from './utils/cache-manager';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -49,7 +53,12 @@ if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'test') {
   logger.error('DATABASE_URL environment variable is required');
   process.exit(1);
 }
-const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+// Critical security fix: Remove fallback to prevent secret exposure
+if (!process.env.JWT_SECRET) {
+  logger.error('JWT_SECRET environment variable is required and was not provided');
+  process.exit(1);
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // CORS origin from environment variable
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:19006';
@@ -103,6 +112,9 @@ app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'auth-service' });
 });
 
+// Apply input validation middleware to all routes
+app.use(validateInputMiddleware);
+
 // Sign in with Apple endpoint
 app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {
   try {
@@ -116,8 +128,8 @@ app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {
     // This properly verifies the token signature against Apple's public keys
     try {
       const appleIdTokenClaims = await appleSignin.verifyIdToken(identityToken, {
-        // Audience should be your app's bundle ID/service ID from Apple
-        // audience: process.env.APPLE_CLIENT_ID, // Uncomment and set in production
+        // Critical security fix: Enable Apple audience validation
+        audience: process.env.APPLE_CLIENT_ID || 'com.vlvt.dating',
         nonce: 'nonce' // Optional: verify nonce if you passed one during sign-in
       });
 
@@ -1173,21 +1185,42 @@ ON CONFLICT (id) DO UPDATE SET is_active = true, expires_at = NOW() + INTERVAL '
   logger.warn('Test login endpoint enabled (NOT FOR PRODUCTION)');
 }
 
-// Sentry error handler - must be after all routes but before generic error handler
+// Initialize advanced caching system
+try {
+  await cacheManager.initialize();
+  logger.info('Advanced caching system initialized');
+
+  // Add cache health check endpoint
+  app.get('/cache/health', async (req, res) => {
+    const health = await cacheManager.healthCheck();
+    res.json({
+      success: true,
+      cache: {
+        healthy: health.healthy,
+        message: health.message || 'Cache is operational'
+      }
+    });
+  });
+} catch (error) {
+  logger.warn('Cache initialization failed, continuing without cache', { error });
+}
+
+// Initialize Swagger API documentation
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+  initializeSwagger(app);
+  logger.info('Swagger API documentation enabled');
+}
+
+// Sentry error handler - must be after all routes but before our global error handler
 if (process.env.SENTRY_DSN) {
   Sentry.setupExpressErrorHandler(app);
 }
 
-// Generic error handler (optional - for catching any remaining errors)
-app.use((err: any, req: Request, res: Response, next: any) => {
-  logger.error('Unhandled error', {
-    error: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method
-  });
-  res.status(500).json({ success: false, error: 'Internal server error' });
-});
+// Replace generic error handler with comprehensive error handling
+app.use(globalErrorHandler);
+
+// 404 handler for unmatched routes
+app.use(notFoundHandler);
 
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
