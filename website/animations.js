@@ -15,6 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize navbar scroll behavior
   initNavbar();
+
+  // Initialize spotlight effect
+  initSpotlight();
+
+  // Initialize vanilla-tilt for app mockup
+  initTilt();
 });
 
 /**
@@ -177,3 +183,44 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     }
   });
 });
+
+/**
+ * Initialize spotlight effect that follows cursor
+ */
+function initSpotlight() {
+  const spotlightSection = document.getElementById('problem-section');
+  const spotlight = document.getElementById('spotlight');
+
+  if (!spotlightSection || !spotlight) return;
+
+  spotlightSection.addEventListener('mousemove', function(e) {
+    const rect = spotlightSection.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    spotlight.style.left = x + 'px';
+    spotlight.style.top = y + 'px';
+  });
+}
+
+/**
+ * Initialize vanilla-tilt for 3D hover effect on app mockup
+ */
+function initTilt() {
+  if (typeof VanillaTilt === 'undefined') {
+    console.warn('VanillaTilt not loaded');
+    return;
+  }
+
+  const tiltElements = document.querySelectorAll('.tilt-card');
+  if (tiltElements.length === 0) return;
+
+  // VanillaTilt auto-initializes via data attributes, but we ensure it's ready
+  VanillaTilt.init(tiltElements, {
+    max: 12,
+    speed: 400,
+    glare: true,
+    'max-glare': 0.15,
+    perspective: 1000
+  });
+}

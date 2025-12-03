@@ -407,10 +407,49 @@ img {
   pointer-events: none;
 }
 
+/* Hero Split Layout */
+.hero-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  width: 100%;
+  gap: var(--space-2xl);
+  z-index: 2;
+  position: relative;
+  padding: 0 var(--space-xl);
+}
+
 .hero-content {
   position: relative;
   z-index: 1;
-  max-width: 800px;
+  max-width: 600px;
+  text-align: left;
+  flex: 1;
+}
+
+.hero-visual {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.tilt-card {
+  transform-style: preserve-3d;
+}
+
+.app-mockup {
+  max-width: 320px;
+  height: auto;
+  filter: drop-shadow(0 25px 60px rgba(0, 0, 0, 0.6));
+  transition: transform 0.3s ease;
+}
+
+.app-mockup:hover {
+  transform: scale(1.02);
 }
 
 .hero-headline {
@@ -421,15 +460,13 @@ img {
   font-size: clamp(1.1rem, 2.5vw, 1.5rem);
   color: var(--text-secondary);
   margin-bottom: var(--space-2xl);
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 500px;
 }
 
 .hero-cta {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-lg);
 }
 
@@ -558,6 +595,29 @@ img {
   pointer-events: none;
 }
 
+/* Interactive spotlight that follows cursor */
+.spotlight {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(
+    circle,
+    rgba(212, 175, 55, 0.12) 0%,
+    rgba(212, 175, 55, 0.05) 30%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  z-index: 0;
+}
+
+.spotlight-section:hover .spotlight {
+  opacity: 1;
+}
+
 /* ========================================
    FEATURE CARDS
    ======================================== */
@@ -607,6 +667,20 @@ img {
   display: block;
 }
 
+/* Custom generated icon images */
+.feature-icon-img {
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-md);
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.3));
+  transition: filter var(--transition-fast), transform var(--transition-fast);
+}
+
+.feature-card:hover .feature-icon-img {
+  filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.5));
+  transform: scale(1.05);
+}
+
 .feature-title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -646,6 +720,17 @@ img {
 .trust-item-icon {
   color: var(--gold);
   font-size: 1.25rem;
+}
+
+.trust-icon-img {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.3));
+}
+
+.trust-check {
+  color: var(--gold);
+  font-weight: bold;
 }
 
 /* ========================================
@@ -975,6 +1060,32 @@ img {
    RESPONSIVE
    ======================================== */
 
+@media (max-width: 968px) {
+  /* Hero split layout becomes stacked on tablets/mobile */
+  .hero-container {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-xl);
+  }
+
+  .hero-content {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .hero-cta {
+    align-items: center;
+  }
+
+  .hero-visual {
+    order: -1; /* Show phone mockup first on mobile */
+  }
+
+  .app-mockup {
+    max-width: 280px;
+  }
+}
+
 @media (max-width: 768px) {
   :root {
     --space-xl: 24px;
@@ -997,8 +1108,16 @@ img {
     padding-top: 120px;
   }
 
+  .hero-container {
+    padding: 0;
+  }
+
   .hero-content {
     padding: 0 var(--space-md);
+  }
+
+  .app-mockup {
+    max-width: 240px;
   }
 
   .store-buttons {
@@ -1017,6 +1136,11 @@ img {
 
   .features-grid {
     grid-template-columns: 1fr;
+  }
+
+  .feature-icon-img {
+    width: 56px;
+    height: 56px;
   }
 
   .trust-strip {
@@ -1039,6 +1163,11 @@ img {
 
   .legal-container {
     padding: var(--space-md);
+  }
+
+  /* Hide interactive spotlight on mobile */
+  .spotlight {
+    display: none;
   }
 }
 
