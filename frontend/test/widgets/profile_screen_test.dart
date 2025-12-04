@@ -109,33 +109,28 @@ void main() {
     });
 
     testWidgets('should display profile after loading', (WidgetTester tester) async {
-      bool isLoading = true;
       const profileName = 'Jane Smith';
 
+      // Initially show loading state
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
-              child: isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text(profileName),
+              child: CircularProgressIndicator(),
             ),
           ),
         ),
       );
 
-      // Initially loading
+      // Verify loading indicator is shown
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      // Update to loaded state
-      isLoading = false;
+      // Update to loaded state with profile
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
-              child: isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text(profileName),
+              child: Text(profileName),
             ),
           ),
         ),

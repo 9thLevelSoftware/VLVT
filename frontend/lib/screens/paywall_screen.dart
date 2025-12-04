@@ -168,18 +168,20 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 VlvtButton.primary(
                   label: 'Subscribe Now',
                   onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
                     final package = _selectedPlanIndex == 0
                         ? yearlyPackage
                         : monthlyPackage;
                     if (package != null) {
                       final success = await subscriptionService.purchasePackage(package);
                       if (success && mounted) {
-                        Navigator.of(context).pop();
+                        navigator.pop();
                       }
                     } else {
                       // No packages loaded - show error
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        scaffoldMessenger.showSnackBar(
                           const SnackBar(content: Text('Unable to load subscription options. Please try again.')),
                         );
                       }
@@ -191,12 +193,14 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 VlvtButton.text(
                   label: 'Restore Purchases',
                   onPressed: () async {
+                    final navigator = Navigator.of(context);
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
                     final restored = await subscriptionService.restorePurchases();
                     if (restored && mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      scaffoldMessenger.showSnackBar(
                         const SnackBar(content: Text('Purchases restored successfully!')),
                       );
-                      Navigator.of(context).pop();
+                      navigator.pop();
                     }
                   },
                 ),

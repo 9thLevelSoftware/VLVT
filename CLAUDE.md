@@ -8,6 +8,12 @@ VLVT is a dating app built with a Flutter frontend and Node.js/TypeScript micros
 
 ## Build & Development Commands
 
+### Full Stack (Docker)
+```bash
+cp .env.example .env               # Copy and configure environment
+docker-compose up --build          # Start Postgres + all services
+```
+
 ### Frontend (Flutter)
 ```bash
 cd frontend
@@ -15,7 +21,8 @@ flutter pub get                    # Install dependencies
 flutter run                        # Run in debug mode (uses localhost backend)
 flutter run --dart-define=USE_PROD_URLS=true  # Run against production backend
 flutter analyze                    # Static analysis
-flutter test                       # Run tests
+flutter test                       # Run all tests
+flutter test test/widgets/specific_test.dart  # Run single test file
 flutter build ios                  # iOS release build
 flutter build apk --release        # Android release build
 ```
@@ -30,17 +37,19 @@ npm start            # Run compiled code
 npm test             # Run Jest tests
 npm run test:watch   # Watch mode
 npm run test:coverage
+npm test -- --testPathPattern="specific.test.ts"  # Run single test
 ```
 
 ### Database
 ```bash
 # Run migrations (requires DATABASE_URL environment variable)
 cd backend/migrations
-./run_migration.sh
+npm run migrate
 
-# Seed test data
+# Seed test data (requires Postgres running)
 cd backend/seed-data
 npm run seed         # Add test users
+npm run seed:fresh   # Clean and re-seed
 npm run clean        # Remove test data
 ```
 
@@ -112,3 +121,25 @@ Required environment variables per service:
 ## Key Dependencies
 - **Flutter**: provider, http, firebase_*, purchases_flutter (RevenueCat), socket_io_client, geolocator, cached_network_image
 - **Backend**: express, pg, jsonwebtoken, socket.io, firebase-admin, sharp, bcrypt, winston
+
+## Coding Conventions
+
+### TypeScript (Backend)
+- 2-space indentation, single quotes, async/await pattern
+- PascalCase for classes/types, camelCase for functions/variables
+- New modules go under `src/` (e.g., `utils/logger.ts`, `middleware/auth.ts`)
+- Reuse existing validation middleware and rate-limit patterns when adding routes
+
+### Flutter (Frontend)
+- Files use `snake_case.dart`, widgets/classes use PascalCase
+- Follow `analysis_options.yaml` (flutter_lints)
+- Use shared theme components from `lib/theme/` and `lib/widgets/`
+- Tokens stored via flutter_secure_storage
+
+### Git Commits
+Use Conventional Commits with scope: `feat(vlvt):`, `fix(auth-service):`, `refactor(frontend):`
+
+## Testing Notes
+- **Backend**: Jest suites in `backend/*/tests/`; start Postgres first; include unhappy-path tests
+- **Frontend**: Widget tests in `frontend/test/`; use mocked services; keep "Test Users (Dev Only)" login working
+- **Test users**: google_test001 through google_test020 available via seed data

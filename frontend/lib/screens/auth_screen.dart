@@ -239,6 +239,9 @@ class _AuthScreenState extends State<AuthScreen>
 
     setState(() => _isLoading = true);
 
+    // Get auth service before async gap
+    final authService = context.read<AuthService>();
+
     try {
       // Build Instagram OAuth URL
       final authUrl = Uri.https('api.instagram.com', '/oauth/authorize', {
@@ -264,7 +267,6 @@ class _AuthScreenState extends State<AuthScreen>
 
       // Exchange code for access token via backend
       // Note: The backend handles the token exchange for security
-      final authService = context.read<AuthService>();
       final response = await authService.signInWithInstagram(code);
 
       if (mounted) {

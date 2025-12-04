@@ -464,7 +464,6 @@ class AuthService extends ChangeNotifier {
   Future<Map<String, dynamic>?> getCurrentUser() async {
     var currentUserId = _userId;
     currentUserId ??= await _storage.read(key: 'user_id');
-    if (currentUserId == null) return null;
     return {'userId': currentUserId};
   }
 }

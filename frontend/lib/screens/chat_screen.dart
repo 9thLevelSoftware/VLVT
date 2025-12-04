@@ -91,13 +91,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final socketService = context.read<SocketService>();
+    final queueService = context.read<MessageQueueService>();
     if (state == AppLifecycleState.resumed) {
       if (!socketService.isConnected) {
         socketService.connect();
       }
       Future.delayed(const Duration(seconds: 1), () async {
         if (socketService.isConnected) {
-          final queueService = context.read<MessageQueueService>();
           await queueService.processQueue(socketService);
         }
       });
@@ -234,8 +234,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _isLoading = true;
       _errorMessage = null;
     });
+    // Get services before async gaps
+    final authService = context.read<AuthService>();
+    final chatApiService = context.read<ChatApiService>();
+    final profileApiService = context.read<ProfileApiService>();
+    final socketService = context.read<SocketService>();
     try {
-      final authService = context.read<AuthService>();
       final currentUserId = authService.userId;
       if (currentUserId == null) throw Exception('User not authenticated');
 
@@ -243,8 +247,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _otherUserId = otherUserId;
 
       final results = await Future.wait([
-        context.read<ChatApiService>().getMessages(_match!.id),
-        context.read<ProfileApiService>().getProfile(otherUserId),
+        chatApiService.getMessages(_match!.id),
+        profileApiService.getProfile(otherUserId),
       ]);
 
       setState(() {
@@ -252,7 +256,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _otherUserProfile = results[1] as Profile;
       });
 
-      final socketService = context.read<SocketService>();
       if (socketService.isConnected) {
         final statuses = await socketService.getOnlineStatus([otherUserId]);
         if (statuses.isNotEmpty && mounted) {
@@ -285,21 +288,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final text = _messageController.text.trim();
     if (text.isEmpty || text.length > _maxCharacters || _match == null) return;
 
+    // Get services before async gaps
     final subscriptionService = context.read<SubscriptionService>();
+    final authService = context.read<AuthService>();
+    final socketService = context.read<SocketService>();
+    final queueService = context.read<MessageQueueService>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     if (!subscriptionService.canSendMessage()) {
       if (mounted) PremiumGateDialog.showMessagesLimitReached(context);
       return;
     }
 
-    final authService = context.read<AuthService>();
     final currentUserId = authService.userId;
     if (currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not authenticated')));
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('User not authenticated')));
       return;
     }
 
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    final socketService = context.read<SocketService>();
 
     final tempMessage = Message(
       id: tempId,
@@ -317,14 +324,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: true));
 
     if (!socketService.isConnected) {
-      final queueService = context.read<MessageQueueService>();
       await queueService.enqueue(QueuedMessage(
         tempId: tempId,
         matchId: _match!.id,
         text: text,
         timestamp: DateTime.now(),
       ));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      scaffoldMessenger.showSnackBar(const SnackBar(
         content: Text('Message queued. Will send when connected.'),
         backgroundColor: Colors.orange,
       ));

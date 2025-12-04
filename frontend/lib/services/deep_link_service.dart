@@ -11,11 +11,14 @@ class DeepLinkService {
   static Future<void> init(BuildContext context, AuthService authService) async {
     _appLinks = AppLinks();
 
+    // Store navigator state before async gap
+    final navigatorState = Navigator.of(context);
+
     // Handle initial link (app opened via link)
     try {
       final initialLink = await _appLinks!.getInitialLink();
       if (initialLink != null) {
-        _handleDeepLink(context, authService, initialLink.toString());
+        _handleDeepLink(navigatorState, authService, initialLink.toString());
       }
     } catch (e) {
       debugPrint('Error getting initial deep link: $e');
@@ -23,7 +26,7 @@ class DeepLinkService {
 
     // Handle links while app is running
     _sub = _appLinks!.uriLinkStream.listen((Uri uri) {
-      _handleDeepLink(context, authService, uri.toString());
+      _handleDeepLink(navigatorState, authService, uri.toString());
     }, onError: (err) {
       debugPrint('Error handling deep link stream: $err');
     });
@@ -33,14 +36,14 @@ class DeepLinkService {
     _sub?.cancel();
   }
 
-  static void _handleDeepLink(BuildContext context, AuthService authService, String link) {
+  static void _handleDeepLink(NavigatorState navigator, AuthService authService, String link) {
     final uri = Uri.parse(link);
 
     // Handle email verification: getvlvt.vip/verify?token=xxx or vlvt://auth/verify?token=xxx
     if (uri.path.contains('verify') || uri.path == '/verify') {
       final token = uri.queryParameters['token'];
       if (token != null) {
-        _handleEmailVerification(context, authService, token);
+        _handleEmailVerification(navigator, authService, token);
       }
     }
 
@@ -48,7 +51,7 @@ class DeepLinkService {
     if (uri.path.contains('reset-password') || uri.path == '/reset-password') {
       final token = uri.queryParameters['token'];
       if (token != null) {
-        Navigator.of(context).push(
+        navigator.push(
           MaterialPageRoute(
             builder: (context) => ResetPasswordScreen(token: token),
           ),
@@ -58,37 +61,42 @@ class DeepLinkService {
   }
 
   static Future<void> _handleEmailVerification(
-    BuildContext context,
+    NavigatorState navigator,
     AuthService authService,
     String token
   ) async {
+    // Store references before async gap
+    final scaffoldMessenger = ScaffoldMessenger.of(navigator.context);
+
     // Show loading indicator
     showDialog(
-      context: context,
+      context: navigator.context,
       barrierDismissible: false,
       builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     final success = await authService.verifyEmail(token);
 
-    // Dismiss loading
-    Navigator.of(context).pop();
+    // Dismiss loading - check if navigator is still mounted
+    if (navigator.mounted) {
+      navigator.pop();
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email verified successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      // Auth state change will trigger navigation to main screen
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to verify email. The link may have expired.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (success) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Email verified successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Auth state change will trigger navigation to main screen
+      } else {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Failed to verify email. The link may have expired.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

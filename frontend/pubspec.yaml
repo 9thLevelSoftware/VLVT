@@ -71,7 +71,7 @@ dependencies:
   url_launcher: ^6.3.0
 
   purchases_ui_flutter: ^9.9.9
-  app_links: ^7.0.0
+  app_links: 6.4.1
 
   # Native splash screen
   flutter_native_splash: ^2.4.4

@@ -4,7 +4,7 @@ library;
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 import '../models/message.dart';
 import '../config/app_config.dart';
 import 'auth_service.dart';
@@ -34,7 +34,7 @@ class UserStatus {
 
 /// Socket.IO service for real-time messaging
 class SocketService extends ChangeNotifier {
-  IO.Socket? _socket;
+  socket_io.Socket? _socket;
   final AuthService _authService;
   bool _isConnected = false;
   bool _isConnecting = false;
@@ -78,9 +78,9 @@ class SocketService extends ChangeNotifier {
       final chatUrl = AppConfig.chatServiceUrl;
       debugPrint('Socket: Connecting to $chatUrl');
 
-      _socket = IO.io(
+      _socket = socket_io.io(
         chatUrl,
-        IO.OptionBuilder()
+        socket_io.OptionBuilder()
             .setTransports(['websocket', 'polling'])
             .enableAutoConnect()
             .enableReconnection()
