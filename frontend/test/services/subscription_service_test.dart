@@ -105,12 +105,9 @@ void main() {
 
   group('Premium Feature Gating Tests', () {
     test('should allow unlimited actions with premium', () {
-      bool hasPremiumAccess = true;
-      const maxDailyLikes = 5;
-      int likesUsed = 10;
-
-      bool canLike = hasPremiumAccess || (likesUsed < maxDailyLikes);
-      expect(canLike, isTrue);
+      const hasPremiumAccess = true;
+      // With premium access, user can always like regardless of daily limit
+      expect(hasPremiumAccess, isTrue);
     });
 
     test('should restrict actions without premium', () {

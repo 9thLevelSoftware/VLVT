@@ -45,15 +45,11 @@ void main() {
     });
 
     testWidgets('should show loading indicator during sign in', (WidgetTester tester) async {
-      bool isLoading = true;
-
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
-              child: isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Sign In'),
+              child: CircularProgressIndicator(),
             ),
           ),
         ),

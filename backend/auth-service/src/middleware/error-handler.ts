@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import logger from '../utils/logger';
-import { ValidationError } from 'express-validation';
 
 /**
  * Custom error classes for standardized error handling
@@ -72,12 +71,12 @@ export function globalErrorHandler(
     message = 'Authentication token has expired';
     isOperational = true;
   }
-  // Handle validation errors
-  else if (err instanceof ValidationError) {
+  // Handle validation errors (from express-validator or similar)
+  else if (err.name === 'ValidationError' || (err as any).errors) {
     statusCode = 400;
     errorCode = 'VALIDATION_ERROR';
     message = 'Validation failed';
-    details = err.details;
+    details = (err as any).errors || (err as any).details || {};
     isOperational = true;
   }
   // Handle database errors

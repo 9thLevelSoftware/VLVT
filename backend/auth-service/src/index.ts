@@ -1228,49 +1228,58 @@ ON CONFLICT (id) DO UPDATE SET is_active = true, expires_at = NOW() + INTERVAL '
   logger.warn('Test login endpoint enabled (NOT FOR PRODUCTION)');
 }
 
-// Initialize advanced caching system
-try {
-  await cacheManager.initialize();
-  logger.info('Advanced caching system initialized');
+// Async initialization function
+async function initializeApp() {
+  // Initialize advanced caching system
+  try {
+    await cacheManager.initialize();
+    logger.info('Advanced caching system initialized');
 
-  // Add cache health check endpoint
-  app.get('/cache/health', async (req, res) => {
-    const health = await cacheManager.healthCheck();
-    res.json({
-      success: true,
-      cache: {
-        healthy: health.healthy,
-        message: health.message || 'Cache is operational'
-      }
+    // Add cache health check endpoint
+    app.get('/cache/health', async (req, res) => {
+      const health = await cacheManager.healthCheck();
+      res.json({
+        success: true,
+        cache: {
+          healthy: health.healthy,
+          message: health.message || 'Cache is operational'
+        }
+      });
     });
-  });
-} catch (error) {
-  logger.warn('Cache initialization failed, continuing without cache', { error });
+  } catch (error) {
+    logger.warn('Cache initialization failed, continuing without cache', { error });
+  }
+
+  // Initialize Swagger API documentation
+  if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+    initializeSwagger(app);
+    logger.info('Swagger API documentation enabled');
+  }
+
+  // Sentry error handler - must be after all routes but before our global error handler
+  if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+  }
+
+  // Replace generic error handler with comprehensive error handling
+  app.use(globalErrorHandler);
+
+  // 404 handler for unmatched routes
+  app.use(notFoundHandler);
+
+  // Only start server if not in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+      logger.info(`Auth service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
+    });
+  }
 }
 
-// Initialize Swagger API documentation
-if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
-  initializeSwagger(app);
-  logger.info('Swagger API documentation enabled');
-}
-
-// Sentry error handler - must be after all routes but before our global error handler
-if (process.env.SENTRY_DSN) {
-  Sentry.setupExpressErrorHandler(app);
-}
-
-// Replace generic error handler with comprehensive error handling
-app.use(globalErrorHandler);
-
-// 404 handler for unmatched routes
-app.use(notFoundHandler);
-
-// Only start server if not in test environment
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    logger.info(`Auth service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
-  });
-}
+// Initialize the application
+initializeApp().catch((error) => {
+  logger.error('Failed to initialize application', { error });
+  process.exit(1);
+});
 
 // Export for testing
 export default app;

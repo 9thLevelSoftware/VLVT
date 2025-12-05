@@ -68,7 +68,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   String? _matchOverlayUserName;
   bool? _matchOverlayIsNewMatch;
   int _overlayInstanceId = 0; // Incremented each new overlay to provide stable key
-  final bool _isShaking = false;
 
   @override
   void initState() {
