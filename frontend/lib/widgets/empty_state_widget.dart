@@ -116,23 +116,177 @@ class EmptyStateWidget extends StatelessWidget {
 
 /// Specific empty states for common scenarios
 class DiscoveryEmptyState {
+  /// P2: Concierge-style empty state with premium feel
   static Widget noProfiles({
     required BuildContext context,
     required bool hasFilters,
     required VoidCallback onAdjustFilters,
     required VoidCallback onShowAllProfiles,
+    VoidCallback? onEnableNotifications,
+    bool showNotificationPrompt = false,
   }) {
-    return EmptyStateWidget(
-      icon: Icons.explore_outlined,
-      iconColor: Colors.deepPurple,
-      title: hasFilters ? 'No profiles match your filters' : 'No more profiles',
-      message: hasFilters
-          ? 'Try adjusting your age range, distance, or interests to discover more people.'
-          : 'You\'ve seen all available profiles! Check back later for new matches, or reset to see profiles again.',
-      actionLabel: hasFilters ? 'Adjust Filters' : 'Show All Profiles Again',
-      onAction: hasFilters ? onAdjustFilters : onShowAllProfiles,
-      secondaryActionLabel: hasFilters ? 'Show All Profiles' : null,
-      onSecondaryAction: hasFilters ? onShowAllProfiles : null,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Concierge avatar with gradient ring
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    VlvtColors.gold,
+                    VlvtColors.gold.withValues(alpha: 0.6),
+                  ],
+                ),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: VlvtColors.surface,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.diamond_outlined,
+                  size: 64,
+                  color: VlvtColors.gold,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Concierge greeting
+            Text(
+              hasFilters ? 'Curating Your Experience' : 'Your VLVT Concierge',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Montserrat',
+                color: VlvtColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Friendly message based on context
+            Text(
+              hasFilters
+                  ? "We're searching for profiles that match your refined preferences. Quality over quantity—your perfect match may be just around the corner."
+                  : "You've explored everyone available in your area for now. We're constantly welcoming new members to our exclusive community.",
+              style: TextStyle(
+                fontSize: 16,
+                height: 1.6,
+                color: VlvtColors.textSecondary,
+                fontFamily: 'Montserrat',
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 32),
+
+            // Notification prompt (if not yet enabled)
+            if (showNotificationPrompt && onEnableNotifications != null) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: VlvtColors.gold.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: VlvtColors.gold.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.notifications_active_outlined,
+                      size: 32,
+                      color: VlvtColors.gold,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Be the First to Know',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Montserrat',
+                        color: VlvtColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Get notified when new members join or when you receive a like.",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: VlvtColors.textSecondary,
+                        fontFamily: 'Montserrat',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    VlvtButton.primary(
+                      label: 'Enable Notifications',
+                      onPressed: onEnableNotifications,
+                      icon: Icons.notifications,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Action buttons
+            if (hasFilters) ...[
+              VlvtButton.primary(
+                label: 'Adjust Preferences',
+                onPressed: onAdjustFilters,
+                icon: Icons.tune,
+                expanded: true,
+              ),
+              const SizedBox(height: 12),
+              VlvtButton.secondary(
+                label: 'See Everyone',
+                onPressed: onShowAllProfiles,
+                expanded: true,
+              ),
+            ] else ...[
+              VlvtButton.primary(
+                label: 'Start Fresh',
+                onPressed: onShowAllProfiles,
+                icon: Icons.refresh,
+                expanded: true,
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            // Reassuring footer
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.verified_user_outlined,
+                  size: 16,
+                  color: VlvtColors.textMuted,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'New members are verified daily',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: VlvtColors.textMuted,
+                    fontFamily: 'Montserrat',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

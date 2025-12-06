@@ -660,48 +660,86 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
     const maxOffset = Math.max(0, totalCount - limit);
     const randomOffset = Math.floor(Math.random() * (maxOffset + 1));
 
-    if (userLocation && maxDistance) {
-      // P1: Use Haversine formula to calculate distance and filter
-      // Use subquery to filter by calculated distance (can't use HAVING without GROUP BY)
-      query = `
-        SELECT * FROM (
-          SELECT
-            user_id, name, age, bio, photos, interests, latitude, longitude,
-            (
-              6371 * acos(
-                cos(radians($${paramIndex})) * cos(radians(latitude)) *
-                cos(radians(longitude) - radians($${paramIndex + 1})) +
-                sin(radians($${paramIndex})) * sin(radians(latitude))
-              )
-            ) AS distance
+    // Helper function to build discovery query with new user boost
+    const buildDiscoveryQuery = (effectiveMaxDistance: number | null) => {
+      const queryParams = [...params];
+      let discoveryQuery: string;
+
+      if (userLocation && effectiveMaxDistance) {
+        // P1: Use Haversine formula to calculate distance and filter
+        // P2: New user boost - prioritize users created in last 48 hours
+        discoveryQuery = `
+          SELECT * FROM (
+            SELECT
+              user_id, name, age, bio, photos, interests, latitude, longitude, created_at,
+              (
+                6371 * acos(
+                  cos(radians($${paramIndex})) * cos(radians(latitude)) *
+                  cos(radians(longitude) - radians($${paramIndex + 1})) +
+                  sin(radians($${paramIndex})) * sin(radians(latitude))
+                )
+              ) AS distance
+            FROM profiles
+            WHERE ${whereClause}
+              AND latitude IS NOT NULL
+              AND longitude IS NOT NULL
+          ) AS profiles_with_distance
+          WHERE distance <= $${paramIndex + 2}
+          ORDER BY
+            CASE WHEN created_at > NOW() - INTERVAL '48 hours' THEN 0 ELSE 1 END,
+            distance ASC
+          LIMIT ${limit}
+        `;
+        queryParams.push(userLocation.latitude, userLocation.longitude, effectiveMaxDistance);
+      } else {
+        // P2: New user boost - prioritize users created in last 48 hours
+        discoveryQuery = `
+          SELECT user_id, name, age, bio, photos, interests, latitude, longitude, created_at
           FROM profiles
           WHERE ${whereClause}
-            AND latitude IS NOT NULL
-            AND longitude IS NOT NULL
-        ) AS profiles_with_distance
-        WHERE distance <= $${paramIndex + 2}
-        ORDER BY user_id
-        OFFSET ${randomOffset}
-        LIMIT ${limit}
-      `;
-      params.push(userLocation.latitude, userLocation.longitude, maxDistance);
-    } else {
-      // Optimized with OFFSET instead of ORDER BY RANDOM()
-      query = `
-        SELECT user_id, name, age, bio, photos, interests, latitude, longitude
-        FROM profiles
-        WHERE ${whereClause}
-        ORDER BY user_id
-        OFFSET ${randomOffset}
-        LIMIT ${limit}
-      `;
-    }
+          ORDER BY
+            CASE WHEN created_at > NOW() - INTERVAL '48 hours' THEN 0 ELSE 1 END,
+            user_id
+          LIMIT ${limit}
+        `;
+      }
 
-    const result = await pool.query(query, params);
+      return { query: discoveryQuery, params: queryParams };
+    };
+
+    // Initial query with user's requested distance
+    let queryData = buildDiscoveryQuery(maxDistance);
+    query = queryData.query;
+    let queryParams = queryData.params;
+
+    let result = await pool.query(query, queryParams);
+
+    // P2: Distance fuzzing - auto-expand search if results < 5
+    let expandedSearch = false;
+    const originalMaxDistance = maxDistance;
+
+    if (result.rows.length < 5 && userLocation && maxDistance && maxDistance < 200) {
+      logger.info('Discovery fuzzing: expanding search radius', {
+        userId: authenticatedUserId,
+        originalDistance: maxDistance,
+        expandedDistance: 200,
+        originalResults: result.rows.length
+      });
+
+      queryData = buildDiscoveryQuery(200);
+      query = queryData.query;
+      queryParams = queryData.params;
+      result = await pool.query(query, queryParams);
+      expandedSearch = true;
+    }
 
     // Resolve all photo keys to presigned URLs in parallel
     const profiles = await Promise.all(result.rows.map(async (profile) => {
       const photoUrls = await resolvePhotoUrls(profile.photos || []);
+
+      // Check if user is new (created in last 48 hours)
+      const createdAt = profile.created_at ? new Date(profile.created_at) : null;
+      const isNewUser = createdAt && (Date.now() - createdAt.getTime()) < 48 * 60 * 60 * 1000;
 
       const profileData: any = {
         userId: profile.user_id,
@@ -709,12 +747,18 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
         age: profile.age,
         bio: profile.bio,
         photos: photoUrls,
-        interests: profile.interests
+        interests: profile.interests,
+        isNewUser: isNewUser || false
       };
 
       // P1: Include distance if calculated
       if (profile.distance !== undefined) {
         profileData.distance = Math.round(profile.distance * 10) / 10; // Round to 1 decimal
+
+        // P2: Mark profiles that are beyond original search radius (from fuzzing)
+        if (expandedSearch && originalMaxDistance && profile.distance > originalMaxDistance) {
+          profileData.expandedSearch = true;
+        }
       }
 
       return profileData;
@@ -723,6 +767,7 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
     logger.info('Discovery profiles fetched', {
       userId: authenticatedUserId,
       count: profiles.length,
+      expandedSearch,
       filters: {
         minAge,
         maxAge,
@@ -732,7 +777,7 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
       }
     });
 
-    res.json({ success: true, profiles });
+    res.json({ success: true, profiles, expandedSearch });
   } catch (error) {
     logger.error('Failed to retrieve profiles', { error });
     res.status(500).json({ success: false, error: 'Failed to retrieve profiles' });

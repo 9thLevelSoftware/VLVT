@@ -62,6 +62,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   // Tutorial state
   bool _showTutorial = false;
 
+  // Who Liked You state (P2: Trust layer)
+  int _receivedLikesCount = 0;
+  bool _likesCountLoading = false;
+
   // Micro-interaction state
   bool _showHeartParticles = false;
   int _heartParticleInstanceId = 0; // Stable key for heart particles
@@ -108,6 +112,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
     if (savedIndex != null) {
       _currentProfileIndex = savedIndex;
     }
+
+    // Load received likes count (P2: Trust layer - "Who Liked You")
+    _loadReceivedLikesCount();
 
     await _loadProfiles();
 
@@ -182,6 +189,30 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         _errorMessage = 'Failed to load profiles: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  /// Load the count of users who have liked the current user (P2: Trust layer)
+  Future<void> _loadReceivedLikesCount() async {
+    if (_likesCountLoading) return;
+
+    setState(() => _likesCountLoading = true);
+
+    try {
+      final profileService = context.read<ProfileApiService>();
+      final likes = await profileService.getReceivedLikes();
+
+      if (mounted) {
+        setState(() {
+          _receivedLikesCount = likes.length;
+          _likesCountLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading received likes: $e');
+      if (mounted) {
+        setState(() => _likesCountLoading = false);
+      }
     }
   }
 
@@ -1134,6 +1165,88 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
           children: [
             Column(
               children: [
+                // P2: Trust layer - "Who Liked You" Banner
+                if (_receivedLikesCount > 0)
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Navigate to Who Liked You screen
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Who Liked You feature coming soon!'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            VlvtColors.gold.withValues(alpha: 0.2),
+                            VlvtColors.gold.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: VlvtColors.gold.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: VlvtColors.gold,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '$_receivedLikesCount',
+                              style: TextStyle(
+                                color: VlvtColors.textOnGold,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Montserrat',
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$_receivedLikesCount ${_receivedLikesCount == 1 ? 'person' : 'people'} liked you',
+                                  style: TextStyle(
+                                    color: VlvtColors.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  "See who's already interested",
+                                  style: TextStyle(
+                                    color: VlvtColors.textSecondary,
+                                    fontFamily: 'Montserrat',
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: VlvtColors.gold,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                 // Profile Counter Warning
                 if (_remainingProfiles > 0 && _remainingProfiles <= 5)
                   Container(
