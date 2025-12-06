@@ -8,6 +8,9 @@ class DeepLinkService {
   static AppLinks? _appLinks;
   static StreamSubscription? _sub;
 
+  /// Pending invite code from deep link (used during signup)
+  static String? pendingInviteCode;
+
   static Future<void> init(BuildContext context, AuthService authService) async {
     _appLinks = AppLinks();
 
@@ -36,6 +39,11 @@ class DeepLinkService {
     _sub?.cancel();
   }
 
+  /// Clear the pending invite code after it's been used
+  static void clearPendingInviteCode() {
+    pendingInviteCode = null;
+  }
+
   static void _handleDeepLink(NavigatorState navigator, AuthService authService, String link) {
     final uri = Uri.parse(link);
 
@@ -56,6 +64,35 @@ class DeepLinkService {
             builder: (context) => ResetPasswordScreen(token: token),
           ),
         );
+      }
+    }
+
+    // Handle invite codes: getvlvt.vip/invite/CODE or getvlvt.vip/invite?code=CODE
+    if (uri.path.contains('invite')) {
+      String? code = uri.queryParameters['code'];
+
+      // Check if code is in the path: /invite/VLVT-XXXX
+      if (code == null && uri.pathSegments.length >= 2) {
+        final inviteIndex = uri.pathSegments.indexOf('invite');
+        if (inviteIndex >= 0 && inviteIndex + 1 < uri.pathSegments.length) {
+          code = uri.pathSegments[inviteIndex + 1];
+        }
+      }
+
+      if (code != null && code.isNotEmpty) {
+        // Store the invite code for use during signup
+        pendingInviteCode = code;
+        debugPrint('Stored pending invite code: $code');
+
+        // If user is already authenticated, show a message
+        if (authService.isAuthenticated) {
+          ScaffoldMessenger.of(navigator.context).showSnackBar(
+            SnackBar(
+              content: Text('Welcome! Invited by code: $code'),
+              backgroundColor: Colors.amber,
+            ),
+          );
+        }
       }
     }
   }

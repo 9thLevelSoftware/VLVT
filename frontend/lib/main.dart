@@ -12,6 +12,7 @@ import 'services/location_service.dart';
 import 'services/cache_service.dart';
 import 'services/safety_service.dart';
 import 'services/discovery_preferences_service.dart';
+import 'services/tickets_service.dart';
 import 'services/analytics_service.dart';
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
@@ -132,6 +133,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProxyProvider<AuthService, SafetyService>(
           create: (context) => SafetyService(context.read<AuthService>()),
           update: (context, auth, previous) => SafetyService(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthService, TicketsService>(
+          create: (context) => TicketsService(context.read<AuthService>()),
+          update: (context, auth, previous) => TicketsService(auth),
         ),
       ],
       child: Consumer<ThemeService>(

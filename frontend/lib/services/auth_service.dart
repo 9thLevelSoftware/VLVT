@@ -203,15 +203,20 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Register with email and password
-  Future<Map<String, dynamic>> registerWithEmail(String email, String password) async {
+  Future<Map<String, dynamic>> registerWithEmail(String email, String password, {String? inviteCode}) async {
     try {
+      final body = {
+        'email': email,
+        'password': password,
+      };
+      if (inviteCode != null && inviteCode.isNotEmpty) {
+        body['inviteCode'] = inviteCode;
+      }
+
       final response = await http.post(
         Uri.parse('$baseUrl/auth/email/register'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
+        body: json.encode(body),
       );
 
       final data = json.decode(response.body);

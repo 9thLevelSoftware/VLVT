@@ -6,6 +6,7 @@ import '../services/profile_api_service.dart';
 import '../models/profile.dart';
 import 'profile_edit_screen.dart';
 import 'safety_settings_screen.dart';
+import 'invite_screen.dart';
 import '../widgets/feedback_widget.dart';
 import '../widgets/vlvt_loader.dart';
 import '../widgets/vlvt_card.dart';
@@ -289,6 +290,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => const SafetySettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    VlvtButton.secondary(
+                      label: 'Invite Friends',
+                      icon: Icons.confirmation_number,
+                      expanded: true,
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => const InviteScreen(),
                           ),
                         );
                       },

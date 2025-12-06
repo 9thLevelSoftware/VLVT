@@ -634,7 +634,7 @@ app.get('/auth/subscription-status', generalLimiter, async (req: Request, res: R
 // Email registration endpoint
 app.post('/auth/email/register', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, inviteCode } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ success: false, error: 'Email and password are required' });
@@ -654,6 +654,22 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
         error: 'Password does not meet requirements',
         details: passwordValidation.errors
       });
+    }
+
+    // Validate invite code if provided
+    let referrerId: string | null = null;
+    if (inviteCode) {
+      const codeResult = await pool.query(
+        `SELECT owner_id, used_by_id FROM invite_codes WHERE code = $1`,
+        [inviteCode.toUpperCase()]
+      );
+      if (codeResult.rows.length === 0) {
+        return res.status(400).json({ success: false, error: 'Invalid invite code' });
+      }
+      if (codeResult.rows[0].used_by_id) {
+        return res.status(400).json({ success: false, error: 'Invite code has already been used' });
+      }
+      referrerId = codeResult.rows[0].owner_id;
     }
 
     // Check if email already exists
@@ -682,10 +698,10 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
     try {
       await client.query('BEGIN');
 
-      // Create user
+      // Create user (with optional referred_by)
       await client.query(
-        `INSERT INTO users (id, provider, email) VALUES ($1, $2, $3)`,
-        [userId, 'email', email.toLowerCase()]
+        `INSERT INTO users (id, provider, email, referred_by) VALUES ($1, $2, $3, $4)`,
+        [userId, 'email', email.toLowerCase(), referrerId]
       );
 
       // Create auth credential
@@ -695,6 +711,22 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [userId, 'email', email.toLowerCase(), passwordHash, false, verificationToken, verificationExpires]
       );
+
+      // If invite code was used, mark it as used and award signup bonus
+      if (inviteCode && referrerId) {
+        await client.query(
+          `UPDATE invite_codes SET used_by_id = $1, used_at = NOW() WHERE code = $2`,
+          [userId, inviteCode.toUpperCase()]
+        );
+
+        // Award signup bonus ticket to new user
+        await client.query(
+          `INSERT INTO ticket_ledger (user_id, amount, reason, reference_id) VALUES ($1, 1, 'signup_bonus', $2)`,
+          [userId, inviteCode.toUpperCase()]
+        );
+
+        logger.info('Invite code redeemed', { userId, inviteCode, referrerId });
+      }
 
       await client.query('COMMIT');
     } catch (err) {
@@ -707,7 +739,7 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
     // Send verification email
     await emailService.sendVerificationEmail(email, verificationToken);
 
-    logger.info('User registered', { userId, email: email.toLowerCase() });
+    logger.info('User registered', { userId, email: email.toLowerCase(), inviteCode: inviteCode || null });
     res.json({
       success: true,
       message: 'Registration successful. Please check your email to verify your account.'
@@ -763,6 +795,22 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
     );
 
     logger.info('Email verified', { userId: credential.user_id });
+
+    // Award verification ticket (one-time)
+    try {
+      const existingVerificationTicket = await pool.query(
+        `SELECT id FROM ticket_ledger WHERE user_id = $1 AND reason = 'verification'`,
+        [credential.user_id]
+      );
+      if (existingVerificationTicket.rows.length === 0) {
+        await awardTickets(credential.user_id, 1, 'verification', credential.user_id);
+        logger.info('Awarded verification ticket', { userId: credential.user_id });
+      }
+    } catch (ticketError) {
+      logger.error('Failed to award verification ticket', { error: ticketError, userId: credential.user_id });
+      // Don't fail the verification if ticket awarding fails
+    }
+
     res.json({
       success: true,
       message: 'Email verified successfully',
@@ -1587,6 +1635,336 @@ app.delete('/auth/account', generalLimiter, async (req: Request, res: Response) 
     client.release();
   }
 });
+
+// ===== GOLDEN TICKET ENDPOINTS =====
+// Referral system for growth - users earn tickets through engagement
+
+// Helper function to generate unique invite code
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude similar chars: I,O,0,1
+  let code = 'VLVT-';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// Helper function to get ticket balance
+async function getTicketBalance(userId: string): Promise<number> {
+  const result = await pool.query(
+    'SELECT COALESCE(SUM(amount), 0) as balance FROM ticket_ledger WHERE user_id = $1',
+    [userId]
+  );
+  return parseInt(result.rows[0].balance) || 0;
+}
+
+// Helper function to award tickets
+async function awardTickets(userId: string, amount: number, reason: string, referenceId?: string): Promise<void> {
+  await pool.query(
+    'INSERT INTO ticket_ledger (user_id, amount, reason, reference_id) VALUES ($1, $2, $3, $4)',
+    [userId, amount, reason, referenceId || null]
+  );
+  logger.info('Tickets awarded', { userId, amount, reason, referenceId });
+}
+
+// GET /auth/tickets - Get user's ticket balance and history
+app.get('/auth/tickets', generalLimiter, async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  let userId: string;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    userId = decoded.userId;
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  try {
+    // Get balance
+    const balance = await getTicketBalance(userId);
+
+    // Get invite codes created by this user
+    const codesResult = await pool.query(
+      `SELECT ic.code, ic.created_at, ic.used_at, ic.used_by_id,
+              p.name as used_by_name
+       FROM invite_codes ic
+       LEFT JOIN profiles p ON p.user_id = ic.used_by_id
+       WHERE ic.owner_id = $1
+       ORDER BY ic.created_at DESC
+       LIMIT 20`,
+      [userId]
+    );
+
+    const codes = codesResult.rows.map(row => ({
+      code: row.code,
+      createdAt: row.created_at,
+      used: row.used_by_id !== null,
+      usedBy: row.used_by_name || null,
+      usedAt: row.used_at,
+    }));
+
+    // Get ticket history
+    const historyResult = await pool.query(
+      `SELECT amount, reason, reference_id, created_at
+       FROM ticket_ledger
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [userId]
+    );
+
+    const history = historyResult.rows.map(row => ({
+      amount: row.amount,
+      reason: row.reason,
+      referenceId: row.reference_id,
+      createdAt: row.created_at,
+    }));
+
+    res.json({
+      success: true,
+      balance,
+      codes,
+      history,
+    });
+  } catch (error) {
+    logger.error('Failed to get ticket balance', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to get ticket balance' });
+  }
+});
+
+// POST /auth/tickets/create-code - Generate a new invite code (costs 1 ticket)
+app.post('/auth/tickets/create-code', generalLimiter, async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  let userId: string;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    userId = decoded.userId;
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Check balance
+    const balance = await getTicketBalance(userId);
+    if (balance < 1) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient tickets',
+        balance: balance,
+      });
+    }
+
+    // Generate unique code (retry if collision)
+    let code: string;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      code = generateInviteCode();
+      const existing = await client.query('SELECT 1 FROM invite_codes WHERE code = $1', [code]);
+      if (existing.rowCount === 0) break;
+      attempts++;
+    } while (attempts < maxAttempts);
+
+    if (attempts >= maxAttempts) {
+      await client.query('ROLLBACK');
+      return res.status(500).json({ success: false, error: 'Failed to generate unique code' });
+    }
+
+    // Create invite code
+    await client.query(
+      'INSERT INTO invite_codes (code, owner_id) VALUES ($1, $2)',
+      [code, userId]
+    );
+
+    // Deduct ticket
+    await client.query(
+      'INSERT INTO ticket_ledger (user_id, amount, reason, reference_id) VALUES ($1, $2, $3, $4)',
+      [userId, -1, 'invite_created', code]
+    );
+
+    await client.query('COMMIT');
+
+    logger.info('Invite code created', { userId, code });
+
+    res.json({
+      success: true,
+      code,
+      shareUrl: `https://getvlvt.vip/invite/${code}`,
+      balance: balance - 1,
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Failed to create invite code', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to create invite code' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /auth/tickets/validate - Validate invite code during signup
+app.post('/auth/tickets/validate', authLimiter, async (req: Request, res: Response) => {
+  const { code } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ success: false, error: 'Invite code is required' });
+  }
+
+  const normalizedCode = code.toUpperCase().trim();
+
+  try {
+    const result = await pool.query(
+      `SELECT ic.id, ic.owner_id, ic.used_by_id, ic.expires_at, p.name as owner_name
+       FROM invite_codes ic
+       LEFT JOIN profiles p ON p.user_id = ic.owner_id
+       WHERE ic.code = $1`,
+      [normalizedCode]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Invalid invite code' });
+    }
+
+    const inviteCode = result.rows[0];
+
+    // Check if already used
+    if (inviteCode.used_by_id) {
+      return res.status(400).json({ success: false, error: 'This invite code has already been used' });
+    }
+
+    // Check if expired
+    if (inviteCode.expires_at && new Date(inviteCode.expires_at) < new Date()) {
+      return res.status(400).json({ success: false, error: 'This invite code has expired' });
+    }
+
+    res.json({
+      success: true,
+      valid: true,
+      invitedBy: inviteCode.owner_name || 'A VLVT member',
+    });
+  } catch (error) {
+    logger.error('Failed to validate invite code', { error, code: normalizedCode });
+    res.status(500).json({ success: false, error: 'Failed to validate invite code' });
+  }
+});
+
+// POST /auth/tickets/redeem - Redeem invite code after signup (called internally or by client)
+app.post('/auth/tickets/redeem', generalLimiter, async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  let userId: string;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    userId = decoded.userId;
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  const { code } = req.body;
+
+  if (!code || typeof code !== 'string') {
+    return res.status(400).json({ success: false, error: 'Invite code is required' });
+  }
+
+  const normalizedCode = code.toUpperCase().trim();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Get invite code with lock
+    const result = await client.query(
+      `SELECT id, owner_id, used_by_id, expires_at
+       FROM invite_codes
+       WHERE code = $1
+       FOR UPDATE`,
+      [normalizedCode]
+    );
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ success: false, error: 'Invalid invite code' });
+    }
+
+    const inviteCode = result.rows[0];
+
+    // Check if already used
+    if (inviteCode.used_by_id) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: 'This invite code has already been used' });
+    }
+
+    // Prevent self-redemption
+    if (inviteCode.owner_id === userId) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: 'You cannot use your own invite code' });
+    }
+
+    // Check if expired
+    if (inviteCode.expires_at && new Date(inviteCode.expires_at) < new Date()) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ success: false, error: 'This invite code has expired' });
+    }
+
+    // Mark code as used
+    await client.query(
+      'UPDATE invite_codes SET used_by_id = $1, used_at = NOW() WHERE id = $2',
+      [userId, inviteCode.id]
+    );
+
+    // Update user's referred_by
+    await client.query(
+      'UPDATE users SET referred_by = $1 WHERE id = $2',
+      [inviteCode.owner_id, userId]
+    );
+
+    // Award signup bonus ticket to new user
+    await client.query(
+      'INSERT INTO ticket_ledger (user_id, amount, reason, reference_id) VALUES ($1, $2, $3, $4)',
+      [userId, 1, 'signup_bonus', normalizedCode]
+    );
+
+    await client.query('COMMIT');
+
+    logger.info('Invite code redeemed', { userId, code: normalizedCode, ownerId: inviteCode.owner_id });
+
+    res.json({
+      success: true,
+      message: 'Invite code redeemed successfully! You earned 1 ticket.',
+      ticketsEarned: 1,
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Failed to redeem invite code', { error, userId, code: normalizedCode });
+    res.status(500).json({ success: false, error: 'Failed to redeem invite code' });
+  } finally {
+    client.release();
+  }
+});
+
+// Export helper for other services to award tickets
+export { awardTickets, getTicketBalance };
 
 // Async initialization function
 async function initializeApp() {

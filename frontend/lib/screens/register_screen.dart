@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/deep_link_service.dart';
+import '../services/tickets_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_button.dart';
@@ -23,16 +25,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _inviteCodeValid = false;
+  String? _inviteCodeError;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-populate invite code from deep link if available
+    if (DeepLinkService.pendingInviteCode != null) {
+      _inviteCodeController.text = DeepLinkService.pendingInviteCode!;
+      _validateInviteCode();
+    }
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _inviteCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _validateInviteCode() async {
+    final code = _inviteCodeController.text.trim();
+    if (code.isEmpty) {
+      setState(() {
+        _inviteCodeValid = false;
+        _inviteCodeError = null;
+      });
+      return;
+    }
+
+    final ticketsService = context.read<TicketsService>();
+    final result = await ticketsService.validateInviteCode(code);
+
+    if (mounted) {
+      setState(() {
+        if (result['success'] == true && result['valid'] == true) {
+          _inviteCodeValid = true;
+          _inviteCodeError = null;
+        } else {
+          _inviteCodeValid = false;
+          _inviteCodeError = result['error'] ?? 'Invalid invite code';
+        }
+      });
+    }
   }
 
   bool _validatePassword(String password) {
@@ -77,10 +119,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final authService = context.read<AuthService>();
+      final inviteCode = _inviteCodeController.text.trim();
       final result = await authService.registerWithEmail(
         _emailController.text.trim(),
         _passwordController.text,
+        inviteCode: inviteCode.isNotEmpty ? inviteCode : null,
       );
+
+      // Clear pending invite code after registration attempt
+      DeepLinkService.clearPendingInviteCode();
 
       if (mounted) {
         if (result['success'] == true) {
@@ -357,6 +404,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
+                          Spacing.verticalMd,
+                          // Invite code input (optional)
+                          VlvtInput(
+                            controller: _inviteCodeController,
+                            autocorrect: false,
+                            hintText: 'Invite Code (optional)',
+                            prefixIcon: Icons.confirmation_number_outlined,
+                            suffixIcon: _inviteCodeValid
+                                ? Icons.check_circle
+                                : (_inviteCodeError != null ? Icons.error : null),
+                            onChanged: (value) {
+                              // Debounce validation
+                              Future.delayed(const Duration(milliseconds: 500), () {
+                                if (_inviteCodeController.text == value) {
+                                  _validateInviteCode();
+                                }
+                              });
+                            },
+                          ),
+                          // Invite code status display
+                          if (_inviteCodeController.text.isNotEmpty) ...[
+                            Spacing.verticalSm,
+                            Container(
+                              padding: Spacing.paddingMd,
+                              decoration: BoxDecoration(
+                                color: _inviteCodeValid
+                                    ? Colors.green.withValues(alpha: 0.2)
+                                    : (_inviteCodeError != null
+                                        ? Colors.red.withValues(alpha: 0.2)
+                                        : Colors.white.withValues(alpha: 0.15)),
+                                borderRadius: Spacing.borderRadiusMd,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _inviteCodeValid
+                                        ? Icons.check_circle
+                                        : (_inviteCodeError != null
+                                            ? Icons.error
+                                            : Icons.hourglass_empty),
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _inviteCodeValid
+                                          ? 'Valid invite code!'
+                                          : (_inviteCodeError ?? 'Validating...'),
+                                      style: VlvtTextStyles.caption.copyWith(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           Spacing.verticalXl,
                           // Register button
                           VlvtButton.primary(

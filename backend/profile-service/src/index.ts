@@ -139,6 +139,27 @@ pool.on('error', (err, client) => {
   });
 });
 
+// Helper function to award first match ticket (one-time)
+async function awardFirstMatchTicket(userId: string): Promise<void> {
+  try {
+    // Check if user already received first match ticket
+    const existingTicket = await pool.query(
+      `SELECT id FROM ticket_ledger WHERE user_id = $1 AND reason = 'first_match'`,
+      [userId]
+    );
+    if (existingTicket.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO ticket_ledger (user_id, amount, reason) VALUES ($1, 1, 'first_match')`,
+        [userId]
+      );
+      logger.info('Awarded first match ticket', { userId });
+    }
+  } catch (error) {
+    logger.error('Failed to award first match ticket', { error, userId });
+    // Don't throw - ticket awarding is non-critical
+  }
+}
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'profile-service' });
@@ -943,6 +964,12 @@ app.post('/swipes', authMiddleware, generalLimiter, async (req: Request, res: Re
           userId: authenticatedUserId,
           targetUserId
         });
+
+        // Award first match tickets to both users (one-time per user)
+        await Promise.all([
+          awardFirstMatchTicket(authenticatedUserId),
+          awardFirstMatchTicket(targetUserId)
+        ]);
       }
     }
 
