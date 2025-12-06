@@ -34,7 +34,8 @@ import {
   canUploadMorePhotos,
   MAX_PHOTOS_PER_PROFILE,
 } from './utils/image-handler';
-import { resolvePhotoUrls } from './utils/r2-client';
+import { resolvePhotoUrls, uploadToR2, getPresignedUrl } from './utils/r2-client';
+import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -160,6 +161,51 @@ async function awardFirstMatchTicket(userId: string): Promise<void> {
   }
 }
 
+// Helper function to award verification ticket (one-time)
+async function awardVerificationTicket(userId: string, verificationId: string): Promise<void> {
+  try {
+    // Check if user already received verification ticket
+    const existingTicket = await pool.query(
+      `SELECT id FROM ticket_ledger WHERE user_id = $1 AND reason = 'verification'`,
+      [userId]
+    );
+    if (existingTicket.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO ticket_ledger (user_id, amount, reason, reference_id) VALUES ($1, 1, 'verification', $2)`,
+        [userId, verificationId]
+      );
+      logger.info('Awarded verification ticket', { userId, verificationId });
+    }
+  } catch (error) {
+    logger.error('Failed to award verification ticket', { error, userId });
+    // Don't throw - ticket awarding is non-critical
+  }
+}
+
+// AWS Rekognition client for face comparison
+const rekognitionClient = new RekognitionClient({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+    ? {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      }
+    : undefined,
+});
+
+// Gesture prompts for liveness verification
+const GESTURE_PROMPTS = [
+  { id: 'three_fingers', instruction: 'Hold up 3 fingers' },
+  { id: 'touch_nose', instruction: 'Touch your nose' },
+  { id: 'look_left', instruction: 'Look to your left' },
+  { id: 'look_right', instruction: 'Look to your right' },
+  { id: 'thumbs_up', instruction: 'Give a thumbs up' },
+  { id: 'peace_sign', instruction: 'Show a peace sign' },
+];
+
+// Similarity threshold for face verification (0-100)
+const SIMILARITY_THRESHOLD = parseFloat(process.env.REKOGNITION_SIMILARITY_THRESHOLD || '90');
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'profile-service' });
@@ -211,7 +257,7 @@ app.get('/profile/:userId', authMiddleware, generalLimiter, async (req: Request,
 
     // Fetch profile from database
     const result = await pool.query(
-      `SELECT user_id, name, age, bio, photos, interests, created_at, updated_at
+      `SELECT user_id, name, age, bio, photos, interests, is_verified, verified_at, created_at, updated_at
        FROM profiles
        WHERE user_id = $1`,
       [requestedUserId]
@@ -238,7 +284,9 @@ app.get('/profile/:userId', authMiddleware, generalLimiter, async (req: Request,
         age: profile.age,
         bio: profile.bio,
         photos: photoUrls,
-        interests: profile.interests
+        interests: profile.interests,
+        isVerified: profile.is_verified || false,
+        verifiedAt: profile.verified_at,
       },
       isOwnProfile: isOwnProfile
     });
@@ -573,10 +621,257 @@ app.put('/profile/photos/reorder', authMiddleware, generalLimiter, async (req: R
   }
 });
 
+// ===== VERIFICATION ENDPOINTS =====
+
+// Get a random gesture prompt for verification
+app.get('/verification/prompt', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
+  try {
+    // Select a random gesture prompt
+    const prompt = GESTURE_PROMPTS[Math.floor(Math.random() * GESTURE_PROMPTS.length)];
+
+    res.json({
+      success: true,
+      prompt: {
+        id: prompt.id,
+        instruction: prompt.instruction,
+        timeLimit: 5, // seconds to complete the gesture
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get verification prompt', { error, userId: req.user?.userId });
+    res.status(500).json({ success: false, error: 'Failed to get verification prompt' });
+  }
+});
+
+// Submit verification selfie
+app.post('/verification/submit', authMiddleware, generalLimiter, upload.single('selfie'), async (req: Request, res: Response) => {
+  try {
+    const authenticatedUserId = req.user!.userId;
+    const { gesturePrompt, referencePhotoIndex } = req.body;
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No selfie uploaded' });
+    }
+
+    if (!gesturePrompt) {
+      return res.status(400).json({ success: false, error: 'Gesture prompt is required' });
+    }
+
+    // Validate gesture prompt is valid
+    const validPrompt = GESTURE_PROMPTS.find(p => p.id === gesturePrompt);
+    if (!validPrompt) {
+      return res.status(400).json({ success: false, error: 'Invalid gesture prompt' });
+    }
+
+    // Get user's profile photos
+    const profileResult = await pool.query(
+      'SELECT photos, is_verified FROM profiles WHERE user_id = $1',
+      [authenticatedUserId]
+    );
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    // Check if already verified
+    if (profileResult.rows[0].is_verified) {
+      return res.status(400).json({ success: false, error: 'Already verified' });
+    }
+
+    const photos: string[] = profileResult.rows[0].photos || [];
+    if (photos.length === 0) {
+      return res.status(400).json({ success: false, error: 'No profile photos to compare against' });
+    }
+
+    // Get the reference photo (default to first photo)
+    const photoIndex = parseInt(referencePhotoIndex || '0', 10);
+    const referencePhotoKey = photos[Math.min(photoIndex, photos.length - 1)];
+
+    // Read the selfie file
+    const selfieBuffer = fs.readFileSync(req.file.path);
+
+    // Generate unique key for verification selfie
+    const timestamp = Date.now();
+    const selfieKey = `verifications/${authenticatedUserId}/${timestamp}.jpg`;
+
+    // Upload selfie to R2
+    await uploadToR2(selfieKey, selfieBuffer, 'image/jpeg');
+
+    // Clean up temp file
+    fs.unlinkSync(req.file.path);
+
+    // Create verification record with pending status
+    const verificationResult = await pool.query(
+      `INSERT INTO verifications (user_id, selfie_key, reference_photo_key, gesture_prompt, status)
+       VALUES ($1, $2, $3, $4, 'pending')
+       RETURNING id`,
+      [authenticatedUserId, selfieKey, referencePhotoKey, gesturePrompt]
+    );
+
+    const verificationId = verificationResult.rows[0].id;
+
+    // Perform face comparison with AWS Rekognition
+    try {
+      // Get the reference photo from R2 (or resolve if it's a URL)
+      let referenceImageBytes: Uint8Array;
+
+      if (referencePhotoKey.startsWith('http://') || referencePhotoKey.startsWith('https://')) {
+        // Fetch from URL (legacy photos)
+        const response = await fetch(referencePhotoKey);
+        const arrayBuffer = await response.arrayBuffer();
+        referenceImageBytes = new Uint8Array(arrayBuffer);
+      } else {
+        // Get presigned URL and fetch
+        const referenceUrl = await getPresignedUrl(referencePhotoKey);
+        const response = await fetch(referenceUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        referenceImageBytes = new Uint8Array(arrayBuffer);
+      }
+
+      // Compare faces using Rekognition
+      const compareFacesCommand = new CompareFacesCommand({
+        SourceImage: {
+          Bytes: selfieBuffer,
+        },
+        TargetImage: {
+          Bytes: referenceImageBytes,
+        },
+        SimilarityThreshold: SIMILARITY_THRESHOLD,
+      });
+
+      const rekognitionResponse = await rekognitionClient.send(compareFacesCommand);
+
+      // Check if faces match
+      const faceMatches = rekognitionResponse.FaceMatches || [];
+      const highestSimilarity = faceMatches.length > 0
+        ? Math.max(...faceMatches.map(m => m.Similarity || 0))
+        : 0;
+
+      const isVerified = highestSimilarity >= SIMILARITY_THRESHOLD;
+
+      // Update verification record
+      await pool.query(
+        `UPDATE verifications
+         SET similarity_score = $1,
+             rekognition_response = $2,
+             status = $3,
+             rejection_reason = $4,
+             processed_at = CURRENT_TIMESTAMP
+         WHERE id = $5`,
+        [
+          highestSimilarity,
+          JSON.stringify(rekognitionResponse),
+          isVerified ? 'approved' : 'rejected',
+          isVerified ? null : 'Face similarity below threshold',
+          verificationId,
+        ]
+      );
+
+      if (isVerified) {
+        // Update profile as verified
+        await pool.query(
+          `UPDATE profiles SET is_verified = true, verified_at = CURRENT_TIMESTAMP WHERE user_id = $1`,
+          [authenticatedUserId]
+        );
+
+        // Award verification ticket
+        await awardVerificationTicket(authenticatedUserId, verificationId);
+
+        logger.info('User verified successfully', { userId: authenticatedUserId, similarity: highestSimilarity });
+
+        res.json({
+          success: true,
+          verified: true,
+          message: 'Verification successful! You are now verified.',
+          similarity: Math.round(highestSimilarity),
+          ticketAwarded: true,
+        });
+      } else {
+        logger.info('Verification failed - low similarity', { userId: authenticatedUserId, similarity: highestSimilarity });
+
+        res.json({
+          success: true,
+          verified: false,
+          message: 'Verification failed. Please ensure your selfie matches your profile photo.',
+          similarity: Math.round(highestSimilarity),
+        });
+      }
+    } catch (rekognitionError) {
+      logger.error('Rekognition error', { error: rekognitionError, userId: authenticatedUserId });
+
+      // Update verification record with error
+      await pool.query(
+        `UPDATE verifications
+         SET status = 'rejected',
+             rejection_reason = $1,
+             processed_at = CURRENT_TIMESTAMP
+         WHERE id = $2`,
+        ['Face comparison service error', verificationId]
+      );
+
+      res.status(500).json({
+        success: false,
+        error: 'Face comparison service unavailable. Please try again later.',
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to submit verification', { error, userId: req.user?.userId });
+    res.status(500).json({ success: false, error: 'Failed to submit verification' });
+  }
+});
+
+// Get verification status
+app.get('/verification/status', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
+  try {
+    const authenticatedUserId = req.user!.userId;
+
+    // Get profile verification status
+    const profileResult = await pool.query(
+      'SELECT is_verified, verified_at FROM profiles WHERE user_id = $1',
+      [authenticatedUserId]
+    );
+
+    if (profileResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    const { is_verified, verified_at } = profileResult.rows[0];
+
+    // Get recent verification attempts
+    const attemptsResult = await pool.query(
+      `SELECT id, status, rejection_reason, similarity_score, created_at, processed_at
+       FROM verifications
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 5`,
+      [authenticatedUserId]
+    );
+
+    res.json({
+      success: true,
+      isVerified: is_verified || false,
+      verifiedAt: verified_at,
+      attempts: attemptsResult.rows.map(a => ({
+        id: a.id,
+        status: a.status,
+        rejectionReason: a.rejection_reason,
+        similarity: a.similarity_score ? Math.round(a.similarity_score) : null,
+        createdAt: a.created_at,
+        processedAt: a.processed_at,
+      })),
+    });
+  } catch (error) {
+    logger.error('Failed to get verification status', { error, userId: req.user?.userId });
+    res.status(500).json({ success: false, error: 'Failed to get verification status' });
+  }
+});
+
 // ===== DISCOVERY ENDPOINTS =====
 
 // Get random profiles for discovery - Requires authentication
 // P1: Now supports distance filtering based on user location
+// P4: Supports filtering by verified users only
 app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Request, res: Response) => {
   try {
     const authenticatedUserId = req.user!.userId;
@@ -587,6 +882,7 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
     const maxDistance = req.query.maxDistance ? parseFloat(req.query.maxDistance as string) : null; // P1: Distance in km
     const interests = req.query.interests ? (req.query.interests as string).split(',') : null;
     const excludeIds = req.query.exclude ? (req.query.exclude as string).split(',') : [];
+    const showVerifiedOnly = req.query.verifiedOnly === 'true'; // P4: Show only verified users
 
     // Get current user's location for distance filtering
     let userLocation: { latitude: number; longitude: number } | null = null;
@@ -643,6 +939,11 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
       paramIndex++;
     }
 
+    // P4: Verified only filter
+    if (showVerifiedOnly) {
+      conditions.push('is_verified = TRUE');
+    }
+
     const whereClause = conditions.join(' AND ');
 
     // Fetch profiles with or without distance calculation
@@ -689,10 +990,11 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
       if (userLocation && effectiveMaxDistance) {
         // P1: Use Haversine formula to calculate distance and filter
         // P2: New user boost - prioritize users created in last 48 hours
+        // P4: Include is_verified field
         discoveryQuery = `
           SELECT * FROM (
             SELECT
-              user_id, name, age, bio, photos, interests, latitude, longitude, created_at,
+              user_id, name, age, bio, photos, interests, latitude, longitude, created_at, is_verified,
               (
                 6371 * acos(
                   cos(radians($${paramIndex})) * cos(radians(latitude)) *
@@ -714,8 +1016,9 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
         queryParams.push(userLocation.latitude, userLocation.longitude, effectiveMaxDistance);
       } else {
         // P2: New user boost - prioritize users created in last 48 hours
+        // P4: Include is_verified field
         discoveryQuery = `
-          SELECT user_id, name, age, bio, photos, interests, latitude, longitude, created_at
+          SELECT user_id, name, age, bio, photos, interests, latitude, longitude, created_at, is_verified
           FROM profiles
           WHERE ${whereClause}
           ORDER BY
@@ -769,7 +1072,8 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
         bio: profile.bio,
         photos: photoUrls,
         interests: profile.interests,
-        isNewUser: isNewUser || false
+        isNewUser: isNewUser || false,
+        isVerified: profile.is_verified || false, // P4: Include verification status
       };
 
       // P1: Include distance if calculated

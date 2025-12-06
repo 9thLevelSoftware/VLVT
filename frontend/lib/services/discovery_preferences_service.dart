@@ -7,12 +7,14 @@ class DiscoveryFilters {
   final int maxAge;
   final double maxDistance; // in km
   final List<String> selectedInterests;
+  final bool verifiedOnly; // P4: Show only verified users
 
   DiscoveryFilters({
     this.minAge = 18,
     this.maxAge = 99,
     this.maxDistance = 50.0,
     this.selectedInterests = const [],
+    this.verifiedOnly = false,
   });
 
   Map<String, dynamic> toJson() {
@@ -21,6 +23,7 @@ class DiscoveryFilters {
       'maxAge': maxAge,
       'maxDistance': maxDistance,
       'selectedInterests': selectedInterests,
+      'verifiedOnly': verifiedOnly,
     };
   }
 
@@ -32,11 +35,12 @@ class DiscoveryFilters {
       selectedInterests: json['selectedInterests'] != null
           ? List<String>.from(json['selectedInterests'])
           : [],
+      verifiedOnly: json['verifiedOnly'] ?? false,
     );
   }
 
   bool get hasActiveFilters {
-    return minAge != 18 || maxAge != 99 || maxDistance != 50.0 || selectedInterests.isNotEmpty;
+    return minAge != 18 || maxAge != 99 || maxDistance != 50.0 || selectedInterests.isNotEmpty || verifiedOnly;
   }
 
   DiscoveryFilters copyWith({
@@ -44,12 +48,14 @@ class DiscoveryFilters {
     int? maxAge,
     double? maxDistance,
     List<String>? selectedInterests,
+    bool? verifiedOnly,
   }) {
     return DiscoveryFilters(
       minAge: minAge ?? this.minAge,
       maxAge: maxAge ?? this.maxAge,
       maxDistance: maxDistance ?? this.maxDistance,
       selectedInterests: selectedInterests ?? this.selectedInterests,
+      verifiedOnly: verifiedOnly ?? this.verifiedOnly,
     );
   }
 }

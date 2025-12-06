@@ -17,6 +17,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
   late int _maxAge;
   late double _maxDistance;
   late List<String> _selectedInterests;
+  late bool _verifiedOnly;
 
   // Available interests
   final List<String> _availableInterests = [
@@ -52,6 +53,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
     _maxAge = filters.maxAge;
     _maxDistance = filters.maxDistance;
     _selectedInterests = List.from(filters.selectedInterests);
+    _verifiedOnly = filters.verifiedOnly;
   }
 
   Future<void> _applyFilters() async {
@@ -61,6 +63,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
       maxAge: _maxAge,
       maxDistance: _maxDistance,
       selectedInterests: _selectedInterests,
+      verifiedOnly: _verifiedOnly,
     );
 
     await prefsService.updateFilters(newFilters);
@@ -79,6 +82,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
       _maxAge = 99;
       _maxDistance = 50.0;
       _selectedInterests.clear();
+      _verifiedOnly = false;
     });
 
     if (mounted) {
@@ -187,6 +191,64 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                           _maxDistance = value;
                         });
                       },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Verified Only Section
+              const Text(
+                'Verification',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              VlvtSurfaceCard(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.verified,
+                                color: VlvtColors.gold,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Verified Users Only',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Show only profiles with verified selfies',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: VlvtColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _verifiedOnly,
+                      onChanged: (value) {
+                        setState(() {
+                          _verifiedOnly = value;
+                        });
+                      },
+                      activeTrackColor: VlvtColors.gold.withValues(alpha: 0.5),
+                      activeThumbColor: VlvtColors.gold,
                     ),
                   ],
                 ),

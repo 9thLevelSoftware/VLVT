@@ -6,6 +6,8 @@ class Profile {
   final List<String>? photos;
   final List<String>? interests;
   final double? distance; // Distance in kilometers from current user
+  final bool isVerified; // Whether user has completed selfie verification
+  final bool isNewUser; // Whether user was created in last 48 hours
 
   Profile({
     required this.userId,
@@ -15,6 +17,8 @@ class Profile {
     this.photos,
     this.interests,
     this.distance,
+    this.isVerified = false,
+    this.isNewUser = false,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class Profile {
       distance: json['distance'] != null
           ? (json['distance'] as num).toDouble()
           : null,
+      isVerified: json['isVerified'] as bool? ?? false,
+      isNewUser: json['isNewUser'] as bool? ?? false,
     );
   }
 
@@ -44,6 +50,8 @@ class Profile {
       if (photos != null) 'photos': photos,
       if (interests != null) 'interests': interests,
       if (distance != null) 'distance': distance,
+      'isVerified': isVerified,
+      'isNewUser': isNewUser,
     };
   }
 }

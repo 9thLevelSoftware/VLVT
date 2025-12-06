@@ -15,6 +15,7 @@ import '../widgets/swipe_tutorial_overlay.dart';
 import '../widgets/match_overlay.dart';
 import '../widgets/vlvt_loader.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/verified_badge.dart';
 import '../models/profile.dart';
 import '../models/match.dart';
 import '../theme/vlvt_colors.dart';
@@ -170,6 +171,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         maxDistance: filters.maxDistance != 50.0 ? filters.maxDistance : null,
         interests: filters.selectedInterests.isNotEmpty ? filters.selectedInterests : null,
         excludeUserIds: excludeIds.isNotEmpty ? excludeIds : null,
+        verifiedOnly: filters.verifiedOnly ? true : null,
       );
 
       setState(() {
@@ -882,11 +884,20 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                     color: Colors.white,
                   ),
                 const SizedBox(height: 24),
-                Text(
-                  '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
-                  style: VlvtTextStyles.displayMedium.copyWith(
-                    color: VlvtColors.textPrimary,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
+                      style: VlvtTextStyles.displayMedium.copyWith(
+                        color: VlvtColors.textPrimary,
+                      ),
+                    ),
+                    if (profile.isVerified) ...[
+                      const SizedBox(width: 8),
+                      const VerifiedIcon(size: 24),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Text(

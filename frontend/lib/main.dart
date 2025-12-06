@@ -14,6 +14,7 @@ import 'services/safety_service.dart';
 import 'services/discovery_preferences_service.dart';
 import 'services/tickets_service.dart';
 import 'services/date_proposal_service.dart';
+import 'services/verification_service.dart';
 import 'services/analytics_service.dart';
 import 'services/notification_service.dart';
 import 'services/theme_service.dart';
@@ -142,6 +143,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProxyProvider<AuthService, DateProposalService>(
           create: (context) => DateProposalService(context.read<AuthService>()),
           update: (context, auth, previous) => DateProposalService(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthService, VerificationService>(
+          create: (context) => VerificationService(context.read<AuthService>()),
+          update: (context, auth, previous) => VerificationService(auth),
         ),
       ],
       child: Consumer<ThemeService>(

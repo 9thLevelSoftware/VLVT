@@ -55,6 +55,7 @@ class ProfileApiService extends ChangeNotifier {
     double? maxDistance,
     List<String>? interests,
     List<String>? excludeUserIds,
+    bool? verifiedOnly,
   }) async {
     try {
       // Build query parameters
@@ -68,6 +69,9 @@ class ProfileApiService extends ChangeNotifier {
       }
       if (excludeUserIds != null && excludeUserIds.isNotEmpty) {
         queryParams['exclude'] = excludeUserIds.join(',');
+      }
+      if (verifiedOnly == true) {
+        queryParams['verifiedOnly'] = 'true';
       }
 
       final uri = Uri.parse('$baseUrl/profiles/discover').replace(
