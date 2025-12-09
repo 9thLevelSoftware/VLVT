@@ -11,6 +11,7 @@ import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'chat_screen.dart';
+import 'profile_detail_screen.dart';
 
 /// Match status type for filtering
 enum MatchStatus { mutual, likedYou, liked }
@@ -37,7 +38,9 @@ class MatchEntry {
 
 /// MatchesScreen - displays likes activity (who liked you, who you liked, mutual matches)
 class MatchesScreen extends StatefulWidget {
-  const MatchesScreen({super.key});
+  final MatchFilterType? initialFilter;
+
+  const MatchesScreen({super.key, this.initialFilter});
 
   @override
   State<MatchesScreen> createState() => _MatchesScreenState();
@@ -49,11 +52,12 @@ class _MatchesScreenState extends State<MatchesScreen> {
 
   // Data
   List<MatchEntry> _allEntries = [];
-  MatchFilterType _activeFilter = MatchFilterType.all;
+  late MatchFilterType _activeFilter;
 
   @override
   void initState() {
     super.initState();
+    _activeFilter = widget.initialFilter ?? MatchFilterType.all;
     _loadData();
   }
 
@@ -613,21 +617,44 @@ class _MatchesScreenState extends State<MatchesScreen> {
       if (shouldRefresh == true && mounted) {
         _loadData();
       }
-    } else if (entry.status == MatchStatus.likedYou) {
-      // Show profile of person who liked you
-      // For now, just show a snackbar - could navigate to profile detail
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${entry.profile?.name ?? "Someone"} likes you! Swipe right to match.'),
-          backgroundColor: VlvtColors.crimson,
+    } else if (entry.status == MatchStatus.likedYou && entry.profile != null) {
+      // Navigate to profile detail with like-back option
+      final didLike = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileDetailScreen(
+            profile: entry.profile!,
+            showLikeAction: true,
+            onLike: () async {
+              try {
+                final profileService = context.read<ProfileApiService>();
+                await profileService.swipe(targetUserId: entry.odId, action: 'like');
+              } catch (e) {
+                debugPrint('Failed to like back: $e');
+              }
+            },
+          ),
         ),
       );
-    } else if (entry.status == MatchStatus.liked) {
-      // Show profile of person you liked
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Waiting for ${entry.profile?.name ?? "them"} to like you back!'),
-          backgroundColor: VlvtColors.success,
+
+      if (didLike == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You matched with ${entry.profile?.name ?? "them"}!'),
+            backgroundColor: VlvtColors.gold,
+          ),
+        );
+        _loadData();
+      }
+    } else if (entry.status == MatchStatus.liked && entry.profile != null) {
+      // Navigate to profile detail (view only)
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ProfileDetailScreen(
+            profile: entry.profile!,
+            showLikeAction: false,
+          ),
         ),
       );
     }

@@ -21,6 +21,7 @@ import '../models/match.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'discovery_filters_screen.dart';
+import 'matches_screen.dart';
 import 'dart:async';
 
 class DiscoveryScreen extends StatefulWidget {
@@ -1180,11 +1181,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                 if (_receivedLikesCount > 0)
                   GestureDetector(
                     onTap: () {
-                      // TODO: Navigate to Who Liked You screen
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Who Liked You feature coming soon!'),
-                          duration: Duration(seconds: 2),
+                      HapticFeedback.mediumImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MatchesScreen(
+                            initialFilter: MatchFilterType.likedYou,
+                          ),
                         ),
                       );
                     },
