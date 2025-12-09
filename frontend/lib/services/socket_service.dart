@@ -8,6 +8,7 @@ import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 import '../models/message.dart';
 import '../config/app_config.dart';
 import 'auth_service.dart';
+import 'message_queue_service.dart';
 
 /// Represents online status of a user
 class UserStatus {
@@ -36,6 +37,7 @@ class UserStatus {
 class SocketService extends ChangeNotifier {
   socket_io.Socket? _socket;
   final AuthService _authService;
+  MessageQueueService? _messageQueueService;
   bool _isConnected = false;
   bool _isConnecting = false;
 
@@ -57,6 +59,11 @@ class SocketService extends ChangeNotifier {
   bool get isConnecting => _isConnecting;
 
   SocketService(this._authService);
+
+  /// Set the MessageQueueService for auto-processing on reconnection
+  void setMessageQueueService(MessageQueueService queueService) {
+    _messageQueueService = queueService;
+  }
 
   /// Connect to Socket.IO server
   Future<void> connect() async {
@@ -113,6 +120,12 @@ class SocketService extends ChangeNotifier {
       _isConnecting = false;
       _connectionController.add(true);
       notifyListeners();
+
+      // FIX: Auto-process message queue on reconnection
+      if (_messageQueueService != null) {
+        debugPrint('Socket: Triggering auto-process of message queue');
+        _messageQueueService!.processQueue(this);
+      }
     });
 
     _socket!.onDisconnect((_) {

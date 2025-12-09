@@ -195,6 +195,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authService = context.read<AuthService>();
       DeepLinkService.init(context, authService);
+
+      // FIX: Wire up MessageQueueService to SocketService for auto-processing on reconnection
+      final socketService = context.read<SocketService>();
+      final messageQueueService = context.read<MessageQueueService>();
+      socketService.setMessageQueueService(messageQueueService);
     });
   }
 

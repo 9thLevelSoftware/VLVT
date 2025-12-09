@@ -172,16 +172,19 @@ class MessageQueueService extends ChangeNotifier {
         debugPrint('MessageQueueService: Failed to send queued message: $e');
         failureCount++;
 
-        // Increment retry count
-        message.retryCount++;
+        // FIX: Increment retry count on the actual queue item, not the snapshot copy
+        final queueIndex = _queue.indexWhere((m) => m.id == message.id);
+        if (queueIndex != -1) {
+          _queue[queueIndex].retryCount++;
 
-        // Remove message if max retries reached
-        if (message.retryCount >= _maxRetries) {
-          debugPrint('MessageQueueService: Max retries reached for message ${message.id}, removing from queue');
-          await removeMessage(message.id);
-        } else {
-          // Persist updated retry count
-          await _persist();
+          // Remove message if max retries reached
+          if (_queue[queueIndex].retryCount >= _maxRetries) {
+            debugPrint('MessageQueueService: Max retries reached for message ${message.id}, removing from queue');
+            await removeMessage(message.id);
+          } else {
+            // Persist updated retry count
+            await _persist();
+          }
         }
 
         // If one fails, stop trying (probably connection issue)
