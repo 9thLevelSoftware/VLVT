@@ -20,6 +20,7 @@ import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
 import '../widgets/date_proposal_sheet.dart';
 import '../widgets/date_card.dart';
+import '../widgets/message_status_indicator.dart';
 import '../services/date_proposal_service.dart';
 import '../theme/vlvt_colors.dart';
 
@@ -814,28 +815,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildMessageStatusIcon(MessageStatus status) {
-    switch (status) {
-      case MessageStatus.sending:
-        return SizedBox(
-          width: 12,
-          height: 12,
-          child: CircularProgressIndicator(
-            strokeWidth: 1.5,
-            valueColor: AlwaysStoppedAnimation<Color>(VlvtColors.chatTimestampSent),
-          ),
-        );
-      case MessageStatus.sent:
-        // Single check = sent
-        return Icon(Icons.check, size: 14, color: VlvtColors.chatTimestampSent);
-      case MessageStatus.delivered:
-        // Double check = delivered
-        return Icon(Icons.done_all, size: 14, color: VlvtColors.chatTimestampSent);
-      case MessageStatus.read:
-        // Double check gold = read (P2: Trust layer - read receipts)
-        return Icon(Icons.done_all, size: 14, color: VlvtColors.gold);
-      case MessageStatus.failed:
-        return Icon(Icons.error_outline, size: 14, color: VlvtColors.error);
-    }
+    // Use the new MessageStatusIndicator widget
+    return MessageStatusIndicator(
+      status: status,
+      size: 14,
+    );
   }
 
   Widget _buildMessageInput() {
