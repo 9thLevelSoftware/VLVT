@@ -20,10 +20,15 @@ export function generateVerificationToken(): { token: string; expires: Date } {
 
 /**
  * Generate a password reset token with 1-hour expiry
+ * Returns both the raw token (to send via email) and the hash (to store in database)
+ * SECURITY: Never store raw reset tokens - always store the hash
  */
-export function generateResetToken(): { token: string; expires: Date } {
+export function generateResetToken(): { token: string; tokenHash: string; expires: Date } {
+  const token = generateToken(32);
+  const tokenHash = hashToken(token);
   return {
-    token: generateToken(32),
+    token,
+    tokenHash,
     expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
   };
 }

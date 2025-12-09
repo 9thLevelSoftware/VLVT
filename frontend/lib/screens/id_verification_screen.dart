@@ -86,10 +86,20 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
 
   void _startPolling() {
     _pollingTimer?.cancel();
+    // Capture AuthService reference outside the timer callback to avoid
+    // accessing context after widget is disposed
+    final authService = context.read<AuthService>();
+
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) async {
-      final authService = context.read<AuthService>();
+      // Check mounted BEFORE doing any work to avoid accessing disposed context
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       final result = await authService.getIdVerificationStatus();
 
+      // Check mounted again after async operation
       if (!mounted) {
         timer.cancel();
         return;

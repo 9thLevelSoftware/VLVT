@@ -39,8 +39,9 @@ async function checkPremiumStatus(pool: Pool, userId: string): Promise<Subscript
     return { isPremium: false };
   } catch (error) {
     logger.error('Failed to check premium status', { error, userId });
-    // Fail open - if we can't check, allow the action (prevents service disruption)
-    return { isPremium: true };
+    // SECURITY: Fail closed - if we can't check, assume non-premium
+    // This prevents free users from bypassing limits during DB issues
+    return { isPremium: false };
   }
 }
 

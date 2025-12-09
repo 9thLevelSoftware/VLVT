@@ -458,9 +458,12 @@ class _AuthScreenState extends State<AuthScreen>
                                   if (value == null || value.trim().isEmpty) {
                                     return 'Please enter your email';
                                   }
-                                  if (!value.contains('@') ||
-                                      !value.contains('.')) {
-                                    return 'Please enter a valid email';
+                                  // RFC 5322 compliant email regex
+                                  final emailRegex = RegExp(
+                                    r'^[a-zA-Z0-9.!#$%&*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$',
+                                  );
+                                  if (!emailRegex.hasMatch(value.trim())) {
+                                    return 'Please enter a valid email address';
                                   }
                                   return null;
                                 },

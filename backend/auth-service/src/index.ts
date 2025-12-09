@@ -917,14 +917,16 @@ app.post('/auth/email/forgot', authLimiter, async (req: Request, res: Response) 
     }
 
     const credential = result.rows[0];
-    const { token: resetToken, expires: resetExpires } = generateResetToken();
+    const { token: resetToken, tokenHash: resetTokenHash, expires: resetExpires } = generateResetToken();
 
+    // SECURITY: Store hash of reset token, not the raw token
     await pool.query(
       `UPDATE auth_credentials SET reset_token = $1, reset_expires = $2, updated_at = NOW()
        WHERE user_id = $3 AND provider = 'email'`,
-      [resetToken, resetExpires, credential.user_id]
+      [resetTokenHash, resetExpires, credential.user_id]
     );
 
+    // Send the raw token via email - user will submit this, we'll hash it to compare
     await emailService.sendPasswordResetEmail(credential.email, resetToken);
 
     logger.info('Password reset requested', { userId: credential.user_id });
@@ -953,9 +955,12 @@ app.post('/auth/email/reset', authLimiter, async (req: Request, res: Response) =
       });
     }
 
+    // SECURITY: Hash the provided token to compare with stored hash
+    const tokenHash = hashToken(token);
+
     const result = await pool.query(
       `SELECT user_id, reset_expires FROM auth_credentials WHERE reset_token = $1 AND provider = 'email'`,
-      [token]
+      [tokenHash]
     );
 
     if (result.rows.length === 0) {

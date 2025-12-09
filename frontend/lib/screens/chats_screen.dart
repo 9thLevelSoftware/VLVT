@@ -47,6 +47,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
   ChatsSortOption _sortOption = ChatsSortOption.recentActivity;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -57,6 +58,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -657,7 +659,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: VlvtInput(
                     controller: _searchController,
-                    focusNode: FocusNode()..requestFocus(),
+                    focusNode: _searchFocusNode..requestFocus(),
                     hintText: 'Search chats...',
                     blur: false,
                     onChanged: (value) {

@@ -91,9 +91,9 @@ class SocketService extends ChangeNotifier {
             .setTransports(['websocket', 'polling'])
             .enableAutoConnect()
             .enableReconnection()
-            .setReconnectionAttempts(5)
-            .setReconnectionDelay(2000)
-            .setReconnectionDelayMax(10000)
+            .setReconnectionAttempts(20) // Increased for better resilience to brief outages
+            .setReconnectionDelay(1000)
+            .setReconnectionDelayMax(30000) // Max 30s between attempts
             .setAuth({
               'token': token,
             })
@@ -156,7 +156,12 @@ class SocketService extends ChangeNotifier {
     _socket!.on('new_message', (data) {
       debugPrint('Socket: New message received');
       try {
-        final message = Message.fromJson(data as Map<String, dynamic>);
+        // Safe type check before casting
+        if (data is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid new_message data type: ${data.runtimeType}');
+          return;
+        }
+        final message = Message.fromJson(data);
         _messageController.add(message);
       } catch (e) {
         debugPrint('Socket: Error parsing new message: $e');
@@ -166,7 +171,12 @@ class SocketService extends ChangeNotifier {
     _socket!.on('messages_read', (data) {
       debugPrint('Socket: Messages marked as read');
       try {
-        _messageReadController.add(data as Map<String, dynamic>);
+        // Safe type check before casting
+        if (data is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid messages_read data type: ${data.runtimeType}');
+          return;
+        }
+        _messageReadController.add(data);
       } catch (e) {
         debugPrint('Socket: Error parsing read receipt: $e');
       }
@@ -176,7 +186,12 @@ class SocketService extends ChangeNotifier {
     _socket!.on('user_typing', (data) {
       debugPrint('Socket: User typing indicator');
       try {
-        _typingController.add(data as Map<String, dynamic>);
+        // Safe type check before casting
+        if (data is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid user_typing data type: ${data.runtimeType}');
+          return;
+        }
+        _typingController.add(data);
       } catch (e) {
         debugPrint('Socket: Error parsing typing indicator: $e');
       }
@@ -186,7 +201,12 @@ class SocketService extends ChangeNotifier {
     _socket!.on('user_status_changed', (data) {
       debugPrint('Socket: User status changed');
       try {
-        final status = UserStatus.fromJson(data as Map<String, dynamic>);
+        // Safe type check before casting
+        if (data is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid user_status_changed data type: ${data.runtimeType}');
+          return;
+        }
+        final status = UserStatus.fromJson(data);
         _statusController.add(status);
       } catch (e) {
         debugPrint('Socket: Error parsing status: $e');
@@ -225,14 +245,25 @@ class SocketService extends ChangeNotifier {
       if (hasCompleted) return; // Already timed out
       hasCompleted = true;
       try {
-        final data = response as Map<String, dynamic>;
-        debugPrint('Socket: Received ack response: $data');
-        if (data['success'] == true) {
-          final message = Message.fromJson(data['message'] as Map<String, dynamic>);
+        // Safe type check before casting
+        if (response is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid send_message ack type: ${response.runtimeType}');
+          completer.complete(null);
+          return;
+        }
+        debugPrint('Socket: Received ack response: $response');
+        if (response['success'] == true) {
+          final messageData = response['message'];
+          if (messageData is! Map<String, dynamic>) {
+            debugPrint('Socket: Invalid message data type in ack');
+            completer.complete(null);
+            return;
+          }
+          final message = Message.fromJson(messageData);
           debugPrint('Socket: Message sent successfully');
           completer.complete(message);
         } else {
-          debugPrint('Socket: Message send failed: ${data['error']}');
+          debugPrint('Socket: Message send failed: ${response['error']}');
           completer.complete(null);
         }
       } catch (e) {
@@ -261,8 +292,13 @@ class SocketService extends ChangeNotifier {
       if (messageIds != null) 'messageIds': messageIds,
     }, ack: (response) {
       try {
-        final data = response as Map<String, dynamic>;
-        final success = data['success'] == true;
+        // Safe type check before casting
+        if (response is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid mark_read ack type: ${response.runtimeType}');
+          completer.complete(false);
+          return;
+        }
+        final success = response['success'] == true;
         debugPrint('Socket: Mark as read ${success ? 'succeeded' : 'failed'}');
         completer.complete(success);
       } catch (e) {
@@ -302,10 +338,22 @@ class SocketService extends ChangeNotifier {
       'userIds': userIds,
     }, ack: (response) {
       try {
-        final data = response as Map<String, dynamic>;
-        if (data['success'] == true) {
-          final statuses = (data['statuses'] as List)
-              .map((s) => UserStatus.fromJson(s as Map<String, dynamic>))
+        // Safe type check before casting
+        if (response is! Map<String, dynamic>) {
+          debugPrint('Socket: Invalid get_online_status ack type: ${response.runtimeType}');
+          completer.complete([]);
+          return;
+        }
+        if (response['success'] == true) {
+          final statusesData = response['statuses'];
+          if (statusesData is! List) {
+            debugPrint('Socket: Invalid statuses data type');
+            completer.complete([]);
+            return;
+          }
+          final statuses = statusesData
+              .whereType<Map<String, dynamic>>()
+              .map((s) => UserStatus.fromJson(s))
               .toList();
           completer.complete(statuses);
         } else {

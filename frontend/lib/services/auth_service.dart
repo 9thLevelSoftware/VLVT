@@ -14,8 +14,10 @@ class AuthService extends ChangeNotifier {
   bool _googleSignInInitialized = false;
 
   String? _token;
+  String? _refreshToken;
   String? _userId;
   bool _isAuthenticated = false;
+  bool _isRefreshing = false;
 
   bool get isAuthenticated => _isAuthenticated;
   String? get userId => _userId;
@@ -33,10 +35,50 @@ class AuthService extends ChangeNotifier {
   
   Future<void> _loadToken() async {
     _token = await _storage.read(key: 'auth_token');
+    _refreshToken = await _storage.read(key: 'refresh_token');
     _userId = await _storage.read(key: 'user_id');
     if (_token != null && _userId != null) {
       _isAuthenticated = true;
       notifyListeners();
+    }
+  }
+
+  /// Attempt to refresh the access token using the refresh token
+  /// Returns true if successful, false otherwise
+  Future<bool> refreshToken() async {
+    if (_refreshToken == null || _isRefreshing) {
+      return false;
+    }
+
+    _isRefreshing = true;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'refreshToken': _refreshToken}),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _token = data['accessToken'];
+        _refreshToken = data['refreshToken'];
+
+        await _storage.write(key: 'auth_token', value: _token);
+        await _storage.write(key: 'refresh_token', value: _refreshToken);
+
+        debugPrint('Token refresh successful');
+        notifyListeners();
+        return true;
+      } else {
+        debugPrint('Token refresh failed: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('Token refresh error: $e');
+      return false;
+    } finally {
+      _isRefreshing = false;
     }
   }
   
@@ -60,10 +102,14 @@ class AuthService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        _token = data['token'];
+        _token = data['accessToken'] ?? data['token'];
+        _refreshToken = data['refreshToken'];
         _userId = data['userId'];
 
         await _storage.write(key: 'auth_token', value: _token);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken);
+        }
         await _storage.write(key: 'user_id', value: _userId);
 
         _isAuthenticated = true;
@@ -174,10 +220,14 @@ class AuthService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        _token = data['token'];
+        _token = data['accessToken'] ?? data['token'];
+        _refreshToken = data['refreshToken'];
         _userId = data['userId'];
 
         await _storage.write(key: 'auth_token', value: _token);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken);
+        }
         await _storage.write(key: 'user_id', value: _userId);
 
         _isAuthenticated = true;
@@ -252,10 +302,14 @@ class AuthService extends ChangeNotifier {
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        _token = data['token'];
+        _token = data['accessToken'] ?? data['token'];
+        _refreshToken = data['refreshToken'];
         _userId = data['userId'];
 
         await _storage.write(key: 'auth_token', value: _token);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken);
+        }
         await _storage.write(key: 'user_id', value: _userId);
 
         _isAuthenticated = true;
@@ -345,10 +399,14 @@ class AuthService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        _token = data['token'];
+        _token = data['accessToken'] ?? data['token'];
+        _refreshToken = data['refreshToken'];
         _userId = data['userId'];
 
         await _storage.write(key: 'auth_token', value: _token);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken);
+        }
         await _storage.write(key: 'user_id', value: _userId);
 
         _isAuthenticated = true;
@@ -385,10 +443,14 @@ class AuthService extends ChangeNotifier {
           };
         }
 
-        _token = data['token'];
+        _token = data['accessToken'] ?? data['token'];
+        _refreshToken = data['refreshToken'];
         _userId = data['userId'];
 
         await _storage.write(key: 'auth_token', value: _token);
+        if (_refreshToken != null) {
+          await _storage.write(key: 'refresh_token', value: _refreshToken);
+        }
         await _storage.write(key: 'user_id', value: _userId);
 
         _isAuthenticated = true;
@@ -432,11 +494,32 @@ class AuthService extends ChangeNotifier {
   }
   
   Future<void> signOut() async {
+    // Revoke refresh token on server (fire-and-forget, don't block logout)
+    if (_refreshToken != null) {
+      try {
+        // ignore: unawaited_futures
+        http.post(
+          Uri.parse('$baseUrl/auth/logout'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'refreshToken': _refreshToken}),
+        ).timeout(const Duration(seconds: 5)).ignore();
+      } catch (_) {
+        // Don't block logout if revocation fails
+      }
+    }
+
     await _storage.delete(key: 'auth_token');
+    await _storage.delete(key: 'refresh_token');
     await _storage.delete(key: 'user_id');
-    await _googleSignIn.disconnect();
+
+    try {
+      await _googleSignIn.disconnect();
+    } catch (_) {
+      // Ignore Google sign-in disconnect errors
+    }
 
     _token = null;
+    _refreshToken = null;
     _userId = null;
     _isAuthenticated = false;
     notifyListeners();
