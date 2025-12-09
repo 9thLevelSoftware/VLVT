@@ -287,8 +287,19 @@ class NotificationService {
 
   /// Handle notification tap (app opened from notification)
   void _handleNotificationTap(RemoteMessage message) {
-    if (kDebugMode) print('👆 Notification tapped: ${message.data}');
-    onNotificationTap?.call(message.data);
+    if (kDebugMode) {
+      print('👆 Notification tapped');
+      print('   Message ID: ${message.messageId}');
+      print('   Data: ${message.data}');
+      print('   Type: ${message.data['type']}');
+      print('   Match ID: ${message.data['matchId']}');
+    }
+
+    if (onNotificationTap != null) {
+      onNotificationTap?.call(message.data);
+    } else {
+      if (kDebugMode) print('⚠️ onNotificationTap callback not set - notification tap ignored');
+    }
   }
 
   /// Get current FCM token

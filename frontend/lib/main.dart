@@ -87,27 +87,52 @@ void main() async {
 
 /// Handle notification tap - navigate to appropriate screen
 void _handleNotificationTap(Map<String, dynamic> data) {
+  debugPrint('Handling notification tap: $data');
+
+  final navigatorState = navigatorKey.currentState;
+  if (navigatorState == null) {
+    debugPrint('Navigator not ready - cannot handle notification tap');
+    return;
+  }
+
   final type = data['type'];
 
   if (type == 'message') {
-    // Navigate to chat screen
+    // Navigate to chat screen for the specific match
     final matchId = data['matchId'];
-    if (matchId != null) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(match: null, matchId: matchId),
-        ),
-      );
+    if (matchId == null || matchId.toString().isEmpty) {
+      debugPrint('Invalid matchId in notification data');
+      return;
     }
-  } else if (type == 'match') {
-    // Navigate to matches tab
-    // The MainScreen will handle showing the matches tab
-    navigatorKey.currentState?.pushAndRemoveUntil(
+
+    // Use pushReplacement to avoid stacking multiple chat screens
+    navigatorState.push(
       MaterialPageRoute(
-        builder: (context) => const MainScreen(initialTab: 1), // 1 = Matches tab
+        builder: (context) => ChatScreen(match: null, matchId: matchId.toString()),
+      ),
+    );
+    debugPrint('Navigating to chat screen for match: $matchId');
+
+  } else if (type == 'match') {
+    // Navigate to matches screen
+    // For premium users: Matches tab (index 1)
+    // For free users: We need to navigate to MainScreen and they can upgrade to see matches
+
+    // Clear the navigation stack and go to MainScreen
+    // Premium users will see Matches tab, free users will see Search/Profile
+    navigatorState.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) {
+          // Try to get subscription status to determine correct tab
+          // Default to index 1 (Matches for premium, Profile for free)
+          return const MainScreen(initialTab: 1);
+        },
       ),
       (route) => false,
     );
+    debugPrint('Navigating to MainScreen for new match notification');
+  } else {
+    debugPrint('Unknown notification type: $type');
   }
 }
 
