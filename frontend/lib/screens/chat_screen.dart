@@ -340,11 +340,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     // If still not connected (no connection in progress or timed out), queue the message
     if (!socketService.isConnected) {
-      await queueService.enqueue(QueuedMessage(
-        tempId: tempId,
+      await queueService.queueMessage(QueuedMessage(
+        id: tempId,
         matchId: _match!.id,
-        text: text,
-        timestamp: DateTime.now(),
+        content: text,
+        queuedAt: DateTime.now(),
       ));
       scaffoldMessenger.showSnackBar(const SnackBar(
         content: Text('Message queued. Will send when connected.'),
