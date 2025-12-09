@@ -136,7 +136,7 @@ class FeedbackService {
 ///
 /// ```dart
 /// final feedbackService = FeedbackService(
-///   backendUrl: 'https://api.nobsdating.app',
+///   backendUrl: 'https://api.getvlvt.vip',
 ///   webhookUrl: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL',
 /// );
 ///

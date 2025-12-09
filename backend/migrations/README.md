@@ -75,7 +75,7 @@ Creates the safety and moderation tables:
 chmod +x run_migration.sh
 
 # Set your database URL
-export DATABASE_URL="postgresql://username:password@localhost:5432/nobsdating"
+export DATABASE_URL="postgresql://username:password@localhost:5432/vlvt"
 
 # Run the migration
 ./run_migration.sh
@@ -85,7 +85,7 @@ export DATABASE_URL="postgresql://username:password@localhost:5432/nobsdating"
 
 ```bash
 # Set your database URL
-export DATABASE_URL="postgresql://username:password@localhost:5432/nobsdating"
+export DATABASE_URL="postgresql://username:password@localhost:5432/vlvt"
 
 # Run the migration
 psql $DATABASE_URL -f 003_create_safety_tables.sql

@@ -1,5 +1,5 @@
 {
-  "name": "nobsdating-migrations",
+  "name": "vlvt-migrations",
   "version": "1.0.0",
   "description": "Database migrations for VLVT",
   "main": "run_migration.js",

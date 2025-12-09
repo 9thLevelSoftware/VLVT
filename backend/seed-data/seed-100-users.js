@@ -24,7 +24,7 @@ const bcrypt = require('bcrypt');
 
 // Database connection
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/nobsdating',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/vlvt',
 });
 
 // Parse command line arguments

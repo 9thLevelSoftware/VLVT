@@ -436,7 +436,7 @@ class FeedbackData {
 ///
 ///       // Option 2: Send to backend API
 ///       final response = await http.post(
-///         Uri.parse('https://api.nobsdating.app/feedback'),
+///         Uri.parse('https://api.getvlvt.vip/feedback'),
 ///         headers: {'Content-Type': 'application/json'},
 ///         body: jsonEncode(feedback.toJson()),
 ///       );
