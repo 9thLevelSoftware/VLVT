@@ -17,6 +17,7 @@ import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'chat_screen.dart';
+import 'main_screen.dart';
 
 enum ChatsSortOption { recentActivity, newestMatches, nameAZ }
 
@@ -734,10 +735,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
         SliverFillRemaining(
           child: ChatsEmptyState.noChats(
             onGoToDiscovery: () {
-              // Navigate to discovery tab
-              final mainScreenState = context.findAncestorStateOfType<State>();
+              // Navigate to discovery tab (index 0) in MainScreen
+              final mainScreenState = context.findAncestorStateOfType<MainScreenState>();
               if (mainScreenState != null && mainScreenState.mounted) {
-                // Try to find MainScreenState and switch tab
+                mainScreenState.setTab(0);
               }
             },
           ),

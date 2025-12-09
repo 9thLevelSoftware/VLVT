@@ -16,17 +16,18 @@ class RevenueCatConfig {
   static const String monthlyProductId = 'monthly';
   static const String yearlyProductId = 'yearly';
 
-  // API Key - Use environment variable or fallback to test key
+  // API Key - Use environment variable, requires REVENUECAT_API_KEY to be set
   static String get apiKey {
     final configKey = AppConfig.revenueCatApiKey;
     if (configKey.isNotEmpty) {
       return configKey;
     }
-    // Fallback test key (replace with production key in release)
-    return const String.fromEnvironment(
-      'REVENUECAT_API_KEY',
-      defaultValue: 'test_PuuhQUSxNSymRIYEHqJeSVuchDi',
-    );
+    // Require API key from environment - no hardcoded fallback in production
+    final envKey = const String.fromEnvironment('REVENUECAT_API_KEY');
+    if (envKey.isEmpty && !kDebugMode) {
+      debugPrint('ERROR: REVENUECAT_API_KEY not configured for production!');
+    }
+    return envKey;
   }
 }
 

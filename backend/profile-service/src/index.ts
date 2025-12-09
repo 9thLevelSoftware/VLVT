@@ -13,7 +13,7 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import multer from 'multer';
@@ -37,6 +37,42 @@ import {
 import { resolvePhotoUrls, uploadToR2, getPresignedUrl } from './utils/r2-client';
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 import { initializeFirebase, sendMatchNotification } from './services/fcm-service';
+
+// Admin API key for protected test endpoints
+const TEST_ENDPOINTS_API_KEY = process.env.TEST_ENDPOINTS_API_KEY;
+
+/**
+ * Middleware to require admin API key for sensitive test endpoints
+ */
+function requireTestEndpointAuth(req: Request, res: Response, next: NextFunction) {
+  // In non-production without API key, allow access for dev convenience
+  if (process.env.NODE_ENV !== 'production' && !TEST_ENDPOINTS_API_KEY) {
+    return next();
+  }
+
+  const providedKey = req.headers['x-admin-api-key'] as string;
+
+  if (!TEST_ENDPOINTS_API_KEY) {
+    logger.error('TEST_ENDPOINTS_API_KEY not configured but test endpoints enabled in production');
+    return res.status(503).json({
+      success: false,
+      error: 'Test endpoints not properly configured'
+    });
+  }
+
+  if (!providedKey || providedKey !== TEST_ENDPOINTS_API_KEY) {
+    logger.warn('Unauthorized test endpoint access attempt', {
+      ip: req.ip,
+      path: req.path
+    });
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden: Invalid or missing admin API key'
+    });
+  }
+
+  next();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -1397,9 +1433,9 @@ app.get('/swipes/sent', authMiddleware, generalLimiter, async (req: Request, res
   }
 });
 
-// Seed test profiles endpoint (ONLY FOR DEVELOPMENT/TESTING/BETA)
+// Seed test profiles endpoint (ONLY FOR DEVELOPMENT/TESTING/BETA - requires admin API key)
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_TEST_ENDPOINTS === 'true') {
-  app.post('/profile/seed-test-profiles', async (req: Request, res: Response) => {
+  app.post('/profile/seed-test-profiles', requireTestEndpointAuth, async (req: Request, res: Response) => {
     try {
       const seedSQL = `
 INSERT INTO profiles (user_id, name, age, bio, photos, interests, created_at, updated_at) VALUES

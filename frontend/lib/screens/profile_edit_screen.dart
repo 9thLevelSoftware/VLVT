@@ -180,21 +180,88 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     }
   }
 
+  bool _hasUnsavedChanges() {
+    if (widget.existingProfile == null) return true;
+    final profile = widget.existingProfile!;
+    return _nameController.text != (profile.name ?? '') ||
+           _ageController.text != (profile.age?.toString() ?? '') ||
+           _bioController.text != (profile.bio ?? '') ||
+           !_listEquals(_interests, profile.interests ?? []) ||
+           !_listEquals(_photos, profile.photos ?? []);
+  }
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  Future<bool> _confirmDiscard() async {
+    if (!_hasUnsavedChanges()) return true;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: VlvtColors.surface,
+        title: Text(
+          'Discard Changes?',
+          style: VlvtTextStyles.h3.copyWith(color: VlvtColors.textPrimary),
+        ),
+        content: Text(
+          'You have unsaved changes. Are you sure you want to discard them?',
+          style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Keep Editing', style: TextStyle(color: VlvtColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Discard', style: TextStyle(color: VlvtColors.error)),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.isFirstTimeSetup ? 'Create Your Profile' : 'Edit Profile'),
-        automaticallyImplyLeading: !widget.isFirstTimeSetup,
-      ),
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.translucent,
-        child: SafeArea(
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(24.0),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (widget.isFirstTimeSetup) return; // Don't allow back during first-time setup
+        final shouldPop = await _confirmDiscard();
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.isFirstTimeSetup ? 'Create Your Profile' : 'Edit Profile'),
+          automaticallyImplyLeading: false,
+          leading: widget.isFirstTimeSetup ? null : IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () async {
+              final shouldPop = await _confirmDiscard();
+              if (shouldPop && context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ),
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(24.0),
               children: [
                 if (widget.isFirstTimeSetup) ...[
                   Icon(
@@ -352,13 +419,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   const SizedBox(height: 12),
                   VlvtButton.secondary(
                     label: 'Cancel',
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isLoading ? null : () async {
+                      final shouldPop = await _confirmDiscard();
+                      if (shouldPop && context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
                     expanded: true,
                   ),
                 ],
               ],
             ),
           ),
+        ),
         ),
       ),
     );

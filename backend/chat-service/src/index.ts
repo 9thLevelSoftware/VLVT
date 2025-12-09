@@ -13,7 +13,7 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -24,6 +24,42 @@ import logger from './utils/logger';
 import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
+
+// Admin API key for protected endpoints
+const ADMIN_API_KEY = process.env.TEST_ENDPOINTS_API_KEY;
+
+/**
+ * Middleware to require admin API key for sensitive endpoints
+ */
+function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
+  // In non-production without API key, allow access for dev convenience
+  if (process.env.NODE_ENV !== 'production' && !ADMIN_API_KEY) {
+    return next();
+  }
+
+  const providedKey = req.headers['x-admin-api-key'] as string;
+
+  if (!ADMIN_API_KEY) {
+    logger.error('Admin API key not configured but admin endpoint accessed in production');
+    return res.status(503).json({
+      success: false,
+      error: 'Admin endpoints not properly configured'
+    });
+  }
+
+  if (!providedKey || providedKey !== ADMIN_API_KEY) {
+    logger.warn('Unauthorized admin endpoint access attempt', {
+      ip: req.ip,
+      path: req.path
+    });
+    return res.status(403).json({
+      success: false,
+      error: 'Forbidden: Invalid or missing admin API key'
+    });
+  }
+
+  next();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3003;
@@ -699,8 +735,8 @@ app.post('/reports', authMiddleware, reportLimiter, validateReport, async (req: 
   }
 });
 
-// Get reports (for moderation - would need admin auth in production)
-app.get('/reports', generalLimiter, async (req: Request, res: Response) => {
+// Get reports (for moderation - requires admin API key)
+app.get('/reports', generalLimiter, requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
 
