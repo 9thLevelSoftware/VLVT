@@ -16,6 +16,7 @@ import 'chats_screen.dart';
 import 'profile_screen.dart';
 import 'profile_setup_screen.dart';
 import 'search_screen.dart';
+import 'id_verification_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialTab;
@@ -28,13 +29,15 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   late int _currentIndex;
+  bool _isIdVerified = false;
+  bool _checkingIdVerification = true;
 
   void setTab(int index) {
     setState(() {
       _currentIndex = index;
     });
   }
-  
+
   @override
   void initState() {
     super.initState();
@@ -42,9 +45,10 @@ class MainScreenState extends State<MainScreen> {
     // Defer subscription initialization to avoid calling notifyListeners during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeSubscription();
+      _checkIdVerificationStatus();
     });
   }
-  
+
   Future<void> _initializeSubscription() async {
     final authService = context.read<AuthService>();
     final subscriptionService = context.read<SubscriptionService>();
@@ -57,6 +61,18 @@ class MainScreenState extends State<MainScreen> {
     }
   }
 
+  Future<void> _checkIdVerificationStatus() async {
+    final authService = context.read<AuthService>();
+    final result = await authService.getIdVerificationStatus();
+
+    if (mounted) {
+      setState(() {
+        _checkingIdVerification = false;
+        _isIdVerified = result['verified'] == true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final subscriptionService = context.watch<SubscriptionService>();
@@ -64,7 +80,7 @@ class MainScreenState extends State<MainScreen> {
     final profileService = context.watch<ProfileApiService>();
 
     // Loading state - use VLVT loader
-    if (subscriptionService.isLoading) {
+    if (subscriptionService.isLoading || _checkingIdVerification) {
       return Scaffold(
         backgroundColor: VlvtColors.background,
         body: const Center(
@@ -106,6 +122,11 @@ class MainScreenState extends State<MainScreen> {
                           profile.age == null;
 
         if (needsSetup) {
+          // Option B: ID verification required BEFORE profile creation
+          // If user is not ID verified, show verification screen first
+          if (!_isIdVerified) {
+            return const IdVerificationScreen();
+          }
           return const ProfileSetupScreen();
         }
 

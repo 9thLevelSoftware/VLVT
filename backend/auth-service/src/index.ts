@@ -29,6 +29,7 @@ import { validateInputMiddleware, validateEmail, validateUserId, validateArray }
 import { globalErrorHandler, notFoundHandler, asyncHandler, AppError, ErrorResponses } from './middleware/error-handler';
 import { initializeSwagger } from './docs/swagger';
 import cacheManager from './utils/cache-manager';
+import * as kycaidService from './services/kycaid-service';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1965,6 +1966,383 @@ app.post('/auth/tickets/redeem', generalLimiter, async (req: Request, res: Respo
 
 // Export helper for other services to award tickets
 export { awardTickets, getTicketBalance };
+
+// ===== KYCAID ID VERIFICATION ENDPOINTS =====
+// Government ID verification via KYCAID - required before profile creation (Option B paywall)
+
+// POST /auth/kycaid/start - Initiate ID verification process
+app.post('/auth/kycaid/start', generalLimiter, async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  let userId: string;
+  let email: string | undefined;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email?: string };
+    userId = decoded.userId;
+    email = decoded.email;
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  try {
+    // Check if KYCAID is configured
+    if (!kycaidService.isKycaidConfigured()) {
+      logger.error('KYCAID not configured');
+      return res.status(503).json({ success: false, error: 'ID verification service not configured' });
+    }
+
+    // Check if user is already verified
+    const userResult = await pool.query(
+      'SELECT id_verified, kycaid_applicant_id FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.id_verified) {
+      return res.json({
+        success: true,
+        alreadyVerified: true,
+        message: 'Your ID has already been verified'
+      });
+    }
+
+    // Check for existing pending verification
+    const pendingResult = await pool.query(
+      `SELECT kycaid_verification_id FROM kycaid_verifications
+       WHERE user_id = $1 AND status = 'pending'
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    let applicantId = user.kycaid_applicant_id;
+    let verificationId: string;
+
+    // Create or get KYCAID applicant
+    if (!applicantId) {
+      const applicant = await kycaidService.createOrGetApplicant(userId, email);
+      applicantId = applicant.applicant_id;
+
+      // Store applicant ID on user
+      await pool.query(
+        'UPDATE users SET kycaid_applicant_id = $1 WHERE id = $2',
+        [applicantId, userId]
+      );
+    }
+
+    // Create verification if none pending, or return existing
+    if (pendingResult.rows.length > 0) {
+      verificationId = pendingResult.rows[0].kycaid_verification_id;
+    } else {
+      // Create new verification
+      const callbackUrl = `${process.env.API_BASE_URL || 'https://auth-service-production.up.railway.app'}/auth/kycaid/webhook`;
+      const verification = await kycaidService.createVerification(applicantId, callbackUrl);
+      verificationId = verification.verification_id;
+
+      // Store verification record
+      await pool.query(
+        `INSERT INTO kycaid_verifications
+         (user_id, kycaid_applicant_id, kycaid_verification_id, kycaid_form_id, status)
+         VALUES ($1, $2, $3, $4, 'pending')`,
+        [userId, applicantId, verificationId, verification.form_id]
+      );
+    }
+
+    logger.info('KYCAID verification started', { userId, applicantId, verificationId });
+
+    // Return credentials for the mobile SDK
+    res.json({
+      success: true,
+      verificationId,
+      applicantId,
+      formId: process.env.KYCAID_FORM_ID,
+      // These are needed for the SDK initialization
+      sdkConfig: {
+        applicantId,
+        verificationId,
+        // SDK will use these to complete verification
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to start KYCAID verification', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to start ID verification' });
+  }
+});
+
+// GET /auth/kycaid/status - Check verification status
+app.get('/auth/kycaid/status', generalLimiter, async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  let userId: string;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    userId = decoded.userId;
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  try {
+    // Get user verification status
+    const userResult = await pool.query(
+      'SELECT id_verified, id_verified_at FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.id_verified) {
+      return res.json({
+        success: true,
+        verified: true,
+        verifiedAt: user.id_verified_at
+      });
+    }
+
+    // Get latest verification attempt
+    const verificationResult = await pool.query(
+      `SELECT kycaid_verification_id, status, verification_status,
+              document_verified, face_match_verified, liveness_verified, aml_cleared,
+              created_at, completed_at
+       FROM kycaid_verifications
+       WHERE user_id = $1
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    if (verificationResult.rows.length === 0) {
+      return res.json({
+        success: true,
+        verified: false,
+        status: 'not_started',
+        message: 'ID verification has not been started'
+      });
+    }
+
+    const verification = verificationResult.rows[0];
+
+    res.json({
+      success: true,
+      verified: false,
+      status: verification.status,
+      verificationStatus: verification.verification_status,
+      checks: {
+        document: verification.document_verified,
+        faceMatch: verification.face_match_verified,
+        liveness: verification.liveness_verified,
+        aml: verification.aml_cleared
+      },
+      createdAt: verification.created_at,
+      completedAt: verification.completed_at
+    });
+  } catch (error) {
+    logger.error('Failed to get KYCAID status', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to check verification status' });
+  }
+});
+
+// POST /auth/kycaid/webhook - Receive KYCAID callbacks
+// This endpoint does NOT require authentication - it receives callbacks from KYCAID
+app.post('/auth/kycaid/webhook', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
+  try {
+    // Verify signature
+    const signature = req.headers['x-kycaid-signature'] as string;
+    const rawBody = req.body;
+
+    if (!signature || !kycaidService.verifyCallbackSignature(rawBody, signature)) {
+      logger.warn('KYCAID webhook signature verification failed');
+      return res.status(401).json({ success: false, error: 'Invalid signature' });
+    }
+
+    // Parse callback data
+    const body = JSON.parse(rawBody.toString());
+    const callbackData = kycaidService.parseCallbackData(body);
+
+    if (!callbackData) {
+      logger.warn('Invalid KYCAID callback data', { body });
+      return res.status(400).json({ success: false, error: 'Invalid callback data' });
+    }
+
+    logger.info('KYCAID webhook received', {
+      verificationId: callbackData.verification_id,
+      applicantId: callbackData.applicant_id,
+      status: callbackData.status,
+      verificationStatus: callbackData.verification_status
+    });
+
+    // Find the verification record
+    const verificationResult = await pool.query(
+      `SELECT v.id, v.user_id FROM kycaid_verifications v
+       WHERE v.kycaid_verification_id = $1`,
+      [callbackData.verification_id]
+    );
+
+    if (verificationResult.rows.length === 0) {
+      logger.warn('Verification not found for callback', { verificationId: callbackData.verification_id });
+      // Return 200 to acknowledge receipt even if we can't process
+      return res.json({ success: true, message: 'Acknowledged' });
+    }
+
+    const verification = verificationResult.rows[0];
+    const userId = verification.user_id;
+
+    // Extract verified user data
+    const userData = kycaidService.extractVerifiedUserData(callbackData);
+
+    // Determine status
+    const isApproved = callbackData.verification_status === 'approved' && callbackData.verified;
+    const status = isApproved ? 'approved' : (callbackData.verification_status === 'declined' ? 'declined' : 'completed');
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Update verification record
+      await client.query(
+        `UPDATE kycaid_verifications SET
+           status = $1,
+           verification_status = $2,
+           first_name = $3,
+           last_name = $4,
+           date_of_birth = $5,
+           document_type = $6,
+           document_number = $7,
+           document_country = $8,
+           document_expiry = $9,
+           document_verified = $10,
+           face_match_verified = $11,
+           liveness_verified = $12,
+           aml_cleared = $13,
+           kycaid_response = $14,
+           completed_at = NOW()
+         WHERE id = $15`,
+        [
+          status,
+          callbackData.verification_status,
+          userData.firstName,
+          userData.lastName,
+          userData.dateOfBirth,
+          userData.documentType,
+          userData.documentNumber,
+          userData.documentCountry,
+          userData.documentExpiry,
+          userData.documentVerified,
+          userData.faceMatchVerified,
+          userData.livenessVerified,
+          userData.amlCleared,
+          JSON.stringify(body),
+          verification.id
+        ]
+      );
+
+      // If approved, update user as verified
+      if (isApproved) {
+        await client.query(
+          'UPDATE users SET id_verified = true, id_verified_at = NOW() WHERE id = $1',
+          [userId]
+        );
+
+        // Award verification completion ticket (one-time)
+        const existingTicket = await client.query(
+          `SELECT id FROM ticket_ledger WHERE user_id = $1 AND reason = 'id_verification'`,
+          [userId]
+        );
+        if (existingTicket.rows.length === 0) {
+          await client.query(
+            'INSERT INTO ticket_ledger (user_id, amount, reason, reference_id) VALUES ($1, $2, $3, $4)',
+            [userId, 1, 'id_verification', callbackData.verification_id]
+          );
+        }
+
+        logger.info('User ID verified', { userId, verificationId: callbackData.verification_id });
+      } else if (status === 'declined') {
+        logger.info('User ID verification declined', {
+          userId,
+          verificationId: callbackData.verification_id,
+          reason: callbackData.verification_status
+        });
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
+    res.json({ success: true, message: 'Webhook processed' });
+  } catch (error) {
+    logger.error('KYCAID webhook processing error', { error });
+    // Return 200 to prevent retries for processing errors
+    res.json({ success: true, message: 'Acknowledged with errors' });
+  }
+});
+
+// GET /auth/kycaid/refresh - Manually refresh verification status from KYCAID
+app.get('/auth/kycaid/refresh', generalLimiter, async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  const token = authHeader.substring(7);
+  let userId: string;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    userId = decoded.userId;
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+  }
+
+  try {
+    // Get latest verification
+    const verificationResult = await pool.query(
+      `SELECT kycaid_verification_id, status FROM kycaid_verifications
+       WHERE user_id = $1
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    if (verificationResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'No verification found' });
+    }
+
+    const verificationId = verificationResult.rows[0].kycaid_verification_id;
+
+    // Fetch current status from KYCAID
+    const kycaidStatus = await kycaidService.getVerificationStatus(verificationId);
+
+    logger.info('KYCAID status refreshed', { userId, verificationId, status: kycaidStatus.status });
+
+    res.json({
+      success: true,
+      status: kycaidStatus.status,
+      verificationStatus: kycaidStatus.verification_status
+    });
+  } catch (error) {
+    logger.error('Failed to refresh KYCAID status', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to refresh verification status' });
+  }
+});
 
 // Async initialization function
 async function initializeApp() {

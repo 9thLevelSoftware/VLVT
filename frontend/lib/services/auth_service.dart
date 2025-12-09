@@ -518,4 +518,121 @@ class AuthService extends ChangeNotifier {
     currentUserId ??= await _storage.read(key: 'user_id');
     return {'userId': currentUserId};
   }
+
+  // ========== KYCAID ID Verification Methods ==========
+
+  /// Start ID verification process - returns verification credentials for the SDK/WebView
+  Future<Map<String, dynamic>> startIdVerification() async {
+    if (_token == null) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/kycaid/start'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        if (data['alreadyVerified'] == true) {
+          return {
+            'success': true,
+            'alreadyVerified': true,
+            'message': data['message'],
+          };
+        }
+
+        return {
+          'success': true,
+          'verificationId': data['verificationId'],
+          'applicantId': data['applicantId'],
+          'formId': data['formId'],
+          'sdkConfig': data['sdkConfig'],
+        };
+      }
+
+      return {'success': false, 'error': data['error'] ?? 'Failed to start verification'};
+    } catch (e) {
+      debugPrint('Error starting ID verification: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Check ID verification status
+  Future<Map<String, dynamic>> getIdVerificationStatus() async {
+    if (_token == null) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/kycaid/status'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'verified': data['verified'] ?? false,
+          'verifiedAt': data['verifiedAt'],
+          'status': data['status'],
+          'verificationStatus': data['verificationStatus'],
+          'checks': data['checks'],
+          'message': data['message'],
+        };
+      }
+
+      return {'success': false, 'error': data['error'] ?? 'Failed to check status'};
+    } catch (e) {
+      debugPrint('Error checking ID verification status: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Refresh ID verification status from KYCAID (polls the provider directly)
+  Future<Map<String, dynamic>> refreshIdVerificationStatus() async {
+    if (_token == null) {
+      return {'success': false, 'error': 'Not authenticated'};
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/auth/kycaid/refresh'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+        },
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'status': data['status'],
+          'verificationStatus': data['verificationStatus'],
+        };
+      }
+
+      return {'success': false, 'error': data['error'] ?? 'Failed to refresh status'};
+    } catch (e) {
+      debugPrint('Error refreshing ID verification status: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// Get the KYCAID verification URL for WebView
+  /// This is the URL where users complete their ID verification
+  String getKycaidVerificationUrl(String verificationId) {
+    // KYCAID uses their hosted verification page
+    return 'https://app.kycaid.com/verification/$verificationId';
+  }
 }
