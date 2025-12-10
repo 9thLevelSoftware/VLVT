@@ -30,22 +30,19 @@ const ADMIN_API_KEY = process.env.TEST_ENDPOINTS_API_KEY;
 
 /**
  * Middleware to require admin API key for sensitive endpoints
+ * SECURITY: Fail-closed design - ALWAYS requires API key, no exceptions
  */
 function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
-  // In non-production without API key, allow access for dev convenience
-  if (process.env.NODE_ENV !== 'production' && !ADMIN_API_KEY) {
-    return next();
+  // FAIL-CLOSED: API key is ALWAYS required, regardless of environment
+  if (!ADMIN_API_KEY) {
+    logger.error('ADMIN_API_KEY not configured - blocking admin endpoint access');
+    return res.status(503).json({
+      success: false,
+      error: 'Admin endpoints not available'
+    });
   }
 
   const providedKey = req.headers['x-admin-api-key'] as string;
-
-  if (!ADMIN_API_KEY) {
-    logger.error('Admin API key not configured but admin endpoint accessed in production');
-    return res.status(503).json({
-      success: false,
-      error: 'Admin endpoints not properly configured'
-    });
-  }
 
   if (!providedKey || providedKey !== ADMIN_API_KEY) {
     logger.warn('Unauthorized admin endpoint access attempt', {

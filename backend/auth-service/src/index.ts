@@ -150,23 +150,20 @@ async function issueTokenPair(
 
 /**
  * Middleware to verify admin API key for sensitive test endpoints
+ * SECURITY: Fail-closed design - ALWAYS requires API key, no exceptions
  */
 function requireTestEndpointAuth(req: Request, res: Response, next: NextFunction) {
-  // In non-production without ENABLE_TEST_ENDPOINTS, still allow access for dev convenience
-  if (process.env.NODE_ENV !== 'production' && !TEST_ENDPOINTS_API_KEY) {
-    return next();
-  }
-
-  // In production or when API key is configured, require it
-  const providedKey = req.headers['x-admin-api-key'] as string;
-
+  // FAIL-CLOSED: API key is ALWAYS required, regardless of environment
+  // This prevents accidental exposure if NODE_ENV is misconfigured
   if (!TEST_ENDPOINTS_API_KEY) {
-    logger.error('TEST_ENDPOINTS_API_KEY not configured but test endpoints enabled in production');
+    logger.error('TEST_ENDPOINTS_API_KEY not configured - blocking test endpoint access');
     return res.status(503).json({
       success: false,
-      error: 'Test endpoints not properly configured'
+      error: 'Test endpoints not available'
     });
   }
+
+  const providedKey = req.headers['x-admin-api-key'] as string;
 
   if (!providedKey || providedKey !== TEST_ENDPOINTS_API_KEY) {
     logger.warn('Unauthorized test endpoint access attempt', {
