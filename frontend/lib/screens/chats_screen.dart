@@ -103,6 +103,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
         cacheService.cacheMatches(userId, matches);
       }
 
+      // Check if widget is still mounted after async operation
+      if (!mounted) return;
+
       // Step 2: Batch load all profiles (this fixes the N+1 query problem!)
       final userIds = matches
           .map((match) => match.getOtherUserId(userId))
@@ -129,6 +132,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
         }
       }
 
+      // Check if widget is still mounted after async operation
+      if (!mounted) return;
+
       // Step 3: Batch load last messages for preview
       final matchIds = matches.map((match) => match.id).toList();
       Map<String, Message?> lastMessages = {};
@@ -152,6 +158,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
         }
       }
 
+      // Check if widget is still mounted after async operation
+      if (!mounted) return;
+
       // Step 4: Fetch unread message counts
       Map<String, int> unreadCounts = {};
       try {
@@ -160,6 +169,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
         debugPrint('Failed to fetch unread counts: $e');
         // Continue without unread counts - not critical
       }
+
+      // Final mounted check before setState
+      if (!mounted) return;
 
       setState(() {
         _matches = matches;
@@ -170,6 +182,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
         _lastUpdated = DateTime.now();
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
