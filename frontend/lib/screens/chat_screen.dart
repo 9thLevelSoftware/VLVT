@@ -152,7 +152,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _messages = [...(_messages ?? []), message];
       });
       if (wasNearBottom) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: true));
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _scrollToBottom(animated: true));
       }
       _markMessagesAsRead();
     });
@@ -161,7 +162,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final messageIds = (data['messageIds'] as List?)?.cast<String>() ?? [];
       setState(() {
         _messages = _messages?.map((m) {
-          return messageIds.contains(m.id) ? m.copyWith(status: MessageStatus.read) : m;
+          return messageIds.contains(m.id)
+              ? m.copyWith(status: MessageStatus.read)
+              : m;
         }).toList();
       });
     });
@@ -229,32 +232,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void _scrollToBottom({bool animated = false}) {
     if (!_scrollController.hasClients) return;
     if (animated) {
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     } else {
       _scrollController.jumpTo(0);
-    }
-  }
-
-  Future<void> _checkProfileCompletion() async {
-    try {
-      final profileApiService = context.read<ProfileApiService>();
-      final result = await profileApiService.checkProfileCompletion();
-      
-      if (mounted) {
-        setState(() {
-          _isProfileComplete = result['isComplete'] == true;
-          _profileCompletionMessage = result['message'] as String?;
-          _missingFields = List<String>.from(result['missingFields'] ?? []);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error checking profile completion: $e');
-      // Default to allowing messaging if check fails (fail open for UX)
-      if (mounted) {
-        setState(() {
-          _isProfileComplete = true;
-        });
-      }
     }
   }
 
@@ -285,13 +266,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ]);
 
       final profileCompletionResult = results[2] as Map<String, dynamic>;
-      
+
       setState(() {
         _messages = results[0] as List<Message>;
         _otherUserProfile = results[1] as Profile;
         _isProfileComplete = profileCompletionResult['isComplete'] == true;
-        _profileCompletionMessage = profileCompletionResult['message'] as String?;
-        _missingFields = List<String>.from(profileCompletionResult['missingFields'] ?? []);
+        _profileCompletionMessage =
+            profileCompletionResult['message'] as String?;
+        _missingFields =
+            List<String>.from(profileCompletionResult['missingFields'] ?? []);
       });
 
       // Load date proposals for this match
@@ -316,10 +299,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (_isRefreshing || _match == null) return;
     setState(() => _isRefreshing = true);
     try {
-      final messages = await context.read<ChatApiService>().getMessages(_match!.id);
+      final messages =
+          await context.read<ChatApiService>().getMessages(_match!.id);
       if (mounted) setState(() => _messages = messages);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to refresh: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed to refresh: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isRefreshing = false);
     }
@@ -327,14 +314,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || text.length > _maxCharacters || _match == null || _isSending) return;
+    if (text.isEmpty ||
+        text.length > _maxCharacters ||
+        _match == null ||
+        _isSending) {
+      return;
+    }
 
     // Check profile completion before sending
     if (!_isProfileComplete) {
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text(_profileCompletionMessage ?? 'Please complete your profile to start messaging'),
+          content: Text(_profileCompletionMessage ??
+              'Please complete your profile to start messaging'),
           backgroundColor: VlvtColors.error,
           duration: const Duration(seconds: 4),
           action: SnackBarAction(
@@ -369,7 +362,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final currentUserId = authService.userId;
     if (currentUserId == null) {
       if (mounted) setState(() => _isSending = false);
-      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('User not authenticated')));
+      scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('User not authenticated')));
       return;
     }
 
@@ -388,7 +382,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _messages = [...(_messages ?? []), tempMessage];
       _messageController.clear();
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: true));
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _scrollToBottom(animated: true));
 
     // If socket is connecting, wait for it (up to 5 seconds)
     if (!socketService.isConnected && socketService.isConnecting) {
@@ -416,20 +411,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     try {
-      final sentMessage = await socketService.sendMessage(matchId: _match!.id, text: text, tempId: tempId);
+      final sentMessage = await socketService.sendMessage(
+          matchId: _match!.id, text: text, tempId: tempId);
       if (sentMessage == null) throw Exception('Failed to send message');
       await subscriptionService.useMessage();
       if (mounted) {
         setState(() {
           _isSending = false;
-          _messages = _messages!.where((m) => m.id != tempId).toList()..add(sentMessage);
+          _messages = _messages!.where((m) => m.id != tempId).toList()
+            ..add(sentMessage);
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isSending = false;
-          _messages = _messages!.map((m) => m.id == tempId ? m.copyWith(status: MessageStatus.failed, error: e.toString()) : m).toList();
+          _messages = _messages!
+              .map((m) => m.id == tempId
+                  ? m.copyWith(
+                      status: MessageStatus.failed, error: e.toString())
+                  : m)
+              .toList();
         });
       }
     }
@@ -489,23 +491,35 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final socketService = context.read<SocketService>();
     setState(() {
       _messages = _messages!.map((m) {
-        return m.id == failedMessage.id ? m.copyWith(status: MessageStatus.sending, error: null) : m;
+        return m.id == failedMessage.id
+            ? m.copyWith(status: MessageStatus.sending, error: null)
+            : m;
       }).toList();
     });
 
     try {
-      final sentMessage = await socketService.sendMessage(matchId: _match!.id, text: failedMessage.text, tempId: failedMessage.id);
+      final sentMessage = await socketService.sendMessage(
+          matchId: _match!.id,
+          text: failedMessage.text,
+          tempId: failedMessage.id);
       if (sentMessage == null) throw Exception('Failed to send message');
       if (mounted) {
         setState(() {
-          _messages = _messages!.where((m) => m.id != failedMessage.id).toList()..add(sentMessage);
+          _messages = _messages!.where((m) => m.id != failedMessage.id).toList()
+            ..add(sentMessage);
         });
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom(animated: true));
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _scrollToBottom(animated: true));
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _messages = _messages!.map((m) => m.id == failedMessage.id ? m.copyWith(status: MessageStatus.failed, error: e.toString()) : m).toList();
+          _messages = _messages!
+              .map((m) => m.id == failedMessage.id
+                  ? m.copyWith(
+                      status: MessageStatus.failed, error: e.toString())
+                  : m)
+              .toList();
         });
       }
     }
@@ -522,7 +536,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetContext) => UserActionSheet(
         otherUserProfile: _otherUserProfile!,
         match: _match!,
@@ -547,15 +562,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(appBar: AppBar(), body: const Center(child: VlvtLoader()));
+      return Scaffold(
+          appBar: AppBar(), body: const Center(child: VlvtLoader()));
     }
     if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(),
-        body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        body: Center(
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text(_errorMessage!, style: TextStyle(color: VlvtColors.error)),
           const SizedBox(height: 16),
-          VlvtButton.primary(label: 'Retry', onPressed: _fetchMatchThenLoadData),
+          VlvtButton.primary(
+              label: 'Retry', onPressed: _fetchMatchThenLoadData),
         ])),
       );
     }
@@ -617,18 +636,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               padding: const EdgeInsets.only(right: 8),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: messagesRemaining > 0 ? VlvtColors.success.withValues(alpha: 0.1) : VlvtColors.error.withValues(alpha: 0.1),
+                    color: messagesRemaining > 0
+                        ? VlvtColors.success.withValues(alpha: 0.1)
+                        : VlvtColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: messagesRemaining > 0 ? VlvtColors.success : VlvtColors.error,
+                      color: messagesRemaining > 0
+                          ? VlvtColors.success
+                          : VlvtColors.error,
                     ),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.chat, size: 16, color: messagesRemaining > 0 ? VlvtColors.success : VlvtColors.error),
+                    Icon(Icons.chat,
+                        size: 16,
+                        color: messagesRemaining > 0
+                            ? VlvtColors.success
+                            : VlvtColors.error),
                     const SizedBox(width: 4),
-                    Text('$messagesRemaining left', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: messagesRemaining > 0 ? VlvtColors.success : VlvtColors.error)),
+                    Text('$messagesRemaining left',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: messagesRemaining > 0
+                                ? VlvtColors.success
+                                : VlvtColors.error)),
                   ]),
                 ),
               ),
@@ -637,7 +671,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Center(
-                child: Text('${_otherUserProfile!.age ?? '?'}', style: const TextStyle(fontSize: 16)),
+                child: Text('${_otherUserProfile!.age ?? '?'}',
+                    style: const TextStyle(fontSize: 16)),
               ),
             ),
           if (_otherUserProfile != null)
@@ -667,8 +702,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 if (activeProposals.isNotEmpty)
                   _buildDateProposalCard(activeProposals.first, currentUserId),
                 // Profile completion banner
-                if (!_isProfileComplete)
-                  _buildProfileCompletionBanner(),
+                if (!_isProfileComplete) _buildProfileCompletionBanner(),
                 Expanded(child: _buildMessagesList(currentUserId)),
                 _buildMessageInput(),
               ],
@@ -690,7 +724,65 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _respondToProposal(DateProposal proposal, String response) async {
+  Widget _buildProfileCompletionBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: VlvtColors.error.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: VlvtColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: VlvtColors.error, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _profileCompletionMessage ??
+                      'Please complete your profile to start messaging',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: VlvtColors.error,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (_missingFields.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Missing: ${_missingFields.join(", ")}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: VlvtColors.error.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
+            child: Text(
+              'Complete',
+              style: TextStyle(
+                color: VlvtColors.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _respondToProposal(
+      DateProposal proposal, String response) async {
     final dateProposalService = context.read<DateProposalService>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
@@ -702,7 +794,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     if (result['success'] == true) {
       scaffoldMessenger.showSnackBar(SnackBar(
-        content: Text(response == 'accepted' ? 'Date accepted!' : 'Date declined'),
+        content:
+            Text(response == 'accepted' ? 'Date accepted!' : 'Date declined'),
         backgroundColor: response == 'accepted' ? VlvtColors.success : null,
       ));
     } else {
@@ -748,7 +841,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
 
     if (result['success'] == true) {
-      scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Date proposal cancelled')));
+      scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Date proposal cancelled')));
     } else {
       scaffoldMessenger.showSnackBar(SnackBar(
         content: Text(result['error'] ?? 'Failed to cancel'),
@@ -759,12 +853,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _buildMessagesList(String? currentUserId) {
     if (_messages == null || _messages!.isEmpty) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      return Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(Icons.chat_bubble_outline, size: 80, color: VlvtColors.textMuted),
         const SizedBox(height: 16),
-        Text('No messages yet', style: TextStyle(fontSize: 18, color: VlvtColors.textSecondary)),
+        Text('No messages yet',
+            style: TextStyle(fontSize: 18, color: VlvtColors.textSecondary)),
         const SizedBox(height: 8),
-        Text('Say hi to ${_otherUserProfile?.name ?? 'your match'}!', style: TextStyle(fontSize: 14, color: VlvtColors.textMuted)),
+        Text('Say hi to ${_otherUserProfile?.name ?? 'your match'}!',
+            style: TextStyle(fontSize: 14, color: VlvtColors.textMuted)),
       ]));
     }
 
@@ -787,10 +884,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             return Align(
               alignment: Alignment.centerLeft,
               child: Container(
-                margin: const EdgeInsets.only(top: 8), // top margin since reversed
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(color: VlvtColors.typingIndicatorBackground, borderRadius: BorderRadius.circular(20)),
-                child: Text('...', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: VlvtColors.typingIndicatorDots, letterSpacing: 2)),
+                margin:
+                    const EdgeInsets.only(top: 8), // top margin since reversed
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                    color: VlvtColors.typingIndicatorBackground,
+                    borderRadius: BorderRadius.circular(20)),
+                child: Text('...',
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: VlvtColors.typingIndicatorDots,
+                        letterSpacing: 2)),
               ),
             );
           }
@@ -805,19 +911,28 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           // Message grouping logic (check the message ABOVE in visual order = BELOW in list order)
           // In reversed list, "previous" visually is the next index
           final nextMessageIndex = reversedIndex + 1;
-          final previousMessageVisually = nextMessageIndex < _messages!.length ? _messages![nextMessageIndex] : null;
-          final isSameSender = previousMessageVisually?.senderId == message.senderId;
+          final previousMessageVisually = nextMessageIndex < _messages!.length
+              ? _messages![nextMessageIndex]
+              : null;
+          final isSameSender =
+              previousMessageVisually?.senderId == message.senderId;
           final isCloseInTime = previousMessageVisually != null &&
-              message.timestamp.difference(previousMessageVisually.timestamp).inMinutes.abs() < 2;
+              message.timestamp
+                      .difference(previousMessageVisually.timestamp)
+                      .inMinutes
+                      .abs() <
+                  2;
           final isGrouped = isSameSender && isCloseInTime;
 
-          return _buildMessageBubble(message, isCurrentUser, isGrouped: isGrouped);
+          return _buildMessageBubble(message, isCurrentUser,
+              isGrouped: isGrouped);
         },
       ),
     );
   }
 
-  Widget _buildMessageBubble(Message message, bool isCurrentUser, {bool isGrouped = false}) {
+  Widget _buildMessageBubble(Message message, bool isCurrentUser,
+      {bool isGrouped = false}) {
     final isFailed = message.status == MessageStatus.failed;
     // Tighter spacing for grouped messages (same sender, close in time)
     // With reverse:true, we use top margin instead of bottom
@@ -843,38 +958,78 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.only(top: topMargin),
-        child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.end, children: [
-          if (isCurrentUser && isFailed) ...[
-            IconButton(icon: const Icon(Icons.refresh, size: 20), color: VlvtColors.error, onPressed: () => _retryMessage(message), tooltip: 'Retry'),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
-              decoration: BoxDecoration(
-                color: isFailed ? VlvtColors.error.withValues(alpha: 0.1) : (isCurrentUser ? VlvtColors.chatBubbleSent : VlvtColors.chatBubbleReceived),
-                borderRadius: borderRadius,
+        child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (isCurrentUser && isFailed) ...[
+                IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    color: VlvtColors.error,
+                    onPressed: () => _retryMessage(message),
+                    tooltip: 'Retry'),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.7),
+                  decoration: BoxDecoration(
+                    color: isFailed
+                        ? VlvtColors.error.withValues(alpha: 0.1)
+                        : (isCurrentUser
+                            ? VlvtColors.chatBubbleSent
+                            : VlvtColors.chatBubbleReceived),
+                    borderRadius: borderRadius,
+                  ),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(message.text,
+                            style: TextStyle(
+                                fontSize: 16,
+                                color: isFailed
+                                    ? VlvtColors.error
+                                    : (isCurrentUser
+                                        ? VlvtColors.chatTextSent
+                                        : VlvtColors.chatTextReceived))),
+                        const SizedBox(height: 4),
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          Text(formatTimestamp(message.timestamp),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: isFailed
+                                      ? VlvtColors.error.withValues(alpha: 0.8)
+                                      : (isCurrentUser
+                                          ? VlvtColors.chatTimestampSent
+                                          : VlvtColors.chatTimestampReceived))),
+                          if (isCurrentUser && !isFailed) ...[
+                            const SizedBox(width: 4),
+                            _buildMessageStatusIcon(message.status)
+                          ],
+                        ]),
+                        if (isFailed) ...[
+                          const SizedBox(height: 4),
+                          Text('Failed to send',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: VlvtColors.error,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ]),
+                ),
               ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(message.text, style: TextStyle(fontSize: 16, color: isFailed ? VlvtColors.error : (isCurrentUser ? VlvtColors.chatTextSent : VlvtColors.chatTextReceived))),
-                const SizedBox(height: 4),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(formatTimestamp(message.timestamp), style: TextStyle(fontSize: 11, color: isFailed ? VlvtColors.error.withValues(alpha: 0.8) : (isCurrentUser ? VlvtColors.chatTimestampSent : VlvtColors.chatTimestampReceived))),
-                  if (isCurrentUser && !isFailed) ...[const SizedBox(width: 4), _buildMessageStatusIcon(message.status)],
-                ]),
-                if (isFailed) ...[
-                  const SizedBox(height: 4),
-                  Text('Failed to send', style: TextStyle(fontSize: 11, color: VlvtColors.error, fontWeight: FontWeight.bold)),
-                ],
-              ]),
-            ),
-          ),
-          if (isCurrentUser && isFailed) ...[
-            const SizedBox(width: 4),
-            IconButton(icon: const Icon(Icons.close, size: 20), color: VlvtColors.error, onPressed: () => _deleteFailedMessage(message), tooltip: 'Delete'),
-          ],
-        ]),
+              if (isCurrentUser && isFailed) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    color: VlvtColors.error,
+                    onPressed: () => _deleteFailedMessage(message),
+                    tooltip: 'Delete'),
+              ],
+            ]),
       ),
     );
   }
@@ -894,14 +1049,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final isDisabled = !_isProfileComplete;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(color: VlvtColors.surface, boxShadow: [BoxShadow(color: VlvtColors.border.withValues(alpha: 0.1), spreadRadius: 1, blurRadius: 3, offset: const Offset(0, -1))]),
+      decoration: BoxDecoration(color: VlvtColors.surface, boxShadow: [
+        BoxShadow(
+            color: VlvtColors.border.withValues(alpha: 0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, -1))
+      ]),
       child: SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           if (showCounter)
             Padding(
               padding: const EdgeInsets.only(right: 16, bottom: 4),
               child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Text('$charCount/$_maxCharacters', style: TextStyle(fontSize: 12, color: isOverLimit ? VlvtColors.error : VlvtColors.textSecondary, fontWeight: isOverLimit ? FontWeight.bold : FontWeight.normal)),
+                Text('$charCount/$_maxCharacters',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: isOverLimit
+                            ? VlvtColors.error
+                            : VlvtColors.textSecondary,
+                        fontWeight:
+                            isOverLimit ? FontWeight.bold : FontWeight.normal)),
               ]),
             ),
           Row(children: [
@@ -916,7 +1084,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             Expanded(
               child: VlvtInput(
                 controller: _messageController,
-                hintText: isDisabled ? 'Complete your profile to message' : 'Type a message...',
+                hintText: isDisabled
+                    ? 'Complete your profile to message'
+                    : 'Type a message...',
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
                 onSubmitted: (_) => _sendMessage(),
@@ -928,7 +1098,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             const SizedBox(width: 8),
             IconButton(
               onPressed: isDisabled ? null : _sendMessage,
-              icon: _isSending ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send),
+              icon: _isSending
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.send),
               color: isDisabled ? VlvtColors.textMuted : VlvtColors.gold,
               iconSize: 28,
             ),

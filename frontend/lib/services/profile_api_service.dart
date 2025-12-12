@@ -554,7 +554,7 @@ class ProfileApiService extends ChangeNotifier {
   /// Returns a map with:
   /// - success: bool
   /// - isComplete: bool
-  /// - missingFields: List<String>
+  /// - missingFields: `List<String>`
   /// - message: String
   Future<Map<String, dynamic>> checkProfileCompletion() async {
     try {
