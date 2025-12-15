@@ -99,9 +99,14 @@ class _SplashScreenState extends State<SplashScreen>
           const AssetImage('assets/images/loginbackground.jpg'),
           context,
         ),
-        // Pre-cache the logo for other screens
+        // Pre-cache the logo for auth screen
         precacheImage(
           const AssetImage('assets/images/logo.png'),
+          context,
+        ),
+        // Pre-cache the splash logo
+        precacheImage(
+          const AssetImage('assets/images/vlvt_logo_text.png'),
           context,
         ),
       ]);
@@ -134,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
                 );
               },
               child: Image.asset(
-                'assets/images/logo.png',
+                'assets/images/vlvt_logo_text.png',
                 width: 200,
                 height: 200,
               ),
