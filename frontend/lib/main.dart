@@ -181,6 +181,12 @@ class MyApp extends StatelessWidget {
             navigatorObservers: [
               AnalyticsService.getObserver(),
             ],
+            builder: (context, child) {
+              return GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                child: child,
+              );
+            },
             home: const AuthWrapper(),
           );
         },
