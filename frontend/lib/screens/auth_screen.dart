@@ -387,7 +387,7 @@ class _AuthScreenState extends State<AuthScreen>
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: SingleChildScrollView(
-                    padding: Spacing.paddingLg,
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
