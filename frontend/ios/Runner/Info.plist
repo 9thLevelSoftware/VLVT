@@ -63,7 +63,15 @@
 					<string>vlvt</string>
 				</array>
 				<key>CFBundleURLName</key>
-				<string>com.vlvt.app</string>
+				<string>app.vlvt</string>
+			</dict>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.911953026264-lf341cirbvg0gjks4qc3h0ddahk58aqp</string>
+				</array>
+				<key>CFBundleURLName</key>
+				<string>google-sign-in</string>
 			</dict>
 		</array>
 		<key>UIStatusBarHidden</key>

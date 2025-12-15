@@ -4,12 +4,13 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
-import 'dart:ui' as _i5;
+import 'dart:ui' as _i6;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:mockito/src/dummies.dart' as _i8;
 import 'package:vlvt/models/message.dart' as _i4;
-import 'package:vlvt/services/auth_service.dart' as _i6;
+import 'package:vlvt/services/auth_service.dart' as _i7;
+import 'package:vlvt/services/message_queue_service.dart' as _i5;
 import 'package:vlvt/services/socket_service.dart' as _i2;
 
 // ignore_for_file: type=lint
@@ -82,6 +83,16 @@ class MockSocketService extends _i1.Mock implements _i2.SocketService {
         Invocation.getter(#hasListeners),
         returnValue: false,
       ) as bool);
+
+  @override
+  void setMessageQueueService(_i5.MessageQueueService? queueService) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #setMessageQueueService,
+          [queueService],
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   _i3.Future<void> connect() => (super.noSuchMethod(
@@ -186,7 +197,7 @@ class MockSocketService extends _i1.Mock implements _i2.SocketService {
       );
 
   @override
-  void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -195,7 +206,7 @@ class MockSocketService extends _i1.Mock implements _i2.SocketService {
       );
 
   @override
-  void removeListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i6.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],
@@ -216,7 +227,7 @@ class MockSocketService extends _i1.Mock implements _i2.SocketService {
 /// A class which mocks [AuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAuthService extends _i1.Mock implements _i6.AuthService {
+class MockAuthService extends _i1.Mock implements _i7.AuthService {
   MockAuthService() {
     _i1.throwOnMissingStub(this);
   }
@@ -230,7 +241,7 @@ class MockAuthService extends _i1.Mock implements _i6.AuthService {
   @override
   String get baseUrl => (super.noSuchMethod(
         Invocation.getter(#baseUrl),
-        returnValue: _i7.dummyValue<String>(
+        returnValue: _i8.dummyValue<String>(
           this,
           Invocation.getter(#baseUrl),
         ),
@@ -241,6 +252,15 @@ class MockAuthService extends _i1.Mock implements _i6.AuthService {
         Invocation.getter(#hasListeners),
         returnValue: false,
       ) as bool);
+
+  @override
+  _i3.Future<bool> refreshToken() => (super.noSuchMethod(
+        Invocation.method(
+          #refreshToken,
+          [],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
 
   @override
   _i3.Future<bool> signInWithApple() => (super.noSuchMethod(
@@ -342,38 +362,6 @@ class MockAuthService extends _i1.Mock implements _i6.AuthService {
       ) as _i3.Future<bool>);
 
   @override
-  _i3.Future<Map<String, dynamic>> signInWithInstagram(
-    String? codeOrToken, {
-    bool? isCode = true,
-  }) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #signInWithInstagram,
-          [codeOrToken],
-          {#isCode: isCode},
-        ),
-        returnValue:
-            _i3.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
-      ) as _i3.Future<Map<String, dynamic>>);
-
-  @override
-  _i3.Future<Map<String, dynamic>> completeInstagramRegistration(
-    String? tempToken,
-    String? email,
-  ) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #completeInstagramRegistration,
-          [
-            tempToken,
-            email,
-          ],
-        ),
-        returnValue:
-            _i3.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
-      ) as _i3.Future<Map<String, dynamic>>);
-
-  @override
   _i3.Future<void> signOut() => (super.noSuchMethod(
         Invocation.method(
           #signOut,
@@ -429,7 +417,55 @@ class MockAuthService extends _i1.Mock implements _i6.AuthService {
       ) as _i3.Future<Map<String, dynamic>?>);
 
   @override
-  void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  _i3.Future<Map<String, dynamic>> startIdVerification() => (super.noSuchMethod(
+        Invocation.method(
+          #startIdVerification,
+          [],
+        ),
+        returnValue:
+            _i3.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i3.Future<Map<String, dynamic>>);
+
+  @override
+  _i3.Future<Map<String, dynamic>> getIdVerificationStatus() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getIdVerificationStatus,
+          [],
+        ),
+        returnValue:
+            _i3.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i3.Future<Map<String, dynamic>>);
+
+  @override
+  _i3.Future<Map<String, dynamic>> refreshIdVerificationStatus() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #refreshIdVerificationStatus,
+          [],
+        ),
+        returnValue:
+            _i3.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i3.Future<Map<String, dynamic>>);
+
+  @override
+  String getKycaidVerificationUrl(String? verificationId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getKycaidVerificationUrl,
+          [verificationId],
+        ),
+        returnValue: _i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getKycaidVerificationUrl,
+            [verificationId],
+          ),
+        ),
+      ) as String);
+
+  @override
+  void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -438,7 +474,7 @@ class MockAuthService extends _i1.Mock implements _i6.AuthService {
       );
 
   @override
-  void removeListener(_i5.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i6.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],

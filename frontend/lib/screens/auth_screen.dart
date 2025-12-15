@@ -1,12 +1,9 @@
-import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:provider/provider.dart';
 
-import '../config/app_config.dart';
 import '../constants/spacing.dart';
 import '../services/auth_service.dart';
 import '../theme/vlvt_colors.dart';
@@ -16,7 +13,6 @@ import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_loader.dart';
 import 'forgot_password_screen.dart';
-import 'instagram_email_screen.dart';
 import 'legal_document_viewer.dart';
 import 'register_screen.dart';
 import 'verification_pending_screen.dart';
@@ -147,6 +143,7 @@ class _AuthScreenState extends State<AuthScreen>
           SnackBar(
             content: Text(error.message),
             backgroundColor: VlvtColors.error,
+            duration: const Duration(seconds: 6),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -170,6 +167,7 @@ class _AuthScreenState extends State<AuthScreen>
               ],
             ),
             backgroundColor: VlvtColors.error,
+            duration: const Duration(seconds: 6),
           ),
         );
       }
@@ -193,6 +191,7 @@ class _AuthScreenState extends State<AuthScreen>
           SnackBar(
             content: Text(error.message),
             backgroundColor: VlvtColors.error,
+            duration: const Duration(seconds: 6),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -216,121 +215,9 @@ class _AuthScreenState extends State<AuthScreen>
               ],
             ),
             backgroundColor: VlvtColors.error,
+            duration: const Duration(seconds: 6),
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _signInWithInstagram() async {
-    // Check if Instagram is configured
-    if (!AppConfig.isInstagramConfigured) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Instagram login is not configured'),
-            backgroundColor: VlvtColors.warning,
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    // Get AuthService reference before async gap to avoid BuildContext issues
-    final authService = context.read<AuthService>();
-
-    try {
-      // Generate cryptographically secure state parameter to prevent CSRF attacks
-      final random = Random.secure();
-      final stateBytes = List<int>.generate(32, (_) => random.nextInt(256));
-      final state = stateBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
-
-      // Build Instagram OAuth URL with state parameter
-      final authUrl = Uri.https('api.instagram.com', '/oauth/authorize', {
-        'client_id': AppConfig.instagramClientId,
-        'redirect_uri': AppConfig.instagramRedirectUri,
-        'scope': 'user_profile',
-        'response_type': 'code',
-        'state': state,
-      });
-
-      // Launch OAuth flow
-      final result = await FlutterWebAuth2.authenticate(
-        url: authUrl.toString(),
-        callbackUrlScheme: 'vlvt',
-      );
-
-      // Extract authorization code and state from callback URL
-      final uri = Uri.parse(result);
-      final code = uri.queryParameters['code'];
-      final returnedState = uri.queryParameters['state'];
-
-      // Verify state parameter to prevent CSRF attacks
-      if (returnedState != state) {
-        throw Exception('OAuth state mismatch - possible CSRF attack');
-      }
-
-      if (code == null) {
-        throw Exception('No authorization code received from Instagram');
-      }
-
-      // Exchange code for access token via backend
-      // Note: The backend handles the token exchange for security
-      final response = await authService.signInWithInstagram(code);
-
-      if (mounted) {
-        if (response['success'] == true) {
-          // Fully authenticated
-        } else if (response['needsEmail'] == true) {
-          // Instagram user needs to provide email
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => InstagramEmailScreen(
-                tempToken: response['tempToken'] ?? '',
-                username: response['username'] ?? '',
-              ),
-            ),
-          );
-        } else {
-          final error = ErrorHandler.handleError(
-            response['error'] ?? 'Failed to sign in with Instagram',
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error.message),
-              backgroundColor: VlvtColors.error,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        // User may have cancelled - don't show error for cancellation
-        if (!e.toString().contains('CANCELED') &&
-            !e.toString().contains('cancelled')) {
-          final error = ErrorHandler.handleError(e);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(error.message, style: VlvtTextStyles.labelMedium),
-                  const SizedBox(height: 4),
-                  Text(error.guidance, style: VlvtTextStyles.caption),
-                ],
-              ),
-              backgroundColor: VlvtColors.error,
-            ),
-          );
-        }
       }
     } finally {
       if (mounted) {
@@ -575,13 +462,6 @@ class _AuthScreenState extends State<AuthScreen>
                             _buildOAuthIconButton(
                               onPressed: _signInWithApple,
                               assetPath: 'assets/images/apple_logo_white.png',
-                              invertColor: true,
-                            ),
-                            Spacing.horizontalLg,
-                            // Instagram button - white glyph per guidelines
-                            _buildOAuthIconButton(
-                              onPressed: _signInWithInstagram,
-                              assetPath: 'assets/images/instagram_logo.png',
                               invertColor: true,
                             ),
                           ],
