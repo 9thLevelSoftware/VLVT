@@ -1,10 +1,10 @@
-# Gemini Context: NoBS Dating Project
+# Gemini Context: VLVT Project
 
-This document provides essential context about the NoBS Dating project for Gemini AI.
+This document provides essential context about the VLVT project for Gemini AI.
 
 ## 1. Project Overview
 
-**NoBS Dating** is a mobile dating application designed with a "straightforward" philosophy. It is built as a microservices-based system.
+**VLVT** is a mobile dating application designed with a "straightforward" philosophy. It is built as a microservices-based system.
 
 *   **Frontend**: A cross-platform mobile application built with **Flutter**. It handles user authentication, profile viewing/swiping (discovery), matching, and chatting. It uses the Provider pattern for state management and integrates with RevenueCat for subscription gating.
 

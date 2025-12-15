@@ -1,4 +1,4 @@
--- NoBS Dating Database Schema
+-- VLVT Database Schema
 
 -- Users table (for authentication)
 CREATE TABLE IF NOT EXISTS users (

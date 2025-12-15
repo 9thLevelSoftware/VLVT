@@ -2,7 +2,7 @@
 # This script generates secrets and shows templates for Railway deployment
 
 Write-Host ""
-Write-Host "NoBS Dating - Railway Setup Helper" -ForegroundColor Cyan
+Write-Host "VLVT - Railway Setup Helper" -ForegroundColor Cyan
 Write-Host "====================================" -ForegroundColor Cyan
 Write-Host ""
 

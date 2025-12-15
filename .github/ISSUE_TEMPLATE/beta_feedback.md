@@ -65,7 +65,7 @@ assignees: ''
 - [ ] No, definitely not
 
 ## Net Promoter Score
-<!-- How likely are you to recommend NoBS Dating to a friend? (0-10) -->
+<!-- How likely are you to recommend VLVT to a friend? (0-10) -->
 - [ ] 0 - Not at all likely
 - [ ] 1
 - [ ] 2

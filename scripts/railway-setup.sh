@@ -5,7 +5,7 @@
 
 set -e  # Exit on error
 
-echo "🚀 NoBS Dating - Railway Setup Helper"
+echo "🚀 VLVT - Railway Setup Helper"
 echo "======================================"
 echo ""
 

@@ -253,9 +253,13 @@ class _VlvtButtonState extends State<VlvtButton> {
           ),
           const SizedBox(width: 8),
         ],
-        Text(
-          widget.label,
-          style: _textStyle.copyWith(color: _textColor),
+        Flexible(
+          child: Text(
+            widget.label,
+            style: _textStyle.copyWith(color: _textColor),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ),
       ],
     );

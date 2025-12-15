@@ -1,4 +1,4 @@
-# NoBS Dating - Changelog
+# VLVT - Changelog
 
 ## [Unreleased] - 2025-11-14 - Beta Testing - Test Login Working
 

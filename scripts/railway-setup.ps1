@@ -1,7 +1,7 @@
 # Railway Setup Helper Script (PowerShell)
 # This script helps set up and verify Railway deployment
 
-Write-Host "🚀 NoBS Dating - Railway Setup Helper" -ForegroundColor Cyan
+Write-Host "🚀 VLVT - Railway Setup Helper" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 

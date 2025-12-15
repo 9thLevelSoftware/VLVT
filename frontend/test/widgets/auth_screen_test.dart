@@ -9,14 +9,14 @@ void main() {
         const MaterialApp(
           home: Scaffold(
             body: Center(
-              child: Text('NoBS Dating'),
+              child: Text('VLVT'),
             ),
           ),
         ),
       );
 
       // Verify logo text is displayed
-      expect(find.text('NoBS Dating'), findsOneWidget);
+      expect(find.text('VLVT'), findsOneWidget);
     });
 
     testWidgets('should display sign in buttons', (WidgetTester tester) async {
