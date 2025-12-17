@@ -2029,7 +2029,40 @@ app.post('/auth/kycaid/start', generalLimiter, async (req: Request, res: Respons
   }
 
   try {
-    // Check if KYCAID is configured
+    // Auto-verify test users (sandbox mode)
+    const isTestUser = userId.startsWith('test_') || userId.startsWith('google_test');
+    if (isTestUser) {
+      // Check if already verified
+      const existingResult = await pool.query(
+        'SELECT id_verified FROM users WHERE id = $1',
+        [userId]
+      );
+
+      if (existingResult.rows.length > 0 && existingResult.rows[0].id_verified) {
+        return res.json({
+          success: true,
+          alreadyVerified: true,
+          message: 'Your ID has already been verified'
+        });
+      }
+
+      // Auto-verify test user
+      await pool.query(
+        'UPDATE users SET id_verified = true, id_verified_at = NOW() WHERE id = $1',
+        [userId]
+      );
+
+      logger.info('Test user auto-verified for ID', { userId });
+
+      return res.json({
+        success: true,
+        alreadyVerified: true,
+        testMode: true,
+        message: 'Test user automatically verified'
+      });
+    }
+
+    // Check if KYCAID is configured (only needed for real users)
     if (!kycaidService.isKycaidConfigured()) {
       logger.error('KYCAID not configured');
       return res.status(503).json({ success: false, error: 'ID verification service not configured' });
