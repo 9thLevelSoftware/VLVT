@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:provider/provider.dart';
 import 'package:vlvt/services/profile_api_service.dart';
 import 'package:vlvt/services/auth_service.dart';
 import 'package:vlvt/services/chat_api_service.dart';

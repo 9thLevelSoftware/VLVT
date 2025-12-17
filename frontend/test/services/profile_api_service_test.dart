@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_parser/http_parser.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:vlvt/services/profile_api_service.dart';
 import 'package:vlvt/services/auth_service.dart';
 import 'package:vlvt/models/profile.dart';
 

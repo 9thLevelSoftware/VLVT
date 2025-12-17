@@ -2434,6 +2434,197 @@ app.get('/auth/kycaid/refresh', generalLimiter, async (req: Request, res: Respon
   }
 });
 
+// ===== REVENUECAT WEBHOOK =====
+// Receives subscription events from RevenueCat to sync with database
+
+const REVENUECAT_WEBHOOK_AUTH = process.env.REVENUECAT_WEBHOOK_AUTH;
+
+app.post('/auth/revenuecat/webhook', express.json(), async (req: Request, res: Response) => {
+  // Verify authorization header
+  const authHeader = req.headers.authorization;
+
+  if (REVENUECAT_WEBHOOK_AUTH) {
+    if (!authHeader || authHeader !== REVENUECAT_WEBHOOK_AUTH) {
+      logger.warn('RevenueCat webhook: Invalid or missing authorization header');
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+  } else {
+    logger.warn('RevenueCat webhook: REVENUECAT_WEBHOOK_AUTH not configured - accepting all requests');
+  }
+
+  try {
+    const { api_version, event } = req.body;
+
+    if (!event || !event.type) {
+      logger.warn('RevenueCat webhook: Invalid payload - missing event or type');
+      return res.status(400).json({ success: false, error: 'Invalid payload' });
+    }
+
+    const {
+      type,
+      id: eventId,
+      app_user_id,
+      original_app_user_id,
+      product_id,
+      entitlement_ids,
+      period_type,
+      purchased_at_ms,
+      expiration_at_ms,
+      store,
+      environment,
+      price,
+      currency,
+      transaction_id,
+      original_transaction_id,
+    } = event;
+
+    // Use original_app_user_id as the primary identifier (most stable)
+    const userId = original_app_user_id || app_user_id;
+
+    if (!userId) {
+      logger.warn('RevenueCat webhook: No user ID in event', { eventId, type });
+      return res.status(400).json({ success: false, error: 'Missing user ID' });
+    }
+
+    logger.info('RevenueCat webhook received', {
+      eventId,
+      type,
+      userId,
+      productId: product_id,
+      environment,
+    });
+
+    // Handle different event types
+    switch (type) {
+      case 'TEST':
+        // Test webhook - just acknowledge
+        logger.info('RevenueCat TEST webhook received');
+        break;
+
+      case 'INITIAL_PURCHASE':
+      case 'RENEWAL':
+      case 'UNCANCELLATION':
+      case 'NON_RENEWING_PURCHASE': {
+        // Active subscription - upsert into database
+        const entitlementId = entitlement_ids?.[0] || 'premium';
+        const purchasedAt = purchased_at_ms ? new Date(purchased_at_ms) : new Date();
+        const expiresAt = expiration_at_ms ? new Date(expiration_at_ms) : null;
+
+        await pool.query(
+          `INSERT INTO user_subscriptions (
+            id, user_id, revenuecat_id, product_id, entitlement_id,
+            is_active, will_renew, period_type, purchased_at, expires_at,
+            store, environment, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          ON CONFLICT (id) DO UPDATE SET
+            is_active = $6,
+            will_renew = $7,
+            expires_at = $10,
+            updated_at = NOW()`,
+          [
+            `rc_${original_transaction_id || transaction_id || eventId}`,
+            userId,
+            app_user_id,
+            product_id,
+            entitlementId,
+            true, // is_active
+            type !== 'NON_RENEWING_PURCHASE', // will_renew
+            period_type || 'normal',
+            purchasedAt,
+            expiresAt,
+            store || 'unknown',
+            environment || 'production',
+          ]
+        );
+
+        logger.info('RevenueCat subscription activated', {
+          userId,
+          productId: product_id,
+          type,
+          expiresAt,
+        });
+        break;
+      }
+
+      case 'CANCELLATION': {
+        // User cancelled - will_renew = false, but still active until expiration
+        await pool.query(
+          `UPDATE user_subscriptions
+           SET will_renew = false, updated_at = NOW()
+           WHERE user_id = $1 AND is_active = true`,
+          [userId]
+        );
+
+        logger.info('RevenueCat subscription cancelled (will expire)', { userId });
+        break;
+      }
+
+      case 'EXPIRATION':
+      case 'BILLING_ISSUE': {
+        // Subscription expired or billing failed - deactivate
+        const expiresAt = expiration_at_ms ? new Date(expiration_at_ms) : new Date();
+
+        await pool.query(
+          `UPDATE user_subscriptions
+           SET is_active = false, will_renew = false, expires_at = $2, updated_at = NOW()
+           WHERE user_id = $1`,
+          [userId, expiresAt]
+        );
+
+        logger.info('RevenueCat subscription expired/deactivated', { userId, type });
+        break;
+      }
+
+      case 'PRODUCT_CHANGE': {
+        // User changed product - update product_id
+        const entitlementId = entitlement_ids?.[0] || 'premium';
+        const expiresAt = expiration_at_ms ? new Date(expiration_at_ms) : null;
+
+        await pool.query(
+          `UPDATE user_subscriptions
+           SET product_id = $2, entitlement_id = $3, expires_at = $4, updated_at = NOW()
+           WHERE user_id = $1 AND is_active = true`,
+          [userId, product_id, entitlementId, expiresAt]
+        );
+
+        logger.info('RevenueCat product changed', { userId, productId: product_id });
+        break;
+      }
+
+      case 'TRANSFER': {
+        // Subscription transferred to different user
+        const newUserId = app_user_id;
+        if (newUserId && newUserId !== original_app_user_id) {
+          await pool.query(
+            `UPDATE user_subscriptions
+             SET user_id = $2, updated_at = NOW()
+             WHERE user_id = $1 AND is_active = true`,
+            [original_app_user_id, newUserId]
+          );
+          logger.info('RevenueCat subscription transferred', {
+            fromUser: original_app_user_id,
+            toUser: newUserId,
+          });
+        }
+        break;
+      }
+
+      default:
+        // Log unknown events but don't fail
+        logger.info('RevenueCat webhook: Unhandled event type', { type, eventId });
+    }
+
+    // Always return 200 to acknowledge receipt
+    res.json({ success: true, message: 'Webhook processed' });
+
+  } catch (error) {
+    logger.error('RevenueCat webhook processing error', { error });
+    // Return 200 anyway to prevent retries for processing errors
+    // RevenueCat will keep retrying on non-2xx responses
+    res.json({ success: true, message: 'Acknowledged with errors' });
+  }
+});
+
 // Async initialization function
 async function initializeApp() {
   // Initialize advanced caching system
