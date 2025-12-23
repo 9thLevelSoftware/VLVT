@@ -4,9 +4,10 @@
   "main": "index.js",
   "scripts": {
     "predev": "cd ../shared && npm run build",
-    "prebuild": "cd ../shared && npm run build",
     "dev": "ts-node src/index.ts",
-    "build": "tsc",
+    "build": "npm run build:shared && tsc",
+    "build:shared": "cd ../shared && npm run build",
+    "build:docker": "tsc",
     "start": "node dist/index.js",
     "migrate": "node migrate.js",
     "test": "jest",

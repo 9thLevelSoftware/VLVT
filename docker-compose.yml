@@ -20,8 +20,8 @@ services:
 
   auth-service:
     build:
-      context: ./backend/auth-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
     ports:
       - "${AUTH_PORT:-3001}:${AUTH_PORT:-3001}"
     environment:
@@ -34,8 +34,8 @@ services:
 
   profile-service:
     build:
-      context: ./backend/profile-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: profile-service/Dockerfile
     ports:
       - "${PROFILE_PORT:-3002}:${PROFILE_PORT:-3002}"
     environment:
@@ -48,8 +48,8 @@ services:
 
   chat-service:
     build:
-      context: ./backend/chat-service
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: chat-service/Dockerfile
     ports:
       - "${CHAT_PORT:-3003}:${CHAT_PORT:-3003}"
     environment:
