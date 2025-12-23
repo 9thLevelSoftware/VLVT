@@ -1,16 +1,3 @@
 {
-  "mcpServers": {
-    "daem0nmcp": {
-      "type": "stdio",
-      "command": "python",
-      "args": [
-        "-m",
-        "daem0nmcp.server"
-      ],
-      "env": {
-        "PYTHONPATH": "C:\\Users\\dasbl\\PycharmProjects\\Daem0nMCP",
-        "DAEM0NMCP_PROJECT_ROOT": "."
-      }
-    }
-  }
+  "mcpServers": {}
 }
