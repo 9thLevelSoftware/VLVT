@@ -302,13 +302,25 @@ export function signRequest(
 
 /**
  * Default signature middleware with standard configuration
+ * Lazy-initialized to avoid throwing at module load time if secret is not set
  */
-export const signatureMiddleware = createSignatureMiddleware();
+let _signatureMiddleware: ReturnType<typeof createSignatureMiddleware> | null = null;
+export const signatureMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  if (!_signatureMiddleware) {
+    _signatureMiddleware = createSignatureMiddleware();
+  }
+  _signatureMiddleware(req, res, next);
+};
 
 /**
  * Signature middleware that skips safe methods (GET, HEAD, OPTIONS)
  * Useful for APIs where only mutation operations need signature verification
+ * Lazy-initialized to avoid throwing at module load time if secret is not set
  */
-export const signatureMutationMiddleware = createSignatureMiddleware({
-  skipSafeMethods: true,
-});
+let _signatureMutationMiddleware: ReturnType<typeof createSignatureMiddleware> | null = null;
+export const signatureMutationMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  if (!_signatureMutationMiddleware) {
+    _signatureMutationMiddleware = createSignatureMiddleware({ skipSafeMethods: true });
+  }
+  _signatureMutationMiddleware(req, res, next);
+};
