@@ -16,6 +16,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@vlvt/shared": "file:../shared",
     "@types/cookie-parser": "^1.4.7",
     "@sentry/node": "^10.25.0",
     "cookie-parser": "^1.4.7",
