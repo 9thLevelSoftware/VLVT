@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import '../screens/reset_password_screen.dart';
 import 'auth_service.dart';
+import 'deep_link_validator.dart';
 
 class DeepLinkService {
   static AppLinks? _appLinks;
@@ -11,11 +12,29 @@ class DeepLinkService {
   /// Pending invite code from deep link (used during signup)
   static String? pendingInviteCode;
 
+  /// Counter for rejected links (for monitoring)
+  static int _rejectedLinkCount = 0;
+
+  /// Get the count of rejected links for monitoring
+  static int get rejectedLinkCount => _rejectedLinkCount;
+
+  /// Reset the rejected link counter
+  static void resetRejectedLinkCount() {
+    _rejectedLinkCount = 0;
+  }
+
   static Future<void> init(BuildContext context, AuthService authService) async {
     _appLinks = AppLinks();
 
     // Store navigator state before async gap
     final navigatorState = Navigator.of(context);
+
+    // Set up security monitoring callback
+    DeepLinkValidator.onLinkRejected = (link, reason) {
+      _rejectedLinkCount++;
+      debugPrint('[DeepLinkService] Security: Rejected malicious link. Total rejected: $_rejectedLinkCount');
+      // In production, this could send to analytics/security monitoring
+    };
 
     // Handle initial link (app opened via link)
     try {
@@ -45,55 +64,84 @@ class DeepLinkService {
   }
 
   static void _handleDeepLink(NavigatorState navigator, AuthService authService, String link) {
-    final uri = Uri.parse(link);
+    // Validate the deep link before processing
+    final validationResult = DeepLinkValidator.validate(link);
 
-    // Handle email verification: getvlvt.vip/verify?token=xxx or vlvt://auth/verify?token=xxx
-    if (uri.path.contains('verify') || uri.path == '/verify') {
-      final token = uri.queryParameters['token'];
-      if (token != null) {
-        _handleEmailVerification(navigator, authService, token);
-      }
-    }
-
-    // Handle password reset: getvlvt.vip/reset-password?token=xxx
-    if (uri.path.contains('reset-password') || uri.path == '/reset-password') {
-      final token = uri.queryParameters['token'];
-      if (token != null) {
-        navigator.push(
-          MaterialPageRoute(
-            builder: (context) => ResetPasswordScreen(token: token),
+    if (!validationResult.isValid) {
+      debugPrint('[DeepLinkService] Rejected invalid deep link: ${validationResult.error}');
+      // Show a user-friendly error for rejected links
+      if (navigator.mounted) {
+        ScaffoldMessenger.of(navigator.context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid link. Please try again.'),
+            backgroundColor: Colors.red,
           ),
         );
       }
+      return;
     }
 
-    // Handle invite codes: getvlvt.vip/invite/CODE or getvlvt.vip/invite?code=CODE
-    if (uri.path.contains('invite')) {
-      String? code = uri.queryParameters['code'];
+    // Use validated and sanitized parameters
+    final sanitizedParams = validationResult.sanitizedParameters ?? {};
 
-      // Check if code is in the path: /invite/VLVT-XXXX
-      if (code == null && uri.pathSegments.length >= 2) {
-        final inviteIndex = uri.pathSegments.indexOf('invite');
-        if (inviteIndex >= 0 && inviteIndex + 1 < uri.pathSegments.length) {
-          code = uri.pathSegments[inviteIndex + 1];
+    switch (validationResult.type) {
+      case DeepLinkType.emailVerification:
+        final token = sanitizedParams['token'];
+        if (token != null) {
+          _handleEmailVerification(navigator, authService, token);
         }
-      }
+        break;
 
-      if (code != null && code.isNotEmpty) {
-        // Store the invite code for use during signup
-        pendingInviteCode = code;
-        debugPrint('Stored pending invite code: $code');
-
-        // If user is already authenticated, show a message
-        if (authService.isAuthenticated) {
-          ScaffoldMessenger.of(navigator.context).showSnackBar(
-            SnackBar(
-              content: Text('Welcome! Invited by code: $code'),
-              backgroundColor: Colors.amber,
+      case DeepLinkType.passwordReset:
+        final token = sanitizedParams['token'];
+        if (token != null) {
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) => ResetPasswordScreen(token: token),
             ),
           );
         }
-      }
+        break;
+
+      case DeepLinkType.viewMatch:
+        final matchId = sanitizedParams['id'];
+        if (matchId != null) {
+          debugPrint('Deep link to match: $matchId');
+          // TODO: Navigate to match screen when implemented
+        }
+        break;
+
+      case DeepLinkType.openChat:
+        final chatId = sanitizedParams['id'];
+        if (chatId != null) {
+          debugPrint('Deep link to chat: $chatId');
+          // TODO: Navigate to chat screen when implemented
+        }
+        break;
+
+      case DeepLinkType.invite:
+        final code = sanitizedParams['code'];
+        if (code != null && code.isNotEmpty) {
+          // Store the invite code for use during signup
+          pendingInviteCode = code;
+          debugPrint('Stored pending invite code: $code');
+
+          // If user is already authenticated, show a message
+          if (authService.isAuthenticated && navigator.mounted) {
+            ScaffoldMessenger.of(navigator.context).showSnackBar(
+              SnackBar(
+                content: Text('Welcome! Invited by code: $code'),
+                backgroundColor: Colors.amber,
+              ),
+            );
+          }
+        }
+        break;
+
+      case null:
+        // This shouldn't happen since we check isValid above
+        debugPrint('[DeepLinkService] Warning: Valid link but no type detected');
+        break;
     }
   }
 
