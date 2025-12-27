@@ -25,7 +25,13 @@ import logger from './utils/logger';
 import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
-import { createCsrfMiddleware, createCsrfTokenHandler } from '@vlvt/shared';
+import {
+  createCsrfMiddleware,
+  createCsrfTokenHandler,
+  addVersionToHealth,
+  API_VERSIONS,
+  CURRENT_API_VERSION,
+} from '@vlvt/shared';
 
 // Admin API key for protected endpoints
 const ADMIN_API_KEY = process.env.TEST_ENDPOINTS_API_KEY;
@@ -168,9 +174,9 @@ pool.on('error', (err, client) => {
 // Initialize Firebase for push notifications
 initializeFirebase();
 
-// Health check endpoint
+// Health check endpoint (at root - not versioned)
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'chat-service' });
+  res.json(addVersionToHealth({ status: 'ok', service: 'chat-service' }));
 });
 
 // CSRF token endpoint - provides token for double-submit cookie pattern
@@ -179,6 +185,48 @@ app.get('/csrf-token', csrfTokenHandler);
 // Apply CSRF middleware to state-changing requests
 // Note: For mobile apps using Bearer tokens, CSRF is skipped (already protected)
 app.use(csrfMiddleware);
+
+// =============================================================================
+// API VERSIONING SUPPORT
+// All routes are available at both:
+// - Versioned: /api/v1/matches/*, /api/v1/messages/* (recommended for new clients)
+// - Legacy: /matches/*, /messages/* (backwards compatible, will eventually be deprecated)
+// =============================================================================
+
+// URL rewriting middleware for versioned routes
+// Strips /api/v1 prefix and routes to existing handlers
+app.use((req, res, next) => {
+  const versionMatch = req.path.match(/^\/api\/v(\d+)(\/.*)?$/);
+
+  if (versionMatch) {
+    const version = parseInt(versionMatch[1], 10);
+    const remainingPath = versionMatch[2] || '/';
+
+    // Validate version is supported
+    if (version < 1 || version > CURRENT_API_VERSION) {
+      return res.status(400).json({
+        success: false,
+        error: `API version v${version} is not supported`,
+        supportedVersions: Object.values(API_VERSIONS),
+        currentVersion: CURRENT_API_VERSION,
+      });
+    }
+
+    // Set version on request and response
+    req.apiVersion = version;
+    res.setHeader('X-API-Version', `v${version}`);
+
+    // Rewrite URL to strip version prefix for routing
+    req.url = remainingPath;
+  } else {
+    // Legacy unversioned route
+    req.apiVersion = 1; // Default to v1
+    res.setHeader('X-API-Version', 'v1');
+    res.setHeader('X-API-Legacy-Route', 'true');
+  }
+
+  next();
+});
 
 // Get matches for a user - Only allow users to view their own matches
 app.get('/matches/:userId', authMiddleware, generalLimiter, async (req: Request, res: Response) => {

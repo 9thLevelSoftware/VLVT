@@ -113,3 +113,24 @@ export {
   unregisterFCMToken,
   deactivateAllUserTokens,
 } from './services/fcm-service';
+
+// API Versioning
+export {
+  API_VERSIONS,
+  CURRENT_API_VERSION,
+  DEFAULT_API_VERSION,
+  DEPRECATED_VERSIONS,
+  MINIMUM_SUPPORTED_VERSION,
+  extractVersion,
+  isVersionSupported,
+  createVersionMiddleware,
+  createVersionedRouter,
+  getVersionedPath,
+  mountVersionedRoutes,
+  addVersionToHealth,
+  addVersionHeaders,
+  type ApiVersion,
+  type VersionMiddlewareOptions,
+  type VersionExtractionResult,
+  type VersionedRouterOptions,
+} from './middleware/api-version';

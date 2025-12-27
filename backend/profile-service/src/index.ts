@@ -13,7 +13,7 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -39,7 +39,13 @@ import {
 import { resolvePhotoUrls, uploadToR2, getPresignedUrl } from './utils/r2-client';
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 import { initializeFirebase, sendMatchNotification } from './services/fcm-service';
-import { createCsrfMiddleware, createCsrfTokenHandler } from '@vlvt/shared';
+import {
+  createCsrfMiddleware,
+  createCsrfTokenHandler,
+  addVersionToHealth,
+  API_VERSIONS,
+  CURRENT_API_VERSION,
+} from '@vlvt/shared';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -247,9 +253,9 @@ const SIMILARITY_THRESHOLD = parseFloat(process.env.REKOGNITION_SIMILARITY_THRES
 // Initialize Firebase Admin SDK for push notifications
 initializeFirebase();
 
-// Health check endpoint
+// Health check endpoint (at root - not versioned)
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'profile-service' });
+  res.json(addVersionToHealth({ status: 'ok', service: 'profile-service' }));
 });
 
 // CSRF token endpoint - provides token for double-submit cookie pattern
@@ -258,6 +264,48 @@ app.get('/csrf-token', csrfTokenHandler);
 // Apply CSRF middleware to state-changing requests
 // Note: For mobile apps using Bearer tokens, CSRF is skipped (already protected)
 app.use(csrfMiddleware);
+
+// =============================================================================
+// API VERSIONING SUPPORT
+// All routes are available at both:
+// - Versioned: /api/v1/profile/* (recommended for new clients)
+// - Legacy: /profile/* (backwards compatible, will eventually be deprecated)
+// =============================================================================
+
+// URL rewriting middleware for versioned routes
+// Strips /api/v1 prefix and routes to existing handlers
+app.use((req, res, next) => {
+  const versionMatch = req.path.match(/^\/api\/v(\d+)(\/.*)?$/);
+
+  if (versionMatch) {
+    const version = parseInt(versionMatch[1], 10);
+    const remainingPath = versionMatch[2] || '/';
+
+    // Validate version is supported
+    if (version < 1 || version > CURRENT_API_VERSION) {
+      return res.status(400).json({
+        success: false,
+        error: `API version v${version} is not supported`,
+        supportedVersions: Object.values(API_VERSIONS),
+        currentVersion: CURRENT_API_VERSION,
+      });
+    }
+
+    // Set version on request and response
+    req.apiVersion = version;
+    res.setHeader('X-API-Version', `v${version}`);
+
+    // Rewrite URL to strip version prefix for routing
+    req.url = remainingPath;
+  } else {
+    // Legacy unversioned route
+    req.apiVersion = 1; // Default to v1
+    res.setHeader('X-API-Version', 'v1');
+    res.setHeader('X-API-Legacy-Route', 'true');
+  }
+
+  next();
+});
 
 // Create profile - Extract userId from JWT token, not request body
 app.post('/profile', authMiddleware, profileCreationLimiter, validateProfile, async (req: Request, res: Response) => {

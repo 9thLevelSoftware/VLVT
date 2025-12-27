@@ -13,7 +13,7 @@ if (process.env.SENTRY_DSN) {
   });
 }
 
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -38,6 +38,10 @@ import {
   createAuditLogger,
   createCsrfMiddleware,
   createCsrfTokenHandler,
+  addVersionToHealth,
+  createVersionMiddleware,
+  API_VERSIONS,
+  CURRENT_API_VERSION,
 } from '@vlvt/shared';
 
 const app = express();
@@ -197,6 +201,7 @@ app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
 // CSRF Protection Configuration
+// Note: Versioned routes (/api/v1/*) are rewritten to legacy paths before CSRF check
 const csrfMiddleware = createCsrfMiddleware({
   skipPaths: [
     '/health',
@@ -206,14 +211,19 @@ const csrfMiddleware = createCsrfMiddleware({
     '/auth/apple/callback',
     '/webhooks/',
     '/kycaid/webhook',
+    // Versioned equivalents (handled by URL rewrite middleware)
+    '/api/v1/auth/google',
+    '/api/v1/auth/google/callback',
+    '/api/v1/auth/apple',
+    '/api/v1/auth/apple/callback',
   ],
   logger,
 });
 const csrfTokenHandler = createCsrfTokenHandler();
 
-// Health check endpoint
+// Health check endpoint (at root - not versioned)
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'auth-service' });
+  res.json(addVersionToHealth({ status: 'ok', service: 'auth-service' }));
 });
 
 // CSRF token endpoint - provides token for double-submit cookie pattern
@@ -225,6 +235,48 @@ app.use(csrfMiddleware);
 
 // Apply input validation middleware to all routes
 app.use(validateInputMiddleware);
+
+// =============================================================================
+// API VERSIONING SUPPORT
+// All routes are available at both:
+// - Versioned: /api/v1/auth/* (recommended for new clients)
+// - Legacy: /auth/* (backwards compatible, will eventually be deprecated)
+// =============================================================================
+
+// URL rewriting middleware for versioned routes
+// Strips /api/v1 prefix and routes to existing handlers
+app.use((req, res, next) => {
+  const versionMatch = req.path.match(/^\/api\/v(\d+)(\/.*)?$/);
+
+  if (versionMatch) {
+    const version = parseInt(versionMatch[1], 10);
+    const remainingPath = versionMatch[2] || '/';
+
+    // Validate version is supported
+    if (version < 1 || version > CURRENT_API_VERSION) {
+      return res.status(400).json({
+        success: false,
+        error: `API version v${version} is not supported`,
+        supportedVersions: Object.values(API_VERSIONS),
+        currentVersion: CURRENT_API_VERSION,
+      });
+    }
+
+    // Set version on request and response
+    req.apiVersion = version;
+    res.setHeader('X-API-Version', `v${version}`);
+
+    // Rewrite URL to strip version prefix for routing
+    req.url = remainingPath;
+  } else {
+    // Legacy unversioned route
+    req.apiVersion = 1; // Default to v1
+    res.setHeader('X-API-Version', 'v1');
+    res.setHeader('X-API-Legacy-Route', 'true');
+  }
+
+  next();
+});
 
 // Sign in with Apple endpoint
 app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {

@@ -3,6 +3,31 @@ import 'package:flutter/foundation.dart';
 
 /// Application configuration
 class AppConfig {
+  /// Current API version used by the frontend
+  static const int apiVersion = 1;
+
+  /// API version prefix for building versioned URLs
+  static const String apiVersionPrefix = '/api/v$apiVersion';
+
+  /// Build a versioned API URL
+  ///
+  /// Example:
+  ///   buildApiUrl(authServiceUrl, '/auth/login')
+  ///   Returns: 'https://vlvtauth.up.railway.app/api/v1/auth/login'
+  static String buildApiUrl(String baseUrl, String path) {
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    return '$baseUrl$apiVersionPrefix$normalizedPath';
+  }
+
+  /// Build a versioned auth service URL
+  static String authUrl(String path) => buildApiUrl(authServiceUrl, path);
+
+  /// Build a versioned profile service URL
+  static String profileUrl(String path) => buildApiUrl(profileServiceUrl, path);
+
+  /// Build a versioned chat service URL
+  static String chatUrl(String path) => buildApiUrl(chatServiceUrl, path);
+
   /// Google Sign-In Client ID (for mobile platforms)
   /// Get this from Firebase Console > Authentication > Sign-in method > Google
   /// IMPORTANT: This is required for Google Sign-In to work in production
