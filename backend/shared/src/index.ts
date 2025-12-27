@@ -53,6 +53,19 @@ export {
   type CsrfMiddlewareOptions,
 } from './middleware/csrf';
 
+export {
+  computeHash,
+  computeSignature,
+  verifySignature,
+  createSignatureMiddleware,
+  signRequest,
+  getSigningSecret,
+  signatureMiddleware,
+  signatureMutationMiddleware,
+  type SignatureMiddlewareOptions,
+  type SignatureVerificationResult,
+} from './middleware/request-signing';
+
 // Utilities
 export {
   createLogger,
