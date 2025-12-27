@@ -5,51 +5,47 @@
 
 ARG SERVICE_NAME=auth-service
 
-# Build stage
-FROM node:18-alpine AS builder
-
-ARG SERVICE_NAME
-
-WORKDIR /app
-
-# Copy and build shared package first
-COPY shared/package*.json ./shared/
-WORKDIR /app/shared
-RUN npm install
-COPY shared/ ./
-RUN npm run build
-
-# Copy and build the target service
-WORKDIR /app/service
-COPY ${SERVICE_NAME}/package*.json ./
-
-# Update package.json to use absolute path for shared package
-RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared"|g' package.json
-
-RUN npm install
-COPY ${SERVICE_NAME}/ ./
-RUN npm run build
-
-# Production stage
 FROM node:18-alpine
 
 ARG SERVICE_NAME
 
 WORKDIR /app
 
-# Copy service files first
-COPY --from=builder /app/service/dist ./dist
-COPY --from=builder /app/service/package*.json ./
+# ============================================================================
+# Step 1: Build the shared package and create a tarball
+# ============================================================================
+COPY shared/package*.json ./shared/
+WORKDIR /app/shared
+RUN npm install
+COPY shared/ ./
+RUN npm run build
+# Create a tarball - this avoids symlink issues with file: dependencies
+RUN npm pack
 
-# Copy node_modules (includes the symlink to @vlvt/shared)
-COPY --from=builder /app/service/node_modules ./node_modules
+# ============================================================================
+# Step 2: Build the service using the shared tarball
+# ============================================================================
+WORKDIR /app/service
+COPY ${SERVICE_NAME}/package*.json ./
 
-# Remove the symlink and copy the actual shared package
-RUN rm -rf ./node_modules/@vlvt/shared
-COPY --from=builder /app/shared/dist ./node_modules/@vlvt/shared/dist
-COPY --from=builder /app/shared/package.json ./node_modules/@vlvt/shared/
+# Replace the file:../shared reference with the tarball
+RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared/vlvt-shared-1.0.0.tgz"|g' package.json
 
-# Expose port based on service (default 3001 for auth)
+RUN npm install
+COPY ${SERVICE_NAME}/ ./
+RUN npm run build
+
+# ============================================================================
+# Step 3: Clean up and prepare for production
+# ============================================================================
+# Remove dev dependencies and unnecessary files
+RUN npm prune --production
+
+# Remove the shared source (keep only what's in node_modules)
+RUN rm -rf /app/shared
+
+WORKDIR /app/service
+
 EXPOSE 3001 3002 3003
 
 CMD ["npm", "start"]
