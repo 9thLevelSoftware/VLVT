@@ -353,9 +353,19 @@ export function createSocketRateLimiter(config: Partial<SocketRateLimiterConfig>
 
     const { maxEvents, windowMs } = limitConfig;
     const now = Date.now();
-    const tracker = getEventTracker(state, eventName);
 
-    // Clean old timestamps (but don't modify)
+    // Only check existing tracker - don't create new one (prevents memory leak)
+    const tracker = state.events.get(eventName);
+    if (!tracker) {
+      return {
+        allowed: true,
+        currentCount: 0,
+        maxEvents,
+        remaining: maxEvents,
+      };
+    }
+
+    // Clean old timestamps (but don't modify the original array)
     const cutoff = now - windowMs;
     const validTimestamps = tracker.timestamps.filter((ts) => ts > cutoff);
     const currentCount = validTimestamps.length;

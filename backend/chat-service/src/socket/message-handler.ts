@@ -436,8 +436,7 @@ export const setupMessageHandlers = (
     socket.on('send_message', rateLimiter.wrapHandler('send_message', handleSendMessage));
     socket.on('mark_read', rateLimiter.wrapHandler('mark_read', handleMarkRead));
     socket.on('typing', rateLimiter.wrapHandler('typing', handleTyping));
-    // get_online_status is not rate limited (read-only status query)
-    socket.on('get_online_status', handleGetOnlineStatus);
+    socket.on('get_online_status', rateLimiter.wrapHandler('get_online_status', handleGetOnlineStatus));
 
     logger.debug('Message handlers registered with rate limiting', { socketId: socket.id, userId });
   } else {

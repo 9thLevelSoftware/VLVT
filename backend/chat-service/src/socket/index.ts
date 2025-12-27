@@ -16,12 +16,14 @@ import { createSocketRateLimiter, SocketRateLimiter } from '@vlvt/shared';
  * - send_message: 30 per minute (normal conversation pace)
  * - typing: 10 per 10 seconds (prevent typing indicator spam)
  * - mark_read: 60 per minute (batch reads are common)
+ * - get_online_status: 30 per minute (prevents DB query flooding)
  */
 const socketRateLimiter: SocketRateLimiter = createSocketRateLimiter({
   limits: {
     send_message: { maxEvents: 30, windowMs: 60000 },
     typing: { maxEvents: 10, windowMs: 10000 },
     mark_read: { maxEvents: 60, windowMs: 60000 },
+    get_online_status: { maxEvents: 30, windowMs: 60000 },
   },
   logViolations: true,
   errorEventName: 'rate_limit_error',
