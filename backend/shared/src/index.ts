@@ -67,6 +67,17 @@ export {
   errors,
 } from './utils/response';
 
+export {
+  AuditLogger,
+  createAuditLogger,
+  AuditAction,
+  AuditResourceType,
+  type AuditLogEntry,
+  type AuditLogRecord,
+  type AuditLogQueryOptions,
+  type AuditLoggerOptions,
+} from './utils/audit-logger';
+
 // Services
 export {
   initializeFirebase,

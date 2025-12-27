@@ -30,6 +30,12 @@ import { globalErrorHandler, notFoundHandler, asyncHandler, AppError, ErrorRespo
 import { initializeSwagger } from './docs/swagger';
 import cacheManager from './utils/cache-manager';
 import * as kycaidService from './services/kycaid-service';
+import {
+  AuditLogger,
+  AuditAction,
+  AuditResourceType,
+  createAuditLogger,
+} from '@vlvt/shared';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -101,6 +107,12 @@ pool.on('error', (err, client) => {
     error: err.message,
     stack: err.stack
   });
+});
+
+// Initialize AuditLogger for comprehensive security event logging
+const auditLogger = createAuditLogger({
+  pool,
+  serviceName: 'auth-service',
 });
 
 /**
@@ -479,6 +491,16 @@ app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
       { expiresIn: ACCESS_TOKEN_EXPIRY }
     );
 
+    // Audit log: token refresh
+    await auditLogger.logAuthEvent(AuditAction.TOKEN_REFRESH, {
+      userId: tokenRecord.user_id,
+      email: tokenRecord.email,
+      provider: tokenRecord.provider,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      success: true,
+    });
+
     logger.info('Access token refreshed', { userId: tokenRecord.user_id });
 
     res.json({
@@ -516,6 +538,14 @@ app.post('/auth/logout', authLimiter, async (req: Request, res: Response) => {
     );
 
     if (result.rows.length > 0) {
+      // Audit log: logout
+      await auditLogger.logAuthEvent(AuditAction.LOGOUT, {
+        userId: result.rows[0].user_id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        success: true,
+      });
+
       logger.info('User logged out, refresh token revoked', { userId: result.rows[0].user_id });
     }
 
@@ -552,6 +582,15 @@ app.post('/auth/logout-all', authLimiter, async (req: Request, res: Response) =>
        RETURNING id`,
       [userId]
     );
+
+    // Audit log: logout from all devices
+    await auditLogger.logAuthEvent(AuditAction.LOGOUT_ALL_DEVICES, {
+      userId,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      success: true,
+      metadata: { tokensRevoked: result.rows.length },
+    });
 
     logger.info('User logged out from all devices', {
       userId,
@@ -1008,6 +1047,21 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
       // Record failed attempt and check if account should be locked
       const failResult = await recordFailedLogin(email, ipAddress, userAgent, 'invalid_password');
 
+      // Audit log: failed login
+      await auditLogger.logAuthEvent(AuditAction.LOGIN_FAILURE, {
+        userId: credential.user_id,
+        email: email.toLowerCase(),
+        provider: 'email',
+        ipAddress,
+        userAgent,
+        success: false,
+        errorMessage: 'Invalid password',
+        metadata: {
+          failedAttempts: failResult.failedAttempts,
+          isNowLocked: failResult.isLocked,
+        },
+      });
+
       logger.warn('Failed login attempt', {
         email: email.toLowerCase(),
         ip: ipAddress,
@@ -1016,6 +1070,20 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
       });
 
       if (failResult.isLocked) {
+        // Audit log: account locked
+        await auditLogger.logAuthEvent(AuditAction.ACCOUNT_LOCKED, {
+          userId: credential.user_id,
+          email: email.toLowerCase(),
+          provider: 'email',
+          ipAddress,
+          userAgent,
+          success: true,
+          metadata: {
+            lockedUntil: failResult.lockedUntil?.toISOString(),
+            failedAttempts: failResult.failedAttempts,
+          },
+        });
+
         return res.status(423).json({
           success: false,
           error: `Account has been locked due to too many failed login attempts. Please try again in ${LOCKOUT_DURATION_MINUTES} minutes.`,
@@ -1038,6 +1106,17 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
       // Record this as a failed attempt too (prevents abuse of unverified accounts)
       await recordFailedLogin(email, ipAddress, userAgent, 'email_not_verified');
 
+      // Audit log: login failed due to unverified email
+      await auditLogger.logAuthEvent(AuditAction.LOGIN_FAILURE, {
+        userId: credential.user_id,
+        email: email.toLowerCase(),
+        provider: 'email',
+        ipAddress,
+        userAgent,
+        success: false,
+        errorMessage: 'Email not verified',
+      });
+
       return res.status(403).json({
         success: false,
         error: 'Please verify your email before logging in',
@@ -1057,6 +1136,16 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
       credential.email,
       req
     );
+
+    // Audit log: successful login
+    await auditLogger.logAuthEvent(AuditAction.LOGIN_SUCCESS, {
+      userId: credential.user_id,
+      email: credential.email,
+      provider: 'email',
+      ipAddress,
+      userAgent,
+      success: true,
+    });
 
     logger.info('User logged in', { userId: credential.user_id, provider: 'email' });
     res.json({
@@ -1163,6 +1252,17 @@ app.post('/auth/email/reset', authLimiter, async (req: Request, res: Response) =
        WHERE user_id = $2 AND provider = 'email'`,
       [passwordHash, credential.user_id]
     );
+
+    // Audit log: password reset successful
+    await auditLogger.logDataChange(AuditAction.PASSWORD_RESET_SUCCESS, {
+      userId: credential.user_id,
+      resourceType: AuditResourceType.AUTH_CREDENTIAL,
+      resourceId: credential.user_id,
+      oldValue: { hasResetToken: true },
+      newValue: { hasResetToken: false, passwordChanged: true },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
 
     logger.info('Password reset successful', { userId: credential.user_id });
     res.json({ success: true, message: 'Password has been reset successfully' });
