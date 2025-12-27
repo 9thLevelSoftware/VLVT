@@ -2,7 +2,6 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "chat-service/Dockerfile",
     "watchPatterns": [
       "chat-service/**",
       "shared/**"
