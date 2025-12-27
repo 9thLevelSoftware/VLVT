@@ -1,7 +1,12 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "auth-service/Dockerfile",
+    "watchPatterns": [
+      "auth-service/**",
+      "shared/**"
+    ]
   },
   "deploy": {
     "startCommand": "npm start",
