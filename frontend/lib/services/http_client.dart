@@ -3,13 +3,38 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'auth_service.dart';
+import 'pinned_http_client.dart';
 
-/// Custom HTTP client with timeout and 401 handling
+/// Custom HTTP client with timeout, 401 handling, and certificate pinning.
+///
+/// This client automatically applies certificate pinning in release mode
+/// to protect against man-in-the-middle attacks on compromised networks.
+///
+/// In debug mode:
+/// - Localhost connections bypass pinning for development convenience
+/// - Production URLs still enforce pinning for security testing
+///
+/// In release mode:
+/// - All production URLs enforce certificate pinning
+/// - See [CertificatePinningConfig] for pinned hosts and fingerprints
 class ApiHttpClient {
   final AuthService _authService;
   static const Duration defaultTimeout = Duration(seconds: 30);
 
-  ApiHttpClient(this._authService);
+  /// The underlying HTTP client with certificate pinning
+  late final PinnedHttpClient _pinnedClient;
+
+  /// Whether certificate pinning is active for this client
+  bool get isPinningEnabled => _pinnedClient.isPinningEnabled;
+
+  ApiHttpClient(this._authService) {
+    _pinnedClient = PinnedHttpClient.create();
+  }
+
+  /// Dispose of resources when the client is no longer needed
+  void dispose() {
+    _pinnedClient.close();
+  }
 
   Map<String, String> _getAuthHeaders() {
     final token = _authService.token;
@@ -45,7 +70,7 @@ class ApiHttpClient {
     final allHeaders = {..._getAuthHeaders(), ...?headers};
 
     Future<http.Response> makeRequest() async {
-      return await http.get(url, headers: allHeaders)
+      return await _pinnedClient.get(url, headers: allHeaders)
           .timeout(timeout ?? defaultTimeout);
     }
 
@@ -77,7 +102,7 @@ class ApiHttpClient {
     final encodedBody = body is String ? body : (body != null ? json.encode(body) : null);
 
     Future<http.Response> makeRequest() async {
-      return await http.post(url, headers: allHeaders, body: encodedBody)
+      return await _pinnedClient.post(url, headers: allHeaders, body: encodedBody)
           .timeout(timeout ?? defaultTimeout);
     }
 
@@ -109,7 +134,7 @@ class ApiHttpClient {
     final encodedBody = body is String ? body : (body != null ? json.encode(body) : null);
 
     Future<http.Response> makeRequest() async {
-      return await http.put(url, headers: allHeaders, body: encodedBody)
+      return await _pinnedClient.put(url, headers: allHeaders, body: encodedBody)
           .timeout(timeout ?? defaultTimeout);
     }
 
@@ -141,7 +166,7 @@ class ApiHttpClient {
     final encodedBody = body is String ? body : (body != null ? json.encode(body) : null);
 
     Future<http.Response> makeRequest() async {
-      return await http.delete(url, headers: allHeaders, body: encodedBody)
+      return await _pinnedClient.delete(url, headers: allHeaders, body: encodedBody)
           .timeout(timeout ?? defaultTimeout);
     }
 
