@@ -129,7 +129,7 @@ class SubscriptionService extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('${AppConfig.authServiceUrl}/auth/subscription-status'),
+        Uri.parse(AppConfig.authUrl('/auth/subscription-status')),
         headers: {
           'Authorization': 'Bearer $_authToken',
           'Content-Type': 'application/json',

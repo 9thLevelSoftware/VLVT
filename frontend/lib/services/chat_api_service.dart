@@ -12,11 +12,14 @@ class ChatApiService extends BaseApiService {
   @override
   String get baseUrl => AppConfig.chatServiceUrl;
 
+  /// Build a versioned chat service URL
+  String _url(String path) => AppConfig.chatUrl(path);
+
   Future<List<Match>> getMatches(String userId) async {
     try {
       final encodedUserId = Uri.encodeComponent(userId);
       final response = await authenticatedGet(
-        Uri.parse('$baseUrl/matches/$encodedUserId'),
+        Uri.parse(_url('/matches/$encodedUserId')),
       );
 
       if (response.statusCode == 200) {
@@ -40,7 +43,7 @@ class ChatApiService extends BaseApiService {
     try {
       final encodedMatchId = Uri.encodeComponent(matchId);
       final response = await authenticatedGet(
-        Uri.parse('$baseUrl/messages/$encodedMatchId'),
+        Uri.parse(_url('/messages/$encodedMatchId')),
       );
 
       if (response.statusCode == 200) {
@@ -63,7 +66,7 @@ class ChatApiService extends BaseApiService {
   Future<Map<String, dynamic>> createMatch(String userId1, String userId2) async {
     try {
       final response = await authenticatedPost(
-        Uri.parse('$baseUrl/matches'),
+        Uri.parse(_url('/matches')),
         body: json.encode({
           'userId1': userId1,
           'userId2': userId2,
@@ -92,7 +95,7 @@ class ChatApiService extends BaseApiService {
   Future<Message> sendMessage(String matchId, String senderId, String text) async {
     try {
       final response = await authenticatedPost(
-        Uri.parse('$baseUrl/messages'),
+        Uri.parse(_url('/messages')),
         body: json.encode({
           'matchId': matchId,
           'senderId': senderId,
@@ -124,7 +127,7 @@ class ChatApiService extends BaseApiService {
     try {
       final encodedMatchId = Uri.encodeComponent(matchId);
       final response = await authenticatedDelete(
-        Uri.parse('$baseUrl/matches/$encodedMatchId'),
+        Uri.parse(_url('/matches/$encodedMatchId')),
       );
 
       if (response.statusCode == 200) {
@@ -195,7 +198,7 @@ class ChatApiService extends BaseApiService {
     try {
       final encodedUserId = Uri.encodeComponent(userId);
       final response = await authenticatedGet(
-        Uri.parse('$baseUrl/matches/$encodedUserId/unread-counts'),
+        Uri.parse(_url('/matches/$encodedUserId/unread-counts')),
       );
 
       if (response.statusCode == 200) {
@@ -220,7 +223,7 @@ class ChatApiService extends BaseApiService {
     try {
       final encodedMatchId = Uri.encodeComponent(matchId);
       final response = await authenticatedPut(
-        Uri.parse('$baseUrl/messages/$encodedMatchId/mark-read'),
+        Uri.parse(_url('/messages/$encodedMatchId/mark-read')),
         body: json.encode({
           'userId': userId,
         }),

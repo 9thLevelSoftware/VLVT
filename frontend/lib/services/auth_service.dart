@@ -56,7 +56,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/refresh'),
+        Uri.parse(AppConfig.authUrl('/auth/refresh')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'refreshToken': _refreshToken}),
       ).timeout(const Duration(seconds: 10));
@@ -114,7 +114,7 @@ class AuthService extends ChangeNotifier {
 
       // Send to backend with the raw nonce for verification
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/apple'),
+        Uri.parse(AppConfig.authUrl('/auth/apple')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'identityToken': credential.identityToken,
@@ -233,7 +233,7 @@ class AuthService extends ChangeNotifier {
 
       // Send to backend
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/google'),
+        Uri.parse(AppConfig.authUrl('/auth/google')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'idToken': idToken,
@@ -286,7 +286,7 @@ class AuthService extends ChangeNotifier {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/register'),
+        Uri.parse(AppConfig.authUrl('/auth/email/register')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(body),
       );
@@ -313,7 +313,7 @@ class AuthService extends ChangeNotifier {
   Future<Map<String, dynamic>> signInWithEmail(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/login'),
+        Uri.parse(AppConfig.authUrl('/auth/email/login')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
@@ -360,7 +360,7 @@ class AuthService extends ChangeNotifier {
   Future<bool> forgotPassword(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/forgot'),
+        Uri.parse(AppConfig.authUrl('/auth/email/forgot')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email}),
       );
@@ -376,7 +376,7 @@ class AuthService extends ChangeNotifier {
   Future<Map<String, dynamic>> resetPassword(String token, String newPassword) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/reset'),
+        Uri.parse(AppConfig.authUrl('/auth/email/reset')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'token': token,
@@ -400,7 +400,7 @@ class AuthService extends ChangeNotifier {
   Future<bool> resendVerificationEmail(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/email/resend-verification'),
+        Uri.parse(AppConfig.authUrl('/auth/email/resend-verification')),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'email': email}),
       );
@@ -416,7 +416,7 @@ class AuthService extends ChangeNotifier {
   Future<bool> verifyEmail(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/auth/email/verify?token=$token'),
+        Uri.parse(AppConfig.authUrl('/auth/email/verify?token=$token')),
       );
 
       if (response.statusCode == 200) {
@@ -449,7 +449,7 @@ class AuthService extends ChangeNotifier {
       try {
         // ignore: unawaited_futures
         http.post(
-          Uri.parse('$baseUrl/auth/logout'),
+          Uri.parse(AppConfig.authUrl('/auth/logout')),
           headers: {'Content-Type': 'application/json'},
           body: json.encode({'refreshToken': _refreshToken}),
         ).timeout(const Duration(seconds: 5)).ignore();
@@ -485,7 +485,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/auth/account'),
+        Uri.parse(AppConfig.authUrl('/auth/account')),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_token',
@@ -562,7 +562,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/kycaid/start'),
+        Uri.parse(AppConfig.authUrl('/auth/kycaid/start')),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_token',
@@ -604,7 +604,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/auth/kycaid/status'),
+        Uri.parse(AppConfig.authUrl('/auth/kycaid/status')),
         headers: {
           'Authorization': 'Bearer $_token',
         },
@@ -639,7 +639,7 @@ class AuthService extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/auth/kycaid/refresh'),
+        Uri.parse(AppConfig.authUrl('/auth/kycaid/refresh')),
         headers: {
           'Authorization': 'Bearer $_token',
         },

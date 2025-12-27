@@ -14,11 +14,14 @@ class ProfileApiService extends BaseApiService {
   @override
   String get baseUrl => AppConfig.profileServiceUrl;
 
+  /// Build a versioned profile service URL
+  String _url(String path) => AppConfig.profileUrl(path);
+
   Future<Profile> getProfile(String userId) async {
     try {
       final encodedUserId = Uri.encodeComponent(userId);
       final response = await authenticatedGet(
-        Uri.parse('$baseUrl/profile/$encodedUserId'),
+        Uri.parse(_url('/profile/$encodedUserId')),
       );
 
       if (response.statusCode == 200) {
@@ -64,7 +67,7 @@ class ProfileApiService extends BaseApiService {
         queryParams['verifiedOnly'] = 'true';
       }
 
-      final uri = Uri.parse('$baseUrl/profiles/discover').replace(
+      final uri = Uri.parse(_url('/profiles/discover')).replace(
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
@@ -98,7 +101,7 @@ class ProfileApiService extends BaseApiService {
   Future<Profile> createProfile(Profile profile) async {
     try {
       final response = await authenticatedPost(
-        Uri.parse('$baseUrl/profile'),
+        Uri.parse(_url('/profile')),
         body: json.encode(profile.toJson()),
       );
 
@@ -146,7 +149,7 @@ class ProfileApiService extends BaseApiService {
     try {
       final encodedUserId = Uri.encodeComponent(profile.userId);
       final response = await authenticatedPut(
-        Uri.parse('$baseUrl/profile/$encodedUserId'),
+        Uri.parse(_url('/profile/$encodedUserId')),
         body: json.encode(profile.toJson()),
       );
 
@@ -207,7 +210,7 @@ class ProfileApiService extends BaseApiService {
   Future<int> searchUserCount(Map<String, dynamic> criteria) async {
     try {
       final response = await authenticatedPost(
-        Uri.parse('$baseUrl/profiles/search/count'),
+        Uri.parse(_url('/profiles/search/count')),
         body: json.encode(criteria),
       );
 
@@ -239,7 +242,7 @@ class ProfileApiService extends BaseApiService {
 
       final encodedUserId = Uri.encodeComponent(userId);
       final response = await authenticatedPut(
-        Uri.parse('$baseUrl/profile/$encodedUserId/location'),
+        Uri.parse(_url('/profile/$encodedUserId/location')),
         body: json.encode({
           'latitude': latitude,
           'longitude': longitude,
@@ -271,7 +274,7 @@ class ProfileApiService extends BaseApiService {
   /// Upload a photo to the user's profile
   Future<Map<String, dynamic>> uploadPhoto(String imagePath) async {
     try {
-      final uri = Uri.parse('$baseUrl/profile/photos/upload');
+      final uri = Uri.parse(_url('/profile/photos/upload'));
       final request = http.MultipartRequest('POST', uri);
 
       // Add authorization header
@@ -317,7 +320,7 @@ class ProfileApiService extends BaseApiService {
     try {
       final encodedPhotoId = Uri.encodeComponent(photoId);
       final response = await authenticatedDelete(
-        Uri.parse('$baseUrl/profile/photos/$encodedPhotoId'),
+        Uri.parse(_url('/profile/photos/$encodedPhotoId')),
       );
 
       if (response.statusCode == 200) {
@@ -341,7 +344,7 @@ class ProfileApiService extends BaseApiService {
   Future<void> reorderPhotos(List<String> photoUrls) async {
     try {
       final response = await authenticatedPut(
-        Uri.parse('$baseUrl/profile/photos/reorder'),
+        Uri.parse(_url('/profile/photos/reorder')),
         body: json.encode({'photos': photoUrls}),
       );
 
@@ -396,7 +399,7 @@ class ProfileApiService extends BaseApiService {
   }) async {
     try {
       final response = await authenticatedPost(
-        Uri.parse('$baseUrl/swipes'),
+        Uri.parse(_url('/swipes')),
         body: json.encode({
           'targetUserId': targetUserId,
           'action': action,
@@ -429,7 +432,7 @@ class ProfileApiService extends BaseApiService {
   Future<List<Map<String, dynamic>>> getReceivedLikes() async {
     try {
       final response = await authenticatedGet(
-        Uri.parse('$baseUrl/swipes/received'),
+        Uri.parse(_url('/swipes/received')),
       );
 
       if (response.statusCode == 200) {
@@ -452,7 +455,7 @@ class ProfileApiService extends BaseApiService {
   Future<List<Map<String, dynamic>>> getSentLikes() async {
     try {
       final response = await authenticatedGet(
-        Uri.parse('$baseUrl/swipes/sent'),
+        Uri.parse(_url('/swipes/sent')),
       );
 
       if (response.statusCode == 200) {

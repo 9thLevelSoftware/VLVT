@@ -205,7 +205,7 @@ class NotificationService {
       final deviceType = Platform.isIOS ? 'ios' : 'android';
 
       final response = await http.post(
-        Uri.parse('${AppConfig.chatServiceUrl}/fcm/register'),
+        Uri.parse(AppConfig.chatUrl('/fcm/register')),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwtToken',
@@ -238,7 +238,7 @@ class NotificationService {
       if (jwtToken == null) return;
 
       await http.post(
-        Uri.parse('${AppConfig.chatServiceUrl}/fcm/unregister'),
+        Uri.parse(AppConfig.chatUrl('/fcm/unregister')),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $jwtToken',
