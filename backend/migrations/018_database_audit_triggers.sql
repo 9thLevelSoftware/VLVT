@@ -40,7 +40,7 @@ EXCEPTION
   WHEN OTHERS THEN
     RETURN FALSE;
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE SECURITY INVOKER;
 
 COMMENT ON FUNCTION is_app_session() IS
   'Returns TRUE if the current session was initiated by the VLVT application';
@@ -54,7 +54,7 @@ EXCEPTION
   WHEN OTHERS THEN
     RETURN TRUE; -- Default to enabled if config is missing
 END;
-$$ LANGUAGE plpgsql STABLE;
+$$ LANGUAGE plpgsql STABLE SECURITY INVOKER;
 
 -- Function to redact sensitive fields from JSONB
 -- Removes password hashes, tokens, and other sensitive data before logging
@@ -289,6 +289,9 @@ $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION disable_audit_triggers() IS
   'Temporarily disable audit triggers (use sparingly, for bulk operations)';
 
+-- Restrict access to disable_audit_triggers - only database admin should use this
+REVOKE ALL ON FUNCTION disable_audit_triggers() FROM PUBLIC;
+
 -- Function to re-enable audit triggers
 -- Usage: SELECT enable_audit_triggers();
 CREATE OR REPLACE FUNCTION enable_audit_triggers()
@@ -300,6 +303,9 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION enable_audit_triggers() IS
   'Re-enable audit triggers after they were disabled';
+
+-- Restrict access to enable_audit_triggers - only database admin should use this
+REVOKE ALL ON FUNCTION enable_audit_triggers() FROM PUBLIC;
 
 -- Function to mark the current session as coming from the application
 -- Application code should call this at the start of each transaction
