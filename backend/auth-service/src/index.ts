@@ -272,7 +272,8 @@ Canonical: https://api.getvlvt.vip/.well-known/security.txt
 # Policy URL (placeholder - update when security policy page is available)
 # Policy: https://getvlvt.vip/security-policy
 `;
-  res.type('text/plain').send(securityTxt);
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(securityTxt);
 });
 
 // CSRF token endpoint - provides token for double-submit cookie pattern
