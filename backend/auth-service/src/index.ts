@@ -22,7 +22,7 @@ import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 import logger from './utils/logger';
 import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-limiter';
-import { generateVerificationToken, generateResetToken, generateRefreshToken, hashToken, isTokenExpired } from './utils/crypto';
+import { generateVerificationToken, generateResetToken, generateRefreshToken, hashToken, isTokenExpired, verifyToken } from './utils/crypto';
 import { validatePassword, hashPassword, verifyPassword } from './utils/password';
 import { emailService } from './services/email-service';
 import { validateInputMiddleware, validateEmail, validateUserId, validateArray } from './utils/input-validation';
@@ -683,7 +683,7 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
     // Generate user ID and hash password
     const userId = `email_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     const passwordHash = await hashPassword(password);
-    const { token: verificationToken, expires: verificationExpires } = generateVerificationToken();
+    const { token: verificationToken, tokenHash: verificationTokenHash, expires: verificationExpires } = generateVerificationToken();
 
     // Create user and auth credential in transaction
     const client = await pool.connect();
@@ -697,11 +697,12 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
       );
 
       // Create auth credential
+      // SECURITY: Store hash of verification token, not the raw token
       await client.query(
         `INSERT INTO auth_credentials
-         (user_id, provider, email, password_hash, email_verified, verification_token, verification_expires)
+         (user_id, provider, email, password_hash, email_verified, verification_token_hash, verification_expires)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [userId, 'email', email.toLowerCase(), passwordHash, false, verificationToken, verificationExpires]
+        [userId, 'email', email.toLowerCase(), passwordHash, false, verificationTokenHash, verificationExpires]
       );
 
       // If invite code was used, mark it as used and award signup bonus
@@ -751,12 +752,15 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
       return res.status(400).json({ success: false, error: 'Verification token is required' });
     }
 
-    // Find credential with this token
+    // SECURITY: Hash the submitted token to look up in database
+    const tokenHash = hashToken(token);
+
+    // Find credential by hashed token
     const result = await pool.query(
       `SELECT user_id, email, verification_expires
        FROM auth_credentials
-       WHERE verification_token = $1 AND provider = 'email'`,
-      [token]
+       WHERE verification_token_hash = $1 AND provider = 'email'`,
+      [tokenHash]
     );
 
     if (result.rows.length === 0) {
@@ -770,10 +774,10 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
       return res.status(400).json({ success: false, error: 'Verification token has expired' });
     }
 
-    // Mark as verified and clear token
+    // Mark as verified and clear token hash
     await pool.query(
       `UPDATE auth_credentials
-       SET email_verified = true, verification_token = NULL, verification_expires = NULL, updated_at = NOW()
+       SET email_verified = true, verification_token_hash = NULL, verification_expires = NULL, updated_at = NOW()
        WHERE user_id = $1 AND provider = 'email'`,
       [credential.user_id]
     );
@@ -914,7 +918,7 @@ app.post('/auth/email/forgot', authLimiter, async (req: Request, res: Response) 
 
     // SECURITY: Store hash of reset token, not the raw token
     await pool.query(
-      `UPDATE auth_credentials SET reset_token = $1, reset_expires = $2, updated_at = NOW()
+      `UPDATE auth_credentials SET reset_token_hash = $1, reset_expires = $2, updated_at = NOW()
        WHERE user_id = $3 AND provider = 'email'`,
       [resetTokenHash, resetExpires, credential.user_id]
     );
@@ -952,7 +956,7 @@ app.post('/auth/email/reset', authLimiter, async (req: Request, res: Response) =
     const tokenHash = hashToken(token);
 
     const result = await pool.query(
-      `SELECT user_id, reset_expires FROM auth_credentials WHERE reset_token = $1 AND provider = 'email'`,
+      `SELECT user_id, reset_expires FROM auth_credentials WHERE reset_token_hash = $1 AND provider = 'email'`,
       [tokenHash]
     );
 
@@ -968,7 +972,7 @@ app.post('/auth/email/reset', authLimiter, async (req: Request, res: Response) =
 
     const passwordHash = await hashPassword(newPassword);
     await pool.query(
-      `UPDATE auth_credentials SET password_hash = $1, reset_token = NULL, reset_expires = NULL, updated_at = NOW()
+      `UPDATE auth_credentials SET password_hash = $1, reset_token_hash = NULL, reset_expires = NULL, updated_at = NOW()
        WHERE user_id = $2 AND provider = 'email'`,
       [passwordHash, credential.user_id]
     );
@@ -1006,14 +1010,16 @@ app.post('/auth/email/resend-verification', authLimiter, async (req: Request, re
       return res.json({ success: true, message: 'If the account exists and is unverified, a verification email has been sent.' });
     }
 
-    const { token: verificationToken, expires: verificationExpires } = generateVerificationToken();
+    const { token: verificationToken, tokenHash: verificationTokenHash, expires: verificationExpires } = generateVerificationToken();
 
+    // SECURITY: Store hash of verification token, not the raw token
     await pool.query(
-      `UPDATE auth_credentials SET verification_token = $1, verification_expires = $2, updated_at = NOW()
+      `UPDATE auth_credentials SET verification_token_hash = $1, verification_expires = $2, updated_at = NOW()
        WHERE user_id = $3 AND provider = 'email'`,
-      [verificationToken, verificationExpires, credential.user_id]
+      [verificationTokenHash, verificationExpires, credential.user_id]
     );
 
+    // Send raw token via email - user will submit this, we'll hash it to compare
     await emailService.sendVerificationEmail(credential.email, verificationToken);
 
     logger.info('Verification email resent', { userId: credential.user_id });
@@ -1201,7 +1207,7 @@ app.post('/auth/instagram/complete', authLimiter, async (req: Request, res: Resp
     );
 
     let userId: string;
-    const { token: verificationToken, expires: verificationExpires } = generateVerificationToken();
+    const { token: verificationToken, tokenHash: verificationTokenHash, expires: verificationExpires } = generateVerificationToken();
 
     const client = await pool.connect();
     try {
@@ -1211,23 +1217,25 @@ app.post('/auth/instagram/complete', authLimiter, async (req: Request, res: Resp
         // Link Instagram to existing account
         userId = existingEmail.rows[0].user_id;
 
+        // SECURITY: Store hash of verification token, not the raw token
         await client.query(
           `INSERT INTO auth_credentials
-           (user_id, provider, provider_id, email, email_verified, verification_token, verification_expires)
+           (user_id, provider, provider_id, email, email_verified, verification_token_hash, verification_expires)
            VALUES ($1, 'instagram', $2, $3, false, $4, $5)
            ON CONFLICT (provider, provider_id) DO UPDATE SET
-             email = $3, verification_token = $4, verification_expires = $5, updated_at = NOW()`,
-          [userId, providerId, normalizedEmail, verificationToken, verificationExpires]
+             email = $3, verification_token_hash = $4, verification_expires = $5, updated_at = NOW()`,
+          [userId, providerId, normalizedEmail, verificationTokenHash, verificationExpires]
         );
       } else if (existingUserId) {
         // Update existing Instagram credential with email
         userId = existingUserId;
 
+        // SECURITY: Store hash of verification token, not the raw token
         await client.query(
           `UPDATE auth_credentials
-           SET email = $1, verification_token = $2, verification_expires = $3, updated_at = NOW()
+           SET email = $1, verification_token_hash = $2, verification_expires = $3, updated_at = NOW()
            WHERE user_id = $4 AND provider = 'instagram'`,
-          [normalizedEmail, verificationToken, verificationExpires, userId]
+          [normalizedEmail, verificationTokenHash, verificationExpires, userId]
         );
 
         await client.query(
@@ -1243,11 +1251,12 @@ app.post('/auth/instagram/complete', authLimiter, async (req: Request, res: Resp
           [userId, 'instagram', normalizedEmail]
         );
 
+        // SECURITY: Store hash of verification token, not the raw token
         await client.query(
           `INSERT INTO auth_credentials
-           (user_id, provider, provider_id, email, email_verified, verification_token, verification_expires)
+           (user_id, provider, provider_id, email, email_verified, verification_token_hash, verification_expires)
            VALUES ($1, 'instagram', $2, $3, false, $4, $5)`,
-          [userId, providerId, normalizedEmail, verificationToken, verificationExpires]
+          [userId, providerId, normalizedEmail, verificationTokenHash, verificationExpires]
         );
       }
 

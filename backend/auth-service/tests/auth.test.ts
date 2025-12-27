@@ -570,7 +570,7 @@ describe('Auth Service', () => {
     it('should verify with valid token', async () => {
       const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-      // Mock SELECT query for verification token
+      // Mock SELECT query for verification token (now queries by hash)
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_test123',
@@ -579,6 +579,12 @@ describe('Auth Service', () => {
         }]
       });
       // Mock UPDATE query to mark as verified
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock INSERT into refresh_tokens (from issueTokenPair)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock SELECT for existing verification ticket
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock INSERT for verification ticket
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
@@ -659,6 +665,8 @@ describe('Auth Service', () => {
         }]
       });
       // Mock UPDATE query for updated_at
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock INSERT into refresh_tokens (from issueTokenPair)
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
