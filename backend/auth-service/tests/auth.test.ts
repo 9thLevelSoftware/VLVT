@@ -654,6 +654,9 @@ describe('Auth Service', () => {
     });
 
     it('should login with valid credentials', async () => {
+      // Mock checkAccountLocked - not locked
+      mockPool.query.mockResolvedValueOnce({ rows: [{ is_locked: false }] });
+
       // Mock SELECT query for credentials
       mockPool.query.mockResolvedValueOnce({
         rows: [{
@@ -661,9 +664,15 @@ describe('Auth Service', () => {
           email: 'test@example.com',
           password_hash: 'hashed_password',
           email_verified: true,
+          failed_attempts: 0,
           provider: 'email'
         }]
       });
+
+      // Mock recordSuccessfulLogin fallback
+      mockPool.query.mockRejectedValueOnce(new Error('function not found'));
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
       // Mock UPDATE query for updated_at
       mockPool.query.mockResolvedValueOnce({ rows: [] });
       // Mock INSERT into refresh_tokens (from issueTokenPair)
@@ -686,14 +695,24 @@ describe('Auth Service', () => {
     });
 
     it('should reject invalid password', async () => {
+      // Mock checkAccountLocked - not locked
+      mockPool.query.mockResolvedValueOnce({ rows: [{ is_locked: false }] });
+
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_user123',
           email: 'test@example.com',
           password_hash: 'hashed_password',
           email_verified: true,
+          failed_attempts: 0,
           provider: 'email'
         }]
+      });
+
+      // Mock recordFailedLogin fallback
+      mockPool.query.mockRejectedValueOnce(new Error('function not found'));
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ failed_attempts: 1, locked_until: null }]
       });
 
       const bcrypt = require('bcrypt');
@@ -709,14 +728,24 @@ describe('Auth Service', () => {
     });
 
     it('should reject unverified email', async () => {
+      // Mock checkAccountLocked - not locked
+      mockPool.query.mockResolvedValueOnce({ rows: [{ is_locked: false }] });
+
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_user123',
           email: 'test@example.com',
           password_hash: 'hashed_password',
           email_verified: false,
+          failed_attempts: 0,
           provider: 'email'
         }]
+      });
+
+      // Mock recordFailedLogin fallback (for unverified email attempt)
+      mockPool.query.mockRejectedValueOnce(new Error('function not found'));
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ failed_attempts: 1, locked_until: null }]
       });
 
       const response = await request(app)
@@ -730,6 +759,11 @@ describe('Auth Service', () => {
     });
 
     it('should reject non-existent email', async () => {
+      // Mock checkAccountLocked - fallback path (user doesn't exist)
+      mockPool.query.mockRejectedValueOnce(new Error('function not found'));
+      mockPool.query.mockResolvedValueOnce({ rows: [] }); // No auth_credentials
+
+      // Mock credential lookup - not found
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)

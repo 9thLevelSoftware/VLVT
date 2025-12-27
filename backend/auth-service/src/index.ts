@@ -822,6 +822,139 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
   }
 });
 
+// Account lockout configuration
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MINUTES = 15;
+
+/**
+ * Helper function to record a failed login attempt
+ * Returns lockout status and remaining time if locked
+ */
+async function recordFailedLogin(
+  email: string,
+  ipAddress: string | undefined,
+  userAgent: string | undefined,
+  failureReason: string = 'invalid_password'
+): Promise<{ isLocked: boolean; lockedUntil: Date | null; failedAttempts: number }> {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM record_failed_login($1, $2, $3, $4)`,
+      [email.toLowerCase(), ipAddress || null, userAgent?.substring(0, 500) || null, failureReason]
+    );
+
+    if (result.rows.length > 0) {
+      return {
+        isLocked: result.rows[0].is_locked,
+        lockedUntil: result.rows[0].locked_until_ts,
+        failedAttempts: result.rows[0].failed_attempt_count
+      };
+    }
+  } catch (err) {
+    // If the function doesn't exist (migration not run), fall back to direct update
+    logger.warn('record_failed_login function not available, using fallback', { error: err });
+
+    // Fallback: Update auth_credentials directly
+    const updateResult = await pool.query(
+      `UPDATE auth_credentials
+       SET failed_attempts = COALESCE(failed_attempts, 0) + 1,
+           locked_until = CASE
+             WHEN COALESCE(failed_attempts, 0) + 1 >= $2
+             THEN NOW() + INTERVAL '${LOCKOUT_DURATION_MINUTES} minutes'
+             ELSE locked_until
+           END,
+           updated_at = NOW()
+       WHERE email = $1 AND provider = 'email'
+       RETURNING failed_attempts, locked_until`,
+      [email.toLowerCase(), MAX_LOGIN_ATTEMPTS]
+    );
+
+    if (updateResult.rows.length > 0) {
+      return {
+        isLocked: updateResult.rows[0].locked_until !== null && new Date(updateResult.rows[0].locked_until) > new Date(),
+        lockedUntil: updateResult.rows[0].locked_until,
+        failedAttempts: updateResult.rows[0].failed_attempts
+      };
+    }
+  }
+
+  return { isLocked: false, lockedUntil: null, failedAttempts: 0 };
+}
+
+/**
+ * Helper function to record a successful login
+ * Resets failed attempts counter and clears any lock
+ */
+async function recordSuccessfulLogin(
+  userId: string,
+  email: string,
+  ipAddress: string | undefined,
+  userAgent: string | undefined
+): Promise<void> {
+  try {
+    await pool.query(
+      `SELECT record_successful_login($1, $2, $3, $4)`,
+      [userId, email.toLowerCase(), ipAddress || null, userAgent?.substring(0, 500) || null]
+    );
+  } catch (err) {
+    // If the function doesn't exist (migration not run), fall back to direct update
+    logger.warn('record_successful_login function not available, using fallback', { error: err });
+
+    await pool.query(
+      `UPDATE auth_credentials
+       SET failed_attempts = 0, locked_until = NULL, updated_at = NOW()
+       WHERE email = $1 AND provider = 'email'`,
+      [email.toLowerCase()]
+    );
+  }
+}
+
+/**
+ * Helper function to check if account is locked
+ */
+async function checkAccountLocked(email: string): Promise<{ isLocked: boolean; lockedUntil: Date | null }> {
+  try {
+    // Try using the database function first
+    const result = await pool.query(
+      `SELECT is_account_locked($1) as is_locked`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length > 0 && result.rows[0].is_locked) {
+      // Get the locked_until timestamp
+      const lockResult = await pool.query(
+        `SELECT locked_until FROM auth_credentials WHERE email = $1 AND provider = 'email'`,
+        [email.toLowerCase()]
+      );
+      return {
+        isLocked: true,
+        lockedUntil: lockResult.rows[0]?.locked_until || null
+      };
+    }
+    return { isLocked: false, lockedUntil: null };
+  } catch (err) {
+    // If the function doesn't exist, check directly
+    logger.warn('is_account_locked function not available, using fallback', { error: err });
+
+    const result = await pool.query(
+      `SELECT locked_until FROM auth_credentials WHERE email = $1 AND provider = 'email'`,
+      [email.toLowerCase()]
+    );
+
+    if (result.rows.length > 0 && result.rows[0].locked_until) {
+      const lockedUntil = new Date(result.rows[0].locked_until);
+      if (lockedUntil > new Date()) {
+        return { isLocked: true, lockedUntil };
+      }
+      // Lock expired, clear it
+      await pool.query(
+        `UPDATE auth_credentials SET locked_until = NULL, failed_attempts = 0 WHERE email = $1 AND provider = 'email'`,
+        [email.toLowerCase()]
+      );
+    }
+    return { isLocked: false, lockedUntil: null };
+  }
+}
+
 // Email login endpoint
 app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) => {
   try {
@@ -831,9 +964,30 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
       return res.status(400).json({ success: false, error: 'Email and password are required' });
     }
 
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+
+    // Check if account is locked BEFORE attempting authentication
+    const lockStatus = await checkAccountLocked(email);
+    if (lockStatus.isLocked) {
+      const remainingMinutes = lockStatus.lockedUntil
+        ? Math.ceil((lockStatus.lockedUntil.getTime() - Date.now()) / (1000 * 60))
+        : LOCKOUT_DURATION_MINUTES;
+
+      logger.warn('Login attempt on locked account', { email: email.toLowerCase(), ip: ipAddress });
+
+      return res.status(423).json({
+        success: false,
+        error: `Account is temporarily locked due to too many failed login attempts. Please try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`,
+        code: 'ACCOUNT_LOCKED',
+        lockedUntil: lockStatus.lockedUntil?.toISOString(),
+        retryAfterMinutes: remainingMinutes
+      });
+    }
+
     // Find credential
     const result = await pool.query(
-      `SELECT ac.user_id, ac.email, ac.password_hash, ac.email_verified, u.provider
+      `SELECT ac.user_id, ac.email, ac.password_hash, ac.email_verified, ac.failed_attempts, u.provider
        FROM auth_credentials ac
        JOIN users u ON ac.user_id = u.id
        WHERE ac.email = $1 AND ac.provider = 'email'`,
@@ -841,6 +995,8 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
     );
 
     if (result.rows.length === 0) {
+      // User doesn't exist - don't reveal this, return generic error
+      // But also don't update any counters since there's no account
       return res.status(401).json({ success: false, error: 'Invalid email or password' });
     }
 
@@ -849,17 +1005,48 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
     // Verify password
     const passwordValid = await verifyPassword(password, credential.password_hash);
     if (!passwordValid) {
-      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+      // Record failed attempt and check if account should be locked
+      const failResult = await recordFailedLogin(email, ipAddress, userAgent, 'invalid_password');
+
+      logger.warn('Failed login attempt', {
+        email: email.toLowerCase(),
+        ip: ipAddress,
+        failedAttempts: failResult.failedAttempts,
+        isNowLocked: failResult.isLocked
+      });
+
+      if (failResult.isLocked) {
+        return res.status(423).json({
+          success: false,
+          error: `Account has been locked due to too many failed login attempts. Please try again in ${LOCKOUT_DURATION_MINUTES} minutes.`,
+          code: 'ACCOUNT_LOCKED',
+          lockedUntil: failResult.lockedUntil?.toISOString(),
+          retryAfterMinutes: LOCKOUT_DURATION_MINUTES
+        });
+      }
+
+      const attemptsRemaining = MAX_LOGIN_ATTEMPTS - failResult.failedAttempts;
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password',
+        ...(attemptsRemaining <= 2 && { attemptsRemaining }) // Only show warning when close to lockout
+      });
     }
 
     // Check if email is verified
     if (!credential.email_verified) {
+      // Record this as a failed attempt too (prevents abuse of unverified accounts)
+      await recordFailedLogin(email, ipAddress, userAgent, 'email_not_verified');
+
       return res.status(403).json({
         success: false,
         error: 'Please verify your email before logging in',
         code: 'EMAIL_NOT_VERIFIED'
       });
     }
+
+    // Successful login - reset failed attempts counter
+    await recordSuccessfulLogin(credential.user_id, email, ipAddress, userAgent);
 
     await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [credential.user_id]);
 
