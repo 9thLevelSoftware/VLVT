@@ -9,6 +9,34 @@ import { Pool } from 'pg';
 import logger from '../utils/logger';
 import { socketAuthMiddleware, SocketWithAuth } from './auth-middleware';
 import { setupMessageHandlers, updateUserStatus } from './message-handler';
+import { createSocketRateLimiter, SocketRateLimiter } from '@vlvt/shared';
+
+/**
+ * Socket.IO rate limiter with chat-specific configuration
+ * - send_message: 30 per minute (normal conversation pace)
+ * - typing: 10 per 10 seconds (prevent typing indicator spam)
+ * - mark_read: 60 per minute (batch reads are common)
+ */
+const socketRateLimiter: SocketRateLimiter = createSocketRateLimiter({
+  limits: {
+    send_message: { maxEvents: 30, windowMs: 60000 },
+    typing: { maxEvents: 10, windowMs: 10000 },
+    mark_read: { maxEvents: 60, windowMs: 60000 },
+  },
+  logViolations: true,
+  errorEventName: 'rate_limit_error',
+  logger: {
+    warn: (message, meta) => logger.warn(message, meta),
+    debug: (message, meta) => logger.debug(message, meta),
+  },
+  onRateLimitExceeded: (socket, eventName, userId) => {
+    logger.info('Socket rate limit exceeded for user', {
+      socketId: socket.id,
+      userId,
+      eventName,
+    });
+  },
+});
 
 /**
  * Initialize and configure Socket.IO server
@@ -44,6 +72,9 @@ export const initializeSocketIO = (httpServer: HttpServer, pool: Pool): SocketSe
       transport: socket.conn.transport.name
     });
 
+    // Initialize rate limiting for this socket
+    socketRateLimiter.applyToSocket(socket, userId);
+
     // Join user-specific room for direct messaging
     socket.join(`user:${userId}`);
 
@@ -53,8 +84,8 @@ export const initializeSocketIO = (httpServer: HttpServer, pool: Pool): SocketSe
     // Broadcast online status to user's matches
     await broadcastOnlineStatus(io, pool, userId, true);
 
-    // Setup message event handlers
-    setupMessageHandlers(io, socket, pool);
+    // Setup message event handlers with rate limiting
+    setupMessageHandlers(io, socket, pool, socketRateLimiter);
 
     // Handle disconnection
     socket.on('disconnect', async (reason) => {

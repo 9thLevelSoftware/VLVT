@@ -10,6 +10,7 @@ import logger from '../utils/logger';
 import { SocketWithAuth } from './auth-middleware';
 import { sendMessageNotification } from '../services/fcm-service';
 import { isProfileComplete } from '../utils/profile-check';
+import { SocketRateLimiter } from '@vlvt/shared';
 
 interface SendMessageData {
   matchId: string;
@@ -40,15 +41,21 @@ interface MessageResponse {
 /**
  * Setup message event handlers for a socket connection
  */
-export const setupMessageHandlers = (io: SocketServer, socket: SocketWithAuth, pool: Pool) => {
+export const setupMessageHandlers = (
+  io: SocketServer,
+  socket: SocketWithAuth,
+  pool: Pool,
+  rateLimiter?: SocketRateLimiter
+) => {
   const userId = socket.userId!;
 
   logger.info('Setting up message handlers', { socketId: socket.id, userId });
 
   /**
    * Handle sending a new message
+   * Rate limited: 30 messages per minute
    */
-  socket.on('send_message', async (data: SendMessageData, callback) => {
+  const handleSendMessage = async (data: SendMessageData, callback?: Function) => {
     try {
       const { matchId, text, tempId } = data;
 
@@ -214,12 +221,13 @@ export const setupMessageHandlers = (io: SocketServer, socket: SocketWithAuth, p
       });
       callback?.({ success: false, error: 'Failed to send message' });
     }
-  });
+  };
 
   /**
    * Handle marking messages as read
+   * Rate limited: 60 per minute
    */
-  socket.on('mark_read', async (data: MarkReadData, callback) => {
+  const handleMarkRead = async (data: MarkReadData, callback?: Function) => {
     try {
       const { matchId, messageIds } = data;
 
@@ -312,12 +320,13 @@ export const setupMessageHandlers = (io: SocketServer, socket: SocketWithAuth, p
       });
       callback?.({ success: false, error: 'Failed to mark messages as read' });
     }
-  });
+  };
 
   /**
    * Handle typing indicators
+   * Rate limited: 10 per 10 seconds
    */
-  socket.on('typing', async (data: TypingData, callback) => {
+  const handleTyping = async (data: TypingData, callback?: Function) => {
     try {
       const { matchId, isTyping } = data;
 
@@ -362,13 +371,14 @@ export const setupMessageHandlers = (io: SocketServer, socket: SocketWithAuth, p
       });
       callback?.({ success: false, error: 'Failed to update typing status' });
     }
-  });
+  };
 
   /**
    * Handle getting online status of matches
    * Security: Only return status for users the requester has an active match with
+   * Note: Not rate limited as it's a read-only status query
    */
-  socket.on('get_online_status', async (data: { userIds: string[] }, callback) => {
+  const handleGetOnlineStatus = async (data: { userIds: string[] }, callback?: Function) => {
     try {
       const { userIds } = data;
 
@@ -418,7 +428,27 @@ export const setupMessageHandlers = (io: SocketServer, socket: SocketWithAuth, p
       });
       callback?.({ success: false, error: 'Failed to get online status' });
     }
-  });
+  };
+
+  // Register event handlers with rate limiting
+  // If rate limiter is provided, wrap the handlers with rate limiting
+  if (rateLimiter) {
+    socket.on('send_message', rateLimiter.wrapHandler('send_message', handleSendMessage));
+    socket.on('mark_read', rateLimiter.wrapHandler('mark_read', handleMarkRead));
+    socket.on('typing', rateLimiter.wrapHandler('typing', handleTyping));
+    // get_online_status is not rate limited (read-only status query)
+    socket.on('get_online_status', handleGetOnlineStatus);
+
+    logger.debug('Message handlers registered with rate limiting', { socketId: socket.id, userId });
+  } else {
+    // Fallback without rate limiting (e.g., for tests)
+    socket.on('send_message', handleSendMessage);
+    socket.on('mark_read', handleMarkRead);
+    socket.on('typing', handleTyping);
+    socket.on('get_online_status', handleGetOnlineStatus);
+
+    logger.debug('Message handlers registered without rate limiting', { socketId: socket.id, userId });
+  }
 };
 
 /**

@@ -134,3 +134,17 @@ export {
   type VersionExtractionResult,
   type VersionedRouterOptions,
 } from './middleware/api-version';
+
+// Socket.IO Rate Limiting
+export {
+  createSocketRateLimiter,
+  createSocketRateLimiterMiddleware,
+  socketRateLimiter,
+  DEFAULT_RATE_LIMITS,
+  type SocketRateLimiter,
+  type SocketRateLimiterConfig,
+  type EventRateLimitConfig,
+  type RateLimitCheckResult,
+  type SocketWithRateLimit,
+  type RateLimitableSocket,
+} from './middleware/socket-rate-limiter';
