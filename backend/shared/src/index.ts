@@ -20,6 +20,9 @@ export {
 
 export {
   createRateLimiter,
+  createUserRateLimiter,
+  createUserKeyGenerator,
+  userKeyGenerator,
   generalLimiter,
   strictLimiter,
   authLimiter,
@@ -27,6 +30,8 @@ export {
   discoveryLimiter,
   messageLimiter,
   uploadLimiter,
+  userRateLimiter,
+  sensitiveActionLimiter,
   type RateLimiterOptions,
 } from './middleware/rate-limiter';
 

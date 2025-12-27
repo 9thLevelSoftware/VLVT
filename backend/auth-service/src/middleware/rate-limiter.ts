@@ -1,3 +1,4 @@
+import { Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
@@ -40,6 +41,33 @@ if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
   logger.info('Using memory store for rate limiting (development/single-instance)');
   rateLimitStore = undefined;
 }
+
+/**
+ * Generates a rate limit key based on user authentication status.
+ * - Authenticated requests: Uses user:{userId} to track per-user limits
+ * - Unauthenticated requests: Falls back to ip:{ip} for IP-based limits
+ *
+ * Security: This prevents authenticated attackers from bypassing rate limits
+ * by using multiple IPs or VPNs.
+ *
+ * @param prefix - Optional prefix to namespace different rate limiters
+ */
+export const createUserKeyGenerator = (prefix: string = 'rl') => {
+  return (req: Request): string => {
+    // Check if user is authenticated (req.user is set by auth middleware)
+    if (req.user?.userId) {
+      return `${prefix}:user:${req.user.userId}`;
+    }
+    // Fall back to IP-based limiting for unauthenticated requests
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    return `${prefix}:ip:${ip}`;
+  };
+};
+
+/**
+ * Default key generator using user ID when authenticated, IP otherwise
+ */
+export const userKeyGenerator = createUserKeyGenerator();
 
 // General API rate limiter (100 requests per 15 minutes per IP)
 export const generalLimiter = rateLimit({
@@ -121,6 +149,60 @@ export const strictLimiter = rateLimit({
     res.status(429).json({
       success: false,
       error: 'Too many requests for this sensitive operation, please try again later'
+    });
+  }
+});
+
+/**
+ * Per-user rate limiter - 100 requests per 15 minutes per user
+ * Uses user ID when authenticated, falls back to IP for unauthenticated requests.
+ * Security: This prevents authenticated attackers from bypassing rate limits via VPN/multiple IPs.
+ */
+export const userRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: 'Too many requests, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: rateLimitStore,
+  keyGenerator: createUserKeyGenerator('user-general'),
+  handler: (req, res) => {
+    logger.warn('User rate limit exceeded', {
+      ip: req.ip,
+      userId: req.user?.userId,
+      path: req.path,
+      limiter: 'user'
+    });
+    res.status(429).json({
+      success: false,
+      error: 'Too many requests, please try again after 15 minutes'
+    });
+  }
+});
+
+/**
+ * Sensitive action rate limiter - 5 requests per hour
+ * For high-risk operations like password changes, email updates, account deletion.
+ * Uses per-user tracking to prevent abuse.
+ */
+export const sensitiveActionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: 'Too many sensitive action attempts, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: rateLimitStore,
+  keyGenerator: createUserKeyGenerator('user-sensitive'),
+  handler: (req, res) => {
+    logger.warn('Sensitive action rate limit exceeded', {
+      ip: req.ip,
+      userId: req.user?.userId,
+      path: req.path,
+      limiter: 'sensitive'
+    });
+    res.status(429).json({
+      success: false,
+      error: 'Too many sensitive action attempts, please try again later'
     });
   }
 });
