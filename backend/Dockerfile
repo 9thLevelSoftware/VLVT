@@ -37,14 +37,17 @@ ARG SERVICE_NAME
 
 WORKDIR /app
 
-# Copy shared package (needed at runtime for node_modules resolution)
-COPY --from=builder /app/shared/dist ./node_modules/@vlvt/shared/dist
-COPY --from=builder /app/shared/package.json ./node_modules/@vlvt/shared/
-
-# Copy service
+# Copy service files first
 COPY --from=builder /app/service/dist ./dist
 COPY --from=builder /app/service/package*.json ./
+
+# Copy node_modules (includes the symlink to @vlvt/shared)
 COPY --from=builder /app/service/node_modules ./node_modules
+
+# Remove the symlink and copy the actual shared package
+RUN rm -rf ./node_modules/@vlvt/shared
+COPY --from=builder /app/shared/dist ./node_modules/@vlvt/shared/dist
+COPY --from=builder /app/shared/package.json ./node_modules/@vlvt/shared/
 
 # Expose port based on service (default 3001 for auth)
 EXPOSE 3001 3002 3003
