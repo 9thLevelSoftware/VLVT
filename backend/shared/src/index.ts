@@ -148,3 +148,36 @@ export {
   type SocketWithRateLimit,
   type RateLimitableSocket,
 } from './middleware/socket-rate-limiter';
+
+// Enhanced Error Codes
+export {
+  // Error code definitions
+  ErrorCodes,
+  AuthErrorCodes,
+  ProfileErrorCodes,
+  ChatErrorCodes,
+  RateErrorCodes,
+  ValidationErrorCodes,
+  SystemErrorCodes,
+  ErrorCategory,
+  // Utility functions
+  getErrorByCode,
+  getErrorCategory,
+  isAlertableError,
+  // Error response utilities
+  sendErrorResponse,
+  createErrorResponseSender,
+  generateCorrelationId,
+  CodedError,
+  createCodedError,
+  isCodedError,
+  extractErrorDetails,
+  // Types
+  type ErrorCodeDefinition,
+  type ErrorCategoryType,
+  type ErrorLogger,
+  type SendErrorOptions,
+  type ErrorResponse,
+  type ErrorMiddlewareOptions,
+  type MinimalResponse,
+} from './errors';

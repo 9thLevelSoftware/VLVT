@@ -42,6 +42,10 @@ import {
   createVersionMiddleware,
   API_VERSIONS,
   CURRENT_API_VERSION,
+  // Enhanced error codes
+  ErrorCodes,
+  sendErrorResponse,
+  createErrorResponseSender,
 } from '@vlvt/shared';
 
 const app = express();
@@ -120,6 +124,12 @@ pool.on('error', (err, client) => {
 const auditLogger = createAuditLogger({
   pool,
   serviceName: 'auth-service',
+});
+
+// Create a configured error response sender for this service
+const sendError = createErrorResponseSender({
+  logger,
+  includeDetails: process.env.NODE_ENV === 'development',
 });
 
 /**
@@ -1123,12 +1133,19 @@ async function checkAccountLocked(email: string): Promise<{ isLocked: boolean; l
 }
 
 // Email login endpoint
+// This endpoint demonstrates the enhanced error code system for secure error handling
 app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, error: 'Email and password are required' });
+      // Using enhanced error codes - VAL_MISSING_FIELDS
+      // This returns a generic message to the client while logging details internally
+      return sendError(res, ErrorCodes.VAL_MISSING_FIELDS, undefined, {
+        path: req.path,
+        method: req.method,
+        logContext: { missingFields: !email ? 'email' : 'password' },
+      });
     }
 
     const ipAddress = req.ip || req.socket.remoteAddress;
@@ -1141,14 +1158,18 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
         ? Math.ceil((lockStatus.lockedUntil.getTime() - Date.now()) / (1000 * 60))
         : LOCKOUT_DURATION_MINUTES;
 
-      logger.warn('Login attempt on locked account', { email: email.toLowerCase(), ip: ipAddress });
-
-      return res.status(423).json({
-        success: false,
-        error: `Account is temporarily locked due to too many failed login attempts. Please try again in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}.`,
-        code: 'ACCOUNT_LOCKED',
-        lockedUntil: lockStatus.lockedUntil?.toISOString(),
-        retryAfterMinutes: remainingMinutes
+      // Using enhanced error codes - AUTH_ACCOUNT_LOCKED
+      // This is an alertable error that will be logged at error level
+      return sendError(res, ErrorCodes.AUTH_ACCOUNT_LOCKED, undefined, {
+        path: req.path,
+        method: req.method,
+        retryAfter: remainingMinutes * 60, // seconds for Retry-After header
+        logContext: {
+          email: email.toLowerCase(),
+          ip: ipAddress,
+          lockedUntil: lockStatus.lockedUntil?.toISOString(),
+          remainingMinutes,
+        },
       });
     }
 
@@ -1163,8 +1184,17 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
 
     if (result.rows.length === 0) {
       // User doesn't exist - don't reveal this, return generic error
-      // But also don't update any counters since there's no account
-      return res.status(401).json({ success: false, error: 'Invalid email or password' });
+      // Using enhanced error codes - AUTH_INVALID_CREDENTIALS
+      // This prevents account enumeration by returning the same error for non-existent users
+      return sendError(res, ErrorCodes.AUTH_INVALID_CREDENTIALS, undefined, {
+        path: req.path,
+        method: req.method,
+        logContext: {
+          reason: 'user_not_found',
+          attemptedEmail: email.toLowerCase(),
+          ip: ipAddress,
+        },
+      });
     }
 
     const credential = result.rows[0];
@@ -1212,20 +1242,33 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
           },
         });
 
-        return res.status(423).json({
-          success: false,
-          error: `Account has been locked due to too many failed login attempts. Please try again in ${LOCKOUT_DURATION_MINUTES} minutes.`,
-          code: 'ACCOUNT_LOCKED',
-          lockedUntil: failResult.lockedUntil?.toISOString(),
-          retryAfterMinutes: LOCKOUT_DURATION_MINUTES
+        // Using enhanced error codes - AUTH_ACCOUNT_LOCKED
+        return sendError(res, ErrorCodes.AUTH_ACCOUNT_LOCKED, undefined, {
+          path: req.path,
+          method: req.method,
+          userId: credential.user_id,
+          retryAfter: LOCKOUT_DURATION_MINUTES * 60,
+          logContext: {
+            email: email.toLowerCase(),
+            ip: ipAddress,
+            lockedUntil: failResult.lockedUntil?.toISOString(),
+            failedAttempts: failResult.failedAttempts,
+          },
         });
       }
 
-      const attemptsRemaining = MAX_LOGIN_ATTEMPTS - failResult.failedAttempts;
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid email or password',
-        ...(attemptsRemaining <= 2 && { attemptsRemaining }) // Only show warning when close to lockout
+      // Using enhanced error codes - AUTH_INVALID_CREDENTIALS
+      // Same error code for wrong password as for non-existent user (prevents enumeration)
+      return sendError(res, ErrorCodes.AUTH_INVALID_CREDENTIALS, undefined, {
+        path: req.path,
+        method: req.method,
+        userId: credential.user_id,
+        logContext: {
+          reason: 'invalid_password',
+          email: email.toLowerCase(),
+          ip: ipAddress,
+          failedAttempts: failResult.failedAttempts,
+        },
       });
     }
 
@@ -1245,10 +1288,15 @@ app.post('/auth/email/login', authLimiter, async (req: Request, res: Response) =
         errorMessage: 'Email not verified',
       });
 
-      return res.status(403).json({
-        success: false,
-        error: 'Please verify your email before logging in',
-        code: 'EMAIL_NOT_VERIFIED'
+      // Using enhanced error codes - AUTH_EMAIL_NOT_VERIFIED
+      return sendError(res, ErrorCodes.AUTH_EMAIL_NOT_VERIFIED, undefined, {
+        path: req.path,
+        method: req.method,
+        userId: credential.user_id,
+        logContext: {
+          email: email.toLowerCase(),
+          ip: ipAddress,
+        },
       });
     }
 
