@@ -28,6 +28,7 @@ import { generalLimiter, profileCreationLimiter, discoveryLimiter } from './midd
 import {
   initializeUploadDirectory,
   validateImage,
+  validateImageMagicBytes,
   processImage,
   deleteImage,
   getPhotoIdFromUrl,
@@ -499,10 +500,35 @@ app.post('/profile/photos/upload', authMiddleware, generalLimiter, upload.single
       return res.status(400).json({ success: false, error: 'No file uploaded' });
     }
 
-    // Validate image
+    // Validate image (basic MIME type and size check)
     const validation = validateImage(req.file);
     if (!validation.valid) {
+      // Clean up temp file if using disk storage
+      if (req.file.path) {
+        try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup errors */ }
+      }
       return res.status(400).json({ success: false, error: validation.error });
+    }
+
+    // Validate magic bytes to prevent malicious files disguised as images
+    // Read file content from disk (multer disk storage) or use buffer (memory storage)
+    const fileBuffer = req.file.path
+      ? fs.readFileSync(req.file.path)
+      : req.file.buffer;
+
+    const magicByteValidation = await validateImageMagicBytes(fileBuffer, req.file.originalname);
+    if (!magicByteValidation.valid) {
+      // Clean up temp file if using disk storage
+      if (req.file.path) {
+        try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup errors */ }
+      }
+      logger.warn('Magic byte validation failed for upload', {
+        userId: authenticatedUserId,
+        filename: req.file.originalname,
+        claimedMime: req.file.mimetype,
+        error: magicByteValidation.error,
+      });
+      return res.status(400).json({ success: false, error: magicByteValidation.error });
     }
 
     // Get current profile to check photo count
@@ -717,6 +743,20 @@ app.post('/verification/submit', authMiddleware, generalLimiter, upload.single('
 
     // Read the selfie file
     const selfieBuffer = fs.readFileSync(req.file.path);
+
+    // Validate magic bytes to prevent malicious files disguised as images
+    const magicByteValidation = await validateImageMagicBytes(selfieBuffer, req.file.originalname);
+    if (!magicByteValidation.valid) {
+      // Clean up temp file
+      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore cleanup errors */ }
+      logger.warn('Magic byte validation failed for verification selfie', {
+        userId: authenticatedUserId,
+        filename: req.file.originalname,
+        claimedMime: req.file.mimetype,
+        error: magicByteValidation.error,
+      });
+      return res.status(400).json({ success: false, error: magicByteValidation.error });
+    }
 
     // Generate unique key for verification selfie
     const timestamp = Date.now();

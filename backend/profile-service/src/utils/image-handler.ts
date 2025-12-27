@@ -1,6 +1,8 @@
 import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
+import path from 'path';
+import fileType from 'file-type';
 import logger from './logger';
 import { uploadToR2, deleteFromR2, validateR2Config } from './r2-client';
 
@@ -8,6 +10,15 @@ import { uploadToR2, deleteFromR2, validateR2Config } from './r2-client';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic', 'image/heif', 'image/webp'];
 const MAX_PHOTOS_PER_PROFILE = 6;
+
+// Allowed MIME types for magic byte validation (more specific than extension-based)
+const ALLOWED_MAGIC_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+];
 
 // Image sizes for optimization
 const IMAGE_SIZES = {
@@ -22,6 +33,12 @@ export interface ProcessedImage {
   thumbnailKey: string;  // R2 thumbnail key (stored in database)
   originalSize: number;
   processedSize: number;
+}
+
+export interface MagicByteValidationResult {
+  valid: boolean;
+  mimeType?: string;
+  error?: string;
 }
 
 /**
@@ -49,6 +66,93 @@ export function validateImage(file: Express.Multer.File): { valid: boolean; erro
   }
 
   return { valid: true };
+}
+
+/**
+ * Validate file magic bytes to ensure file content matches claimed type
+ * This prevents attacks where malicious files are disguised as images
+ * by simply changing the file extension
+ *
+ * @param buffer - File content as Buffer
+ * @param filename - Original filename (for extension mismatch warning)
+ * @returns Validation result with detected MIME type
+ */
+export async function validateImageMagicBytes(
+  buffer: Buffer,
+  filename: string
+): Promise<MagicByteValidationResult> {
+  try {
+    // Detect actual file type from magic bytes
+    const detected = await fileType.fromBuffer(buffer);
+
+    // If file-type library cannot detect the type, reject it
+    if (!detected) {
+      logger.warn('Magic byte validation failed: unknown file type', { filename });
+      return {
+        valid: false,
+        error: 'Unable to determine file type. File may be corrupted or unsupported.',
+      };
+    }
+
+    // Check if detected MIME type is in allowed list
+    if (!ALLOWED_MAGIC_MIME_TYPES.includes(detected.mime)) {
+      logger.warn('Magic byte validation failed: disallowed MIME type', {
+        filename,
+        detectedMime: detected.mime,
+        detectedExt: detected.ext,
+      });
+      return {
+        valid: false,
+        mimeType: detected.mime,
+        error: `File content is ${detected.mime}, which is not an allowed image type. Only JPEG, PNG, WebP, HEIC, and HEIF images are accepted.`,
+      };
+    }
+
+    // Check for extension mismatch (warn but don't reject)
+    const fileExt = path.extname(filename).toLowerCase().replace('.', '');
+    const expectedExts = getExpectedExtensions(detected.mime);
+
+    if (fileExt && !expectedExts.includes(fileExt)) {
+      logger.warn('Magic byte validation: extension mismatch', {
+        filename,
+        claimedExtension: fileExt,
+        detectedMime: detected.mime,
+        expectedExtensions: expectedExts,
+      });
+      // Note: We warn but don't reject - some systems may rename files
+    }
+
+    logger.debug('Magic byte validation passed', {
+      filename,
+      detectedMime: detected.mime,
+      detectedExt: detected.ext,
+    });
+
+    return {
+      valid: true,
+      mimeType: detected.mime,
+    };
+  } catch (error) {
+    logger.error('Magic byte validation error', { filename, error });
+    return {
+      valid: false,
+      error: 'Failed to validate file type.',
+    };
+  }
+}
+
+/**
+ * Get expected file extensions for a MIME type
+ */
+function getExpectedExtensions(mimeType: string): string[] {
+  const extensionMap: Record<string, string[]> = {
+    'image/jpeg': ['jpg', 'jpeg'],
+    'image/png': ['png'],
+    'image/webp': ['webp'],
+    'image/heic': ['heic'],
+    'image/heif': ['heif', 'heics'],
+  };
+  return extensionMap[mimeType] || [];
 }
 
 /**
