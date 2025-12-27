@@ -87,10 +87,13 @@ app.use(helmet({
       connectSrc: ["'self'", 'https:'],
     },
   },
+  // HSTS (HTTP Strict Transport Security) Configuration
+  // See auth-service/src/index.ts for HSTS preload submission checklist
+  // Submit domain to https://hstspreload.org after deployment
   hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true,
+    maxAge: 31536000, // 1 year (required minimum for preload)
+    includeSubDomains: true, // Required for preload
+    preload: true, // Required for preload submission
   },
   frameguard: { action: 'deny' },
   noSniff: true,

@@ -176,10 +176,24 @@ app.use(helmet({
       connectSrc: ["'self'", 'https:'],
     },
   },
+  // HSTS (HTTP Strict Transport Security) Configuration
+  // Ensures browsers always use HTTPS, even on first visit (with preload)
+  //
+  // HSTS Preload Submission Checklist:
+  // 1. Serve valid HTTPS certificate on all domains
+  // 2. Redirect HTTP to HTTPS on the same host
+  // 3. Serve HSTS header on base domain with:
+  //    - maxAge >= 31536000 (1 year)
+  //    - includeSubDomains directive
+  //    - preload directive
+  // 4. Submit domain to https://hstspreload.org after deployment
+  //
+  // WARNING: HSTS preload is difficult to undo. Ensure HTTPS is fully
+  // functional before submission. Removal can take months.
   hsts: {
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true,
-    preload: true,
+    maxAge: 31536000, // 1 year (required minimum for preload)
+    includeSubDomains: true, // Required for preload
+    preload: true, // Required for preload submission
   },
   frameguard: { action: 'deny' },
   noSniff: true,
@@ -205,6 +219,7 @@ app.use(cookieParser());
 const csrfMiddleware = createCsrfMiddleware({
   skipPaths: [
     '/health',
+    '/.well-known/security.txt',
     '/auth/google',
     '/auth/google/callback',
     '/auth/apple',
@@ -224,6 +239,40 @@ const csrfTokenHandler = createCsrfTokenHandler();
 // Health check endpoint (at root - not versioned)
 app.get('/health', (req: Request, res: Response) => {
   res.json(addVersionToHealth({ status: 'ok', service: 'auth-service' }));
+});
+
+// Security.txt endpoint (RFC 9116)
+// Helps security researchers report vulnerabilities responsibly
+// See: https://securitytxt.org/
+app.get('/.well-known/security.txt', (req: Request, res: Response) => {
+  const securityTxt = `# VLVT Security Policy
+# See https://securitytxt.org/ for format specification (RFC 9116)
+
+Contact: mailto:security@getvlvt.vip
+Expires: 2026-12-27T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://api.getvlvt.vip/.well-known/security.txt
+
+# Security Policy
+# We take security seriously. If you discover a vulnerability, please report it
+# responsibly using the contact information above.
+#
+# What to include in your report:
+# - Description of the vulnerability
+# - Steps to reproduce
+# - Potential impact
+# - Any suggested fixes (optional)
+#
+# We commit to:
+# - Acknowledging receipt of your report within 48 hours
+# - Providing regular updates on our progress
+# - Notifying you when the issue is resolved
+# - Crediting you (if desired) for responsible disclosure
+
+# Policy URL (placeholder - update when security policy page is available)
+# Policy: https://getvlvt.vip/security-policy
+`;
+  res.type('text/plain').send(securityTxt);
 });
 
 // CSRF token endpoint - provides token for double-submit cookie pattern
