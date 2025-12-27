@@ -16,6 +16,7 @@ if (process.env.SENTRY_DSN) {
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import { Pool } from 'pg';
 import { OAuth2Client } from 'google-auth-library';
@@ -35,6 +36,8 @@ import {
   AuditAction,
   AuditResourceType,
   createAuditLogger,
+  createCsrfMiddleware,
+  createCsrfTokenHandler,
 } from '@vlvt/shared';
 
 const app = express();
@@ -188,14 +191,37 @@ app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-CSRF-Token']
 }));
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
+
+// CSRF Protection Configuration
+const csrfMiddleware = createCsrfMiddleware({
+  skipPaths: [
+    '/health',
+    '/auth/google',
+    '/auth/google/callback',
+    '/auth/apple',
+    '/auth/apple/callback',
+    '/webhooks/',
+    '/kycaid/webhook',
+  ],
+  logger,
+});
+const csrfTokenHandler = createCsrfTokenHandler();
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'auth-service' });
 });
+
+// CSRF token endpoint - provides token for double-submit cookie pattern
+app.get('/csrf-token', csrfTokenHandler);
+
+// Apply CSRF middleware to state-changing requests
+// Note: For mobile apps using Bearer tokens, CSRF is skipped (already protected)
+app.use(csrfMiddleware);
 
 // Apply input validation middleware to all routes
 app.use(validateInputMiddleware);

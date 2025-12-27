@@ -17,6 +17,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { Pool } from 'pg';
 import { authMiddleware } from './middleware/auth';
 import { validateMessage, validateMatch, validateReport, validateBlock } from './middleware/validation';
@@ -24,6 +25,7 @@ import logger from './utils/logger';
 import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
+import { createCsrfMiddleware, createCsrfTokenHandler } from '@vlvt/shared';
 
 // Admin API key for protected endpoints
 const ADMIN_API_KEY = process.env.TEST_ENDPOINTS_API_KEY;
@@ -117,9 +119,20 @@ app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-CSRF-Token']
 }));
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
+
+// CSRF Protection Configuration
+const csrfMiddleware = createCsrfMiddleware({
+  skipPaths: [
+    '/health',
+    '/webhooks/',
+  ],
+  logger,
+});
+const csrfTokenHandler = createCsrfTokenHandler();
 
 // Initialize PostgreSQL connection pool with proper configuration
 const pool = new Pool({
@@ -159,6 +172,13 @@ initializeFirebase();
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'chat-service' });
 });
+
+// CSRF token endpoint - provides token for double-submit cookie pattern
+app.get('/csrf-token', csrfTokenHandler);
+
+// Apply CSRF middleware to state-changing requests
+// Note: For mobile apps using Bearer tokens, CSRF is skipped (already protected)
+app.use(csrfMiddleware);
 
 // Get matches for a user - Only allow users to view their own matches
 app.get('/matches/:userId', authMiddleware, generalLimiter, async (req: Request, res: Response) => {

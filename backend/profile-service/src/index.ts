@@ -16,6 +16,7 @@ if (process.env.SENTRY_DSN) {
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -38,6 +39,7 @@ import {
 import { resolvePhotoUrls, uploadToR2, getPresignedUrl } from './utils/r2-client';
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 import { initializeFirebase, sendMatchNotification } from './services/fcm-service';
+import { createCsrfMiddleware, createCsrfTokenHandler } from '@vlvt/shared';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -98,9 +100,20 @@ app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-CSRF-Token']
 }));
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
+
+// CSRF Protection Configuration
+const csrfMiddleware = createCsrfMiddleware({
+  skipPaths: [
+    '/health',
+    '/webhooks/',
+  ],
+  logger,
+});
+const csrfTokenHandler = createCsrfTokenHandler();
 
 // NOTE: Static file serving removed - images now served via R2 presigned URLs
 
@@ -238,6 +251,13 @@ initializeFirebase();
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'profile-service' });
 });
+
+// CSRF token endpoint - provides token for double-submit cookie pattern
+app.get('/csrf-token', csrfTokenHandler);
+
+// Apply CSRF middleware to state-changing requests
+// Note: For mobile apps using Bearer tokens, CSRF is skipped (already protected)
+app.use(csrfMiddleware);
 
 // Create profile - Extract userId from JWT token, not request body
 app.post('/profile', authMiddleware, profileCreationLimiter, validateProfile, async (req: Request, res: Response) => {

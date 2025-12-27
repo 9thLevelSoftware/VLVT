@@ -44,6 +44,15 @@ export {
   type ErrorHandlerOptions,
 } from './middleware/error-handler';
 
+export {
+  generateCsrfToken,
+  createCsrfMiddleware,
+  createCsrfTokenHandler,
+  csrfMiddleware,
+  csrfTokenHandler,
+  type CsrfMiddlewareOptions,
+} from './middleware/csrf';
+
 // Utilities
 export {
   createLogger,
