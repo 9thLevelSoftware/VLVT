@@ -261,6 +261,41 @@ app.get('/health', (req: Request, res: Response) => {
   res.json(addVersionToHealth({ status: 'ok', service: 'profile-service' }));
 });
 
+// Security.txt endpoint (RFC 9116)
+// Helps security researchers report vulnerabilities responsibly
+// See: https://securitytxt.org/
+app.get('/.well-known/security.txt', (req: Request, res: Response) => {
+  const securityTxt = `# VLVT Security Policy
+# See https://securitytxt.org/ for format specification (RFC 9116)
+
+Contact: mailto:security@getvlvt.vip
+Expires: 2026-12-27T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://api.getvlvt.vip/.well-known/security.txt
+
+# Security Policy
+# We take security seriously. If you discover a vulnerability, please report it
+# responsibly using the contact information above.
+#
+# What to include in your report:
+# - Description of the vulnerability
+# - Steps to reproduce
+# - Potential impact
+# - Any suggested fixes (optional)
+#
+# We commit to:
+# - Acknowledging receipt of your report within 48 hours
+# - Providing regular updates on our progress
+# - Notifying you when the issue is resolved
+# - Crediting you (if desired) for responsible disclosure
+
+# Policy URL (placeholder - update when security policy page is available)
+# Policy: https://getvlvt.vip/security-policy
+`;
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(securityTxt);
+});
+
 // CSRF token endpoint - provides token for double-submit cookie pattern
 app.get('/csrf-token', csrfTokenHandler);
 
