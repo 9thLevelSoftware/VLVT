@@ -110,8 +110,17 @@ const logger = winston.createLogger({
   silent: process.env.NODE_ENV === 'test', // Silence logs in test mode
 });
 
-// If we're not in production, also log to console with colorized output
-if (process.env.NODE_ENV !== 'production') {
+// Always log to console for cloud environments (Railway, etc.) that capture stdout
+// In development, use colorized output; in production, use JSON for structured logging
+if (process.env.NODE_ENV === 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      redactSensitiveInfo(),
+      winston.format.json()
+    ),
+  }));
+} else {
   logger.add(new winston.transports.Console({
     format: winston.format.combine(
       winston.format.colorize(),
