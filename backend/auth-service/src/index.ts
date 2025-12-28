@@ -230,10 +230,19 @@ const csrfMiddleware = createCsrfMiddleware({
   skipPaths: [
     '/health',
     '/.well-known/security.txt',
+    // OAuth endpoints
     '/auth/google',
     '/auth/google/callback',
     '/auth/apple',
     '/auth/apple/callback',
+    // Email auth endpoints (no Bearer token yet when logging in)
+    '/auth/email/register',
+    '/auth/email/login',
+    '/auth/email/verify',
+    '/auth/email/forgot',
+    '/auth/email/reset',
+    '/auth/email/resend-verification',
+    // Webhooks
     '/webhooks/',
     '/kycaid/webhook',
     // Versioned equivalents (handled by URL rewrite middleware)
@@ -241,6 +250,12 @@ const csrfMiddleware = createCsrfMiddleware({
     '/api/v1/auth/google/callback',
     '/api/v1/auth/apple',
     '/api/v1/auth/apple/callback',
+    '/api/v1/auth/email/register',
+    '/api/v1/auth/email/login',
+    '/api/v1/auth/email/verify',
+    '/api/v1/auth/email/forgot',
+    '/api/v1/auth/email/reset',
+    '/api/v1/auth/email/resend-verification',
   ],
   logger,
 });
