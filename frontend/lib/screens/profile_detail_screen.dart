@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../models/profile.dart';
 import '../services/profile_api_service.dart';
+import '../services/safety_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
@@ -42,6 +43,123 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
     super.dispose();
   }
 
+  void _handleMenuAction(BuildContext context, String action) async {
+    final safetyService = context.read<SafetyService>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    switch (action) {
+      case 'block':
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Block User'),
+            content: const Text(
+              'Are you sure you want to block this user? They won\'t be able to see your profile or message you.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Block', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true && mounted) {
+          try {
+            await safetyService.blockUser(widget.profile.userId);
+            if (mounted) {
+              scaffoldMessenger.showSnackBar(
+                const SnackBar(content: Text('User blocked')),
+              );
+              navigator.pop();
+            }
+          } catch (e) {
+            if (mounted) {
+              scaffoldMessenger.showSnackBar(
+                const SnackBar(content: Text('Failed to block user')),
+              );
+            }
+          }
+        }
+        break;
+      case 'report':
+        _showReportDialog(context, safetyService);
+        break;
+    }
+  }
+
+  void _showReportDialog(BuildContext context, SafetyService safetyService) {
+    String? selectedReason;
+    final detailsController = TextEditingController();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Report User'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              decoration: const InputDecoration(labelText: 'Reason'),
+              items: const [
+                DropdownMenuItem(value: 'inappropriate', child: Text('Inappropriate content')),
+                DropdownMenuItem(value: 'harassment', child: Text('Harassment')),
+                DropdownMenuItem(value: 'spam', child: Text('Spam')),
+                DropdownMenuItem(value: 'fake', child: Text('Fake profile')),
+                DropdownMenuItem(value: 'other', child: Text('Other')),
+              ],
+              onChanged: (value) => selectedReason = value,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: detailsController,
+              decoration: const InputDecoration(labelText: 'Details (optional)'),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (selectedReason != null) {
+                Navigator.pop(dialogContext);
+                try {
+                  await safetyService.reportUser(
+                    reportedUserId: widget.profile.userId,
+                    reason: selectedReason!,
+                    details: detailsController.text.isEmpty ? null : detailsController.text,
+                  );
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(content: Text('Report submitted')),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(content: Text('Failed to submit report')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = widget.profile;
@@ -69,6 +187,23 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               ),
               onPressed: () => Navigator.of(context).pop(),
             ),
+            actions: [
+              PopupMenuButton<String>(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.more_vert, color: Colors.white),
+                ),
+                onSelected: (value) => _handleMenuAction(context, value),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'block', child: Text('Block User')),
+                  const PopupMenuItem(value: 'report', child: Text('Report User')),
+                ],
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: hasPhotos
                   ? Stack(
