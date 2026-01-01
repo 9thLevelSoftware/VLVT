@@ -2395,8 +2395,23 @@ app.post('/auth/kycaid/webhook', express.raw({ type: 'application/json' }), asyn
       return res.status(401).json({ success: false, error: 'Invalid signature' });
     }
 
-    // Parse callback data
-    const body = JSON.parse(rawBody.toString());
+    // Parse callback data - handle both Buffer (from express.raw) and already-parsed JSON (from global express.json)
+    const body = Buffer.isBuffer(rawBody) ? JSON.parse(rawBody.toString()) : rawBody;
+
+    // Validate required webhook fields before processing
+    if (!body.type || typeof body.type !== 'string') {
+      logger.warn('KYCAID webhook missing required field: type', { body });
+      return res.status(400).json({ success: false, error: 'Missing required field: type' });
+    }
+    if (!body.applicant_id || typeof body.applicant_id !== 'string') {
+      logger.warn('KYCAID webhook missing required field: applicant_id', { body });
+      return res.status(400).json({ success: false, error: 'Missing required field: applicant_id' });
+    }
+    if (!body.verification_id || typeof body.verification_id !== 'string') {
+      logger.warn('KYCAID webhook missing required field: verification_id', { body });
+      return res.status(400).json({ success: false, error: 'Missing required field: verification_id' });
+    }
+
     const callbackData = kycaidService.parseCallbackData(body);
 
     if (!callbackData) {
