@@ -27,7 +27,11 @@ class ProfileApiService extends BaseApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['profile'] != null) {
-          return Profile.fromJson(data['profile']);
+          final profileData = data['profile'];
+          if (profileData is! Map<String, dynamic>) {
+            throw Exception('Invalid profile response format');
+          }
+          return Profile.fromJson(profileData);
         } else {
           throw Exception('Invalid response format');
         }
@@ -84,8 +88,11 @@ class ProfileApiService extends BaseApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['profiles'] != null) {
-          final profilesList = data['profiles'] as List;
-          return profilesList.map((p) => Profile.fromJson(p)).toList();
+          final profilesData = data['profiles'];
+          if (profilesData is! List) {
+            throw Exception('Invalid profiles response format');
+          }
+          return profilesData.map((p) => Profile.fromJson(p)).toList();
         } else {
           throw Exception('Invalid response format');
         }
@@ -108,7 +115,11 @@ class ProfileApiService extends BaseApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['profile'] != null) {
-          final createdProfile = Profile.fromJson(data['profile']);
+          final profileData = data['profile'];
+          if (profileData is! Map<String, dynamic>) {
+            throw Exception('Invalid profile response format');
+          }
+          final createdProfile = Profile.fromJson(profileData);
 
           // Track profile creation
           await AnalyticsService.logProfileCreated();
@@ -156,11 +167,15 @@ class ProfileApiService extends BaseApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['profile'] != null) {
+          final profileData = data['profile'];
+          if (profileData is! Map<String, dynamic>) {
+            throw Exception('Invalid profile response format');
+          }
           // Track profile update
           await AnalyticsService.logProfileUpdated();
 
           notifyListeners();
-          return Profile.fromJson(data['profile']);
+          return Profile.fromJson(profileData);
         } else {
           throw Exception('Invalid response format');
         }
