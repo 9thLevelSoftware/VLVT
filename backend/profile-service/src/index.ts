@@ -1336,10 +1336,27 @@ app.post('/profiles/search/count', authMiddleware, generalLimiter, async (req: R
       paramIndex += 3;
     }
 
-    // Note: Gender, sexual preference, and intent filters would require
-    // those columns to exist in the profiles table. For now, we count
-    // all profiles within distance. These can be added when the schema
-    // is updated to include these fields.
+    // Build dynamic filter conditions for gender, sexual preference, and intent
+    // These columns were added in migration 019_add_profile_filters.sql
+    let filterConditions = '';
+
+    if (genders && Array.isArray(genders) && genders.length > 0) {
+      filterConditions += ` AND gender = ANY($${paramIndex})`;
+      params.push(genders);
+      paramIndex++;
+    }
+
+    if (sexualPreferences && Array.isArray(sexualPreferences) && sexualPreferences.length > 0) {
+      filterConditions += ` AND sexual_preference = ANY($${paramIndex})`;
+      params.push(sexualPreferences);
+      paramIndex++;
+    }
+
+    if (intents && Array.isArray(intents) && intents.length > 0) {
+      filterConditions += ` AND intent = ANY($${paramIndex})`;
+      params.push(intents);
+      paramIndex++;
+    }
 
     const whereClause = conditions.join(' AND ');
 
@@ -1348,6 +1365,7 @@ app.post('/profiles/search/count', authMiddleware, generalLimiter, async (req: R
       FROM profiles
       WHERE ${whereClause}
       ${distanceFilter}
+      ${filterConditions}
     `;
 
     const result = await pool.query(countQuery, params);
@@ -1357,6 +1375,9 @@ app.post('/profiles/search/count', authMiddleware, generalLimiter, async (req: R
       userId: authenticatedUserId,
       maxDistance,
       hasLocation: userLocation !== null,
+      genderFilters: genders?.length || 0,
+      preferenceFilters: sexualPreferences?.length || 0,
+      intentFilters: intents?.length || 0,
       count
     });
 
