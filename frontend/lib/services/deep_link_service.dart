@@ -108,7 +108,20 @@ class DeepLinkService {
       case DeepLinkType.viewMatch:
         final matchId = sanitizedParams['id'];
         if (matchId != null && navigator.mounted) {
+          // Check authentication before navigating
+          if (!authService.isAuthenticated) {
+            ScaffoldMessenger.of(navigator.context).showSnackBar(
+              const SnackBar(
+                content: Text('Please log in to view this content.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
           debugPrint('Deep link to match: $matchId');
+          // Currently navigates to Matches tab. The matchId is extracted but not
+          // used to scroll to the specific match - this could be a future enhancement
+          // to highlight or scroll to the specific match in the list.
           navigator.push(
             MaterialPageRoute(
               builder: (context) => const MainScreen(initialTab: 1),
@@ -120,6 +133,16 @@ class DeepLinkService {
       case DeepLinkType.openChat:
         final chatId = sanitizedParams['id'];
         if (chatId != null && navigator.mounted) {
+          // Check authentication before navigating
+          if (!authService.isAuthenticated) {
+            ScaffoldMessenger.of(navigator.context).showSnackBar(
+              const SnackBar(
+                content: Text('Please log in to view this content.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            return;
+          }
           debugPrint('Deep link to chat: $chatId');
           navigator.push(
             MaterialPageRoute(
