@@ -448,89 +448,45 @@ class _PaywallScreenState extends State<PaywallScreen> {
             ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Center(
+        child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.star,
+                Icons.error_outline,
                 size: 80,
-                color: VlvtColors.premium,
+                color: VlvtColors.textMuted,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               const Text(
-                'Unlock VLVT Premium',
-                textAlign: TextAlign.center,
+                'Subscription Options Unavailable',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: VlvtColors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: VlvtColors.success.withValues(alpha: 0.3)),
+              const SizedBox(height: 12),
+              Text(
+                'Unable to load subscription options. Please check your internet connection and try again.',
+                style: TextStyle(
+                  color: VlvtColors.textSecondary,
+                  fontSize: 14,
                 ),
-                child: Text(
-                  '7-day free trial included',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: VlvtColors.success,
-                  ),
-                ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: VlvtColors.goldGradient,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: VlvtColors.goldGlow,
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const Column(
-                  children: [
-                    Text(
-                      '\$9.99/month',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Cancel anytime',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildFeaturesList(context),
-              const SizedBox(height: 32),
-              Center(
-                child: Text(
-                  'Subscriptions not available in this build',
-                  style: TextStyle(
-                    color: VlvtColors.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  // Retry by re-checking subscription status
+                  subscriptionService.checkSubscriptionStatus();
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 ),
               ),
             ],
