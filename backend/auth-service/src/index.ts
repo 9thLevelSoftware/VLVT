@@ -23,6 +23,7 @@ import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 import logger from './utils/logger';
 import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-limiter';
+import { authenticateJWT } from './middleware/auth';
 import { generateVerificationToken, generateResetToken, generateRefreshToken, hashToken, isTokenExpired, verifyToken } from './utils/crypto';
 import { validatePassword, hashPassword, verifyPassword } from './utils/password';
 import { emailService } from './services/email-service';
@@ -762,22 +763,9 @@ app.post('/auth/logout-all', authLimiter, async (req: Request, res: Response) =>
 });
 
 // Check subscription status endpoint
-app.get('/auth/subscription-status', generalLimiter, async (req: Request, res: Response) => {
+app.get('/auth/subscription-status', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, error: 'No token provided' });
-    }
-
-    const token = authHeader.substring(7);
-    let decoded: any;
-    try {
-      decoded = jwt.verify(token, JWT_SECRET);
-    } catch (err) {
-      return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
-
-    const userId = decoded.userId;
+    const userId = req.user!.userId;
 
     // Query user_subscriptions table for active subscription
     const result = await pool.query(
@@ -1764,23 +1752,8 @@ app.post('/auth/instagram/complete', authLimiter, async (req: Request, res: Resp
 // ===== ACCOUNT DELETION ENDPOINT =====
 // Required for Play Store compliance - allows users to delete their account
 
-app.delete('/auth/account', generalLimiter, async (req: Request, res: Response) => {
-  // Inline JWT verification (authenticateJWT is defined in middleware/auth.ts)
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'Authentication required' });
-  }
-
-  const token = authHeader.substring(7);
-  let userId: string;
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    userId = decoded.userId;
-  } catch (error) {
-    return res.status(401).json({ success: false, error: 'Invalid or expired token' });
-  }
-
+app.delete('/auth/account', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
   const client = await pool.connect();
 
   try {
