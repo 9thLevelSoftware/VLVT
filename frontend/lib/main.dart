@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/socket_service.dart';
 import 'services/analytics_service.dart';
 import 'services/notification_service.dart';
+import 'services/subscription_service.dart';
 import 'services/theme_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/message_queue_service.dart';
@@ -92,22 +93,26 @@ void _handleNotificationTap(Map<String, dynamic> data) {
 
   } else if (type == 'match') {
     // Navigate to matches screen
-    // For premium users: Matches tab (index 1)
-    // For free users: We need to navigate to MainScreen and they can upgrade to see matches
+    // Determine correct tab based on subscription status
+    // Free users: 0=Search, 1=Profile
+    // Premium users: 0=Discovery, 1=Matches, 2=Chats, 3=Profile
+    final subscriptionService = Provider.of<SubscriptionService>(
+      navigatorState.context,
+      listen: false,
+    );
+    final hasPremiumAccess = subscriptionService.hasPremiumAccess;
 
-    // Clear the navigation stack and go to MainScreen
-    // Premium users will see Matches tab, free users will see Search/Profile
     navigatorState.pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) {
-          // Try to get subscription status to determine correct tab
-          // Default to index 1 (Matches for premium, Profile for free)
-          return const MainScreen(initialTab: 1);
+          // For match notifications, navigate to matches tab (1 for premium, 0 for free)
+          final targetTab = hasPremiumAccess ? 1 : 0;
+          return MainScreen(initialTab: targetTab);
         },
       ),
       (route) => false,
     );
-    debugPrint('Navigating to MainScreen for new match notification');
+    debugPrint('Navigating to MainScreen for new match notification (hasPremiumAccess: $hasPremiumAccess)');
   } else {
     debugPrint('Unknown notification type: $type');
   }
