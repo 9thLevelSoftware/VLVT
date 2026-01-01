@@ -35,6 +35,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   List<String> _interests = [];
   List<String> _photos = [];
   bool _isLoading = false;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -165,6 +166,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     } catch (e) {
       if (!mounted) return;
 
+      setState(() {
+        _hasError = true;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save profile: ${e.toString()}'),
@@ -231,10 +236,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false,
+      canPop: _hasError, // Allow pop if there was an error
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        if (widget.isFirstTimeSetup) return; // Don't allow back during first-time setup
+        if (widget.isFirstTimeSetup && !_hasError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please complete your profile to continue')),
+          );
+          return;
+        }
         final shouldPop = await _confirmDiscard();
         if (shouldPop && context.mounted) {
           Navigator.of(context).pop();
