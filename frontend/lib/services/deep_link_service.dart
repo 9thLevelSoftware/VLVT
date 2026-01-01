@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import '../screens/reset_password_screen.dart';
+import '../screens/main_screen.dart';
+import '../screens/chat_screen.dart';
 import 'auth_service.dart';
 import 'deep_link_validator.dart';
 
@@ -105,17 +107,25 @@ class DeepLinkService {
 
       case DeepLinkType.viewMatch:
         final matchId = sanitizedParams['id'];
-        if (matchId != null) {
+        if (matchId != null && navigator.mounted) {
           debugPrint('Deep link to match: $matchId');
-          // TODO: Navigate to match screen when implemented
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) => const MainScreen(initialTab: 1),
+            ),
+          );
         }
         break;
 
       case DeepLinkType.openChat:
         final chatId = sanitizedParams['id'];
-        if (chatId != null) {
+        if (chatId != null && navigator.mounted) {
           debugPrint('Deep link to chat: $chatId');
-          // TODO: Navigate to chat screen when implemented
+          navigator.push(
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(matchId: chatId),
+            ),
+          );
         }
         break;
 
