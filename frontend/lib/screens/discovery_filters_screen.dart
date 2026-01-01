@@ -293,7 +293,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                               }
                             });
                           },
-                          selectedColor: Colors.deepPurple.shade200,
+                          selectedColor: VlvtColors.gold.withValues(alpha: 0.3),
                           checkmarkColor: Colors.white,
                         );
                       }).toList(),
