@@ -83,7 +83,13 @@ export const setupMessageHandlers = (
 
       const match = matchCheck.rows[0];
       if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
-        logger.warn('Unauthorized message send attempt', { userId, matchId });
+        logger.warn('Socket authorization failure', {
+          event: 'send_message',
+          userId,
+          matchId,
+          reason: 'User not part of match',
+          ip: socket.handshake.address,
+        });
         return callback?.({ success: false, error: 'Unauthorized' });
       }
 
@@ -244,7 +250,13 @@ export const setupMessageHandlers = (
 
       const match = matchCheck.rows[0];
       if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
-        logger.warn('Unauthorized mark_read attempt', { userId, matchId });
+        logger.warn('Socket authorization failure', {
+          event: 'mark_read',
+          userId,
+          matchId,
+          reason: 'User not part of match',
+          ip: socket.handshake.address,
+        });
         return callback?.({ success: false, error: 'Unauthorized' });
       }
 
@@ -342,6 +354,13 @@ export const setupMessageHandlers = (
 
       const match = matchCheck.rows[0];
       if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
+        logger.warn('Socket authorization failure', {
+          event: 'typing_indicator',
+          userId,
+          matchId,
+          reason: 'User not part of match',
+          ip: socket.handshake.address,
+        });
         return callback?.({ success: false, error: 'Unauthorized' });
       }
 
