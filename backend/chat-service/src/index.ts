@@ -1229,6 +1229,43 @@ app.put('/dates/:id/respond', authMiddleware, generalLimiter, async (req: Reques
       response
     });
 
+    // Validate counter-proposal if provided
+    if (response === 'declined' && (counterDate || counterTime)) {
+      if (!counterDate || !counterTime) {
+        return res.status(400).json({
+          success: false,
+          error: 'Counter-proposal requires both counterDate and counterTime'
+        });
+      }
+
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(counterDate)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid date format. Use YYYY-MM-DD'
+        });
+      }
+
+      // Validate time format (HH:MM or HH:MM:SS)
+      const timeRegex = /^\d{2}:\d{2}(:\d{2})?$/;
+      if (!timeRegex.test(counterTime)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid time format. Use HH:MM or HH:MM:SS'
+        });
+      }
+
+      // Validate date is in the future
+      const proposedDateTime = new Date(`${counterDate}T${counterTime}`);
+      if (isNaN(proposedDateTime.getTime()) || proposedDateTime <= new Date()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Counter-proposal date must be a valid future date'
+        });
+      }
+    }
+
     // If counter-proposal provided and declined, create new proposal
     if (response === 'declined' && counterDate && counterTime) {
       const counterResult = await pool.query(
