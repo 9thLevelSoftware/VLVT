@@ -151,13 +151,17 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                     );
                   }
                 }
+              } else {
+                scaffoldMessenger.showSnackBar(
+                  const SnackBar(content: Text('Please select a reason')),
+                );
               }
             },
             child: const Text('Submit'),
           ),
         ],
       ),
-    );
+    ).then((_) => detailsController.dispose());
   }
 
   @override
