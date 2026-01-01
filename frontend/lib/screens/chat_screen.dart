@@ -23,6 +23,7 @@ import '../widgets/date_card.dart';
 import '../widgets/message_status_indicator.dart';
 import '../services/date_proposal_service.dart';
 import '../theme/vlvt_colors.dart';
+import 'profile_edit_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   final Match? match;
@@ -334,7 +335,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             label: 'Complete Profile',
             textColor: Colors.white,
             onPressed: () {
-              Navigator.pushNamed(context, '/profile');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
+              );
             },
           ),
         ),
@@ -767,7 +771,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(width: 8),
           TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/profile'),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
+            ),
             child: Text(
               'Complete',
               style: TextStyle(
