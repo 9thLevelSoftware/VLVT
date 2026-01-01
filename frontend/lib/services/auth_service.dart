@@ -453,8 +453,9 @@ class AuthService extends ChangeNotifier {
           headers: {'Content-Type': 'application/json'},
           body: json.encode({'refreshToken': _refreshToken}),
         ).timeout(const Duration(seconds: 5)).ignore();
-      } catch (_) {
-        // Don't block logout if revocation fails
+      } catch (e) {
+        debugPrint('Failed to revoke refresh token: $e');
+        // Continue with logout anyway
       }
     }
 
@@ -464,8 +465,9 @@ class AuthService extends ChangeNotifier {
 
     try {
       await _googleSignIn.disconnect();
-    } catch (_) {
-      // Ignore Google sign-in disconnect errors
+    } catch (e) {
+      debugPrint('Google Sign-In disconnect failed: $e');
+      // Continue with logout anyway
     }
 
     _token = null;
