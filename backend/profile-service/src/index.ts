@@ -375,9 +375,22 @@ app.post('/profile', authMiddleware, profileCreationLimiter, validateProfile, as
         interests: profile.interests
       }
     });
-  } catch (error) {
-    logger.error('Failed to save profile', { error, userId: req.user?.userId });
-    res.status(500).json({ success: false, error: 'Failed to save profile' });
+  } catch (error: any) {
+    logger.error('Failed to save profile', {
+      error: error.message,
+      code: error.code,
+      detail: error.detail,
+      userId: req.user?.userId,
+    });
+
+    // Return specific error for known database error codes
+    if (error.code === '23505') {
+      res.status(409).json({ success: false, error: 'Profile already exists for this user' });
+    } else if (error.code === '23503') {
+      res.status(400).json({ success: false, error: 'Invalid user reference' });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to save profile' });
+    }
   }
 });
 
@@ -424,8 +437,12 @@ app.get('/profile/:userId', authMiddleware, generalLimiter, async (req: Request,
       },
       isOwnProfile: isOwnProfile
     });
-  } catch (error) {
-    logger.error('Failed to retrieve profile', { error, requestedUserId: req.params.userId });
+  } catch (error: any) {
+    logger.error('Failed to retrieve profile', {
+      error: error.message,
+      code: error.code,
+      requestedUserId: req.params.userId,
+    });
     res.status(500).json({ success: false, error: 'Failed to retrieve profile' });
   }
 });
@@ -479,9 +496,20 @@ app.put('/profile/:userId', authMiddleware, generalLimiter, validateProfileUpdat
         interests: profile.interests
       }
     });
-  } catch (error) {
-    logger.error('Failed to update profile', { error, requestedUserId: req.params.userId });
-    res.status(500).json({ success: false, error: 'Failed to update profile' });
+  } catch (error: any) {
+    logger.error('Failed to update profile', {
+      error: error.message,
+      code: error.code,
+      detail: error.detail,
+      requestedUserId: req.params.userId,
+    });
+
+    // Return specific error for known database error codes
+    if (error.code === '23514') {
+      res.status(400).json({ success: false, error: 'Invalid data: check constraint violated' });
+    } else {
+      res.status(500).json({ success: false, error: 'Failed to update profile' });
+    }
   }
 });
 
