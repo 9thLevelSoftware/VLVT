@@ -315,10 +315,22 @@ class _MatchesScreenState extends State<MatchesScreen> {
   }
 
   List<Widget> _buildContent() {
-    if (_isLoading) {
+    if (_isLoading && _allEntries.isEmpty) {
       return [
-        const SliverFillRemaining(
-          child: Center(child: VlvtLoader()),
+        SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const VlvtLoader(),
+                const SizedBox(height: 16),
+                Text(
+                  'Loading your matches...',
+                  style: TextStyle(color: VlvtColors.textMuted),
+                ),
+              ],
+            ),
+          ),
         ),
       ];
     }
