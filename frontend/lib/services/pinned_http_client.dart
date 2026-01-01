@@ -50,57 +50,50 @@ class CertificatePinningConfig {
     'vlvtchat.up.railway.app',
   ];
 
-  /// SHA-256 fingerprints for pinned certificates.
-  ///
-  /// These are placeholder values - replace with actual fingerprints before production!
+  /// SHA-256 fingerprints for certificate pinning.
   ///
   /// Format: SHA-256 fingerprint as uppercase hex string without colons
   ///
-  /// IMPORTANT: Before deploying to production:
-  /// 1. Get the actual certificate fingerprints using the commands above
-  /// 2. Replace these placeholder values
-  /// 3. Consider pinning intermediate CA certificates for stability
-  /// 4. Implement a backup pin in case of certificate rotation
+  /// Each host has three pins for redundancy:
+  /// 1. Leaf certificate (primary) - rotates every ~90 days with Let's Encrypt
+  /// 2. Let's Encrypt R3 intermediate - more stable backup
+  /// 3. ISRG Root X1 - most stable backup (rarely changes)
   ///
-  /// Current placeholder pins (MUST BE REPLACED):
-  /// - These are example values that will NOT work in production
-  /// - The app will fail to connect to production servers until real pins are set
+  /// MAINTENANCE: When certificates rotate, update the leaf certificate pins.
+  /// The intermediate and root pins provide continuity during rotation.
   ///
-  /// Let's Encrypt ISRG Root X1 (more stable, recommended for pinning):
-  /// Use this command to get it:
+  /// To update leaf certificates, run:
   /// ```bash
-  /// curl -s https://letsencrypt.org/certs/isrgrootx1.pem | \
+  /// echo | openssl s_client -servername HOST -connect HOST:443 2>/dev/null | \
   /// openssl x509 -fingerprint -sha256 -noout | sed 's/://g' | cut -d= -f2
   /// ```
   static const Map<String, List<String>> pinnedCertificates = {
-    // PLACEHOLDER PINS - REPLACE BEFORE PRODUCTION
-    // These pins include:
-    // 1. The server's leaf certificate pin (changes frequently)
-    // 2. Let's Encrypt R3 intermediate certificate pin (more stable)
-    // 3. ISRG Root X1 pin (most stable)
-    //
-    // Format: 'hostname': ['SHA256_FINGERPRINT_1', 'SHA256_FINGERPRINT_2', ...]
-
     'vlvtauth.up.railway.app': [
-      // TODO: Replace with actual fingerprint before production deployment
+      // Server leaf certificate (primary pin - rotates with Let's Encrypt ~90 days)
+      // Last updated: 2026-01-01
+      '01AD41A287FAF64BDA89B18217D130C0074C2EC76C80E91F9ACDDE649937FDE8',
+      // Let's Encrypt R3 intermediate (backup pin - more stable)
+      '67ADD1166B020AE61B8F5FC96813C04C2AA589960796865572A3C7E737613DFD',
       // Let's Encrypt ISRG Root X1 (backup pin - most stable)
-      'CABD2A79A1076A31F21D253635CB039D4329A5E8A63AECAC46DACBFF0F5B8E54',
-      // Let's Encrypt R3 intermediate (backup pin)
-      'A7D4AB5B9A5E15F94B4D3F01A0A5F5B4C3D2E1F0A9B8C7D6E5F4A3B2C1D0E9F8',
-      // Server leaf certificate (primary pin - replace with actual value)
-      'PLACEHOLDER_AUTH_FINGERPRINT_REPLACE_BEFORE_PRODUCTION',
+      '96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6',
     ],
     'vlvtprofiles.up.railway.app': [
-      // TODO: Replace with actual fingerprint before production deployment
-      'CABD2A79A1076A31F21D253635CB039D4329A5E8A63AECAC46DACBFF0F5B8E54',
-      'A7D4AB5B9A5E15F94B4D3F01A0A5F5B4C3D2E1F0A9B8C7D6E5F4A3B2C1D0E9F8',
-      'PLACEHOLDER_PROFILES_FINGERPRINT_REPLACE_BEFORE_PRODUCTION',
+      // Server leaf certificate (primary pin - rotates with Let's Encrypt ~90 days)
+      // Last updated: 2026-01-01
+      '01AD41A287FAF64BDA89B18217D130C0074C2EC76C80E91F9ACDDE649937FDE8',
+      // Let's Encrypt R3 intermediate (backup pin - more stable)
+      '67ADD1166B020AE61B8F5FC96813C04C2AA589960796865572A3C7E737613DFD',
+      // Let's Encrypt ISRG Root X1 (backup pin - most stable)
+      '96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6',
     ],
     'vlvtchat.up.railway.app': [
-      // TODO: Replace with actual fingerprint before production deployment
-      'CABD2A79A1076A31F21D253635CB039D4329A5E8A63AECAC46DACBFF0F5B8E54',
-      'A7D4AB5B9A5E15F94B4D3F01A0A5F5B4C3D2E1F0A9B8C7D6E5F4A3B2C1D0E9F8',
-      'PLACEHOLDER_CHAT_FINGERPRINT_REPLACE_BEFORE_PRODUCTION',
+      // Server leaf certificate (primary pin - rotates with Let's Encrypt ~90 days)
+      // Last updated: 2026-01-01
+      '01AD41A287FAF64BDA89B18217D130C0074C2EC76C80E91F9ACDDE649937FDE8',
+      // Let's Encrypt R3 intermediate (backup pin - more stable)
+      '67ADD1166B020AE61B8F5FC96813C04C2AA589960796865572A3C7E737613DFD',
+      // Let's Encrypt ISRG Root X1 (backup pin - most stable)
+      '96BCEC06264976F37460779ACF28C5A7CFE8A3C0AAE11A8FFCEE05C0BDDF08C6',
     ],
   };
 
