@@ -46,8 +46,6 @@ class SubscriptionService extends ChangeNotifier {
   bool get hasPremiumAccess => _hasPremiumAccess;
   bool get isLoading => _isLoading;
   bool get isFreeUser => !_hasPremiumAccess;
-  @Deprecated('Use isFreeUser instead')
-  bool get isDemoMode => !_hasPremiumAccess; // Legacy - kept for compatibility
   bool get isRevenueCatConfigured => _isRevenueCatConfigured;
   CustomerInfo? get customerInfo => _customerInfo;
   Offerings? get offerings => _offerings;
@@ -280,11 +278,6 @@ class SubscriptionService extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  /// Legacy method for backward compatibility
-  Future<void> purchaseSubscription() async {
-    await presentPaywall();
   }
 
   /// Restore previous purchases
