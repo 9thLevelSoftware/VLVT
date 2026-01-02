@@ -107,22 +107,6 @@ class MessageQueueService extends ChangeNotifier {
     return _queue.where((m) => m.matchId == matchId).toList();
   }
 
-  /// Legacy method names for backward compatibility
-  @Deprecated('Use queueMessage instead')
-  Future<void> enqueue(QueuedMessage message) async {
-    await queueMessage(message);
-  }
-
-  @Deprecated('Use removeMessage instead')
-  Future<void> dequeue(String id) async {
-    await removeMessage(id);
-  }
-
-  @Deprecated('Use getMessagesForMatch instead')
-  List<QueuedMessage> getQueueForMatch(String matchId) {
-    return getMessagesForMatch(matchId);
-  }
-
   /// Persist queue to SharedPreferences
   Future<void> _persist() async {
     try {
@@ -214,11 +198,5 @@ class MessageQueueService extends ChangeNotifier {
       notifyListeners();
       debugPrint('MessageQueueService: Cleared ${initialLength - _queue.length} messages for match $matchId');
     }
-  }
-
-  /// Legacy method name for backward compatibility
-  @Deprecated('Use clearQueue instead')
-  Future<void> clearAll() async {
-    await clearQueue();
   }
 }
