@@ -481,6 +481,15 @@ app.post('/auth/google', authLimiter, async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'idToken is required' });
     }
 
+    // Fail-closed: Reject if GOOGLE_CLIENT_ID is not configured
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      logger.error('GOOGLE_CLIENT_ID not configured - rejecting Google Sign-In');
+      return res.status(503).json({
+        success: false,
+        error: 'Google Sign-In not configured'
+      });
+    }
+
     const ticket = await googleClient.verifyIdToken({
       idToken: idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
