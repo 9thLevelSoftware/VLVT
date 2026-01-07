@@ -204,6 +204,18 @@ describe('Auth Service', () => {
       });
     });
 
+    it('should require nonce for Apple Sign-In', async () => {
+      const response = await request(app)
+        .post('/auth/apple')
+        .send({
+          identityToken: 'fake-token',
+          // No nonce provided
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('nonce');
+    });
+
     it('should authenticate with valid Apple token', async () => {
       // Ensure Apple mock is set correctly for this test
       const appleSignin = require('apple-signin-auth');
@@ -235,7 +247,7 @@ describe('Auth Service', () => {
 
       const response = await request(app)
         .post('/auth/apple')
-        .send({ identityToken: 'valid_apple_token' })
+        .send({ identityToken: 'valid_apple_token', nonce: 'test-nonce-12345' })
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -270,11 +282,11 @@ describe('Auth Service', () => {
       );
 
       // App imported at top
-      
+
 
       const response = await request(app)
         .post('/auth/apple')
-        .send({ identityToken: 'invalid_token' })
+        .send({ identityToken: 'invalid_token', nonce: 'test-nonce-12345' })
         .expect(401);
 
       expect(response.body.success).toBe(false);

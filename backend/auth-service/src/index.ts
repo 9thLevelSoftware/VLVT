@@ -374,15 +374,20 @@ app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {
         return res.status(503).json({ success: false, error: 'Apple Sign-In not configured' });
       }
 
-      // Extract nonce from the identity token for verification
-      // The client should pass the nonce they used during sign-in
+      // Require nonce for replay protection
       const { nonce } = req.body;
+      if (!nonce) {
+        return res.status(400).json({
+          success: false,
+          error: 'nonce is required for Apple Sign-In'
+        });
+      }
 
       const appleIdTokenClaims = await appleSignin.verifyIdToken(identityToken, {
         // Audience validation with required environment variable
         audience: process.env.APPLE_CLIENT_ID,
-        // Only verify nonce if client provided one (for backwards compatibility)
-        ...(nonce && { nonce })
+        // Always verify nonce for replay protection
+        nonce
       });
 
       if (!appleIdTokenClaims || !appleIdTokenClaims.sub) {

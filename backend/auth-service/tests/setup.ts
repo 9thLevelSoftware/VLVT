@@ -4,6 +4,7 @@ process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.NODE_ENV = 'test';
 process.env.CORS_ORIGIN = 'http://localhost:19006';
+process.env.APPLE_CLIENT_ID = 'com.vlvt.app.test';
 
 // Mock console methods to reduce test output noise
 global.console = {
