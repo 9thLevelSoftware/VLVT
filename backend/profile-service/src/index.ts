@@ -25,6 +25,7 @@ import { Pool } from 'pg';
 import { authMiddleware } from './middleware/auth';
 import { validateProfile, validateProfileUpdate } from './middleware/validation';
 import logger from './utils/logger';
+import { redactCoordinates } from './utils/geo-redact';
 import { generalLimiter, profileCreationLimiter, discoveryLimiter } from './middleware/rate-limiter';
 import {
   initializeUploadDirectory,
@@ -615,10 +616,12 @@ app.put('/profile/:userId/location', authMiddleware, generalLimiter, async (req:
       return res.status(404).json({ success: false, error: 'Profile not found' });
     }
 
+    const redacted = redactCoordinates(latitude, longitude);
     logger.info('Location updated', {
       userId: requestedUserId,
-      latitude,
-      longitude
+      // Log only city-level precision to protect user privacy
+      latitude: redacted.latitude,
+      longitude: redacted.longitude
     });
 
     res.json({
