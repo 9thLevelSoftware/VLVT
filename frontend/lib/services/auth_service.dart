@@ -64,10 +64,17 @@ class AuthService extends ChangeNotifier {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _token = data['accessToken'];
-        _refreshToken = data['refreshToken'];
+
+        // Use returned refreshToken if provided, otherwise keep existing
+        // This maintains backwards compatibility with older backend versions
+        final newRefreshToken = data['refreshToken'];
+        if (newRefreshToken != null) {
+          _refreshToken = newRefreshToken;
+          await _storage.write(key: 'refresh_token', value: _refreshToken);
+        }
+        // If refreshToken not in response, keep existing _refreshToken
 
         await _storage.write(key: 'auth_token', value: _token);
-        await _storage.write(key: 'refresh_token', value: _refreshToken);
 
         debugPrint('Token refresh successful');
         notifyListeners();

@@ -22,6 +22,7 @@ import { Pool } from 'pg';
 import { authMiddleware } from './middleware/auth';
 import { validateMessage, validateMatch, validateReport, validateBlock } from './middleware/validation';
 import logger from './utils/logger';
+import { generateMatchId, generateMessageId, generateBlockId, generateReportId } from './utils/id-generator';
 import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
@@ -210,8 +211,7 @@ Canonical: https://api.getvlvt.vip/.well-known/security.txt
 # - Notifying you when the issue is resolved
 # - Crediting you (if desired) for responsible disclosure
 
-# Policy URL (placeholder - update when security policy page is available)
-# Policy: https://getvlvt.vip/security-policy
+Policy: https://github.com/dasblitz/vlvt/blob/main/docs/SECURITY_POLICY.md
 `;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send(securityTxt);
@@ -363,7 +363,7 @@ app.post('/matches', authMiddleware, matchLimiter, validateMatch, async (req: Re
     }
 
     // Create new match only if it doesn't exist
-    const matchId = `match_${Date.now()}`;
+    const matchId = generateMatchId();
 
     const result = await pool.query(
       `INSERT INTO matches (id, user_id_1, user_id_2)
@@ -587,7 +587,7 @@ app.post('/messages', authMiddleware, messageLimiter, validateMessage, async (re
       });
     }
 
-    const messageId = `msg_${Date.now()}`;
+    const messageId = generateMessageId();
 
     const result = await pool.query(
       `INSERT INTO messages (id, match_id, sender_id, text)
@@ -822,7 +822,7 @@ app.post('/blocks', authMiddleware, generalLimiter, validateBlock, async (req: R
       return res.json({ success: true, message: 'User already blocked' });
     }
 
-    const blockId = `block_${Date.now()}`;
+    const blockId = generateBlockId();
 
     await pool.query(
       `INSERT INTO blocks (id, user_id, blocked_user_id, reason)
@@ -937,7 +937,7 @@ app.post('/reports', authMiddleware, reportLimiter, validateReport, async (req: 
       return res.status(400).json({ success: false, error: 'Cannot report yourself' });
     }
 
-    const reportId = `report_${Date.now()}`;
+    const reportId = generateReportId();
 
     await pool.query(
       `INSERT INTO reports (id, reporter_id, reported_user_id, reason, details, status)

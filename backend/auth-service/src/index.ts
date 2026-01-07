@@ -299,8 +299,7 @@ Canonical: https://api.getvlvt.vip/.well-known/security.txt
 # - Notifying you when the issue is resolved
 # - Crediting you (if desired) for responsible disclosure
 
-# Policy URL (placeholder - update when security policy page is available)
-# Policy: https://getvlvt.vip/security-policy
+Policy: https://github.com/dasblitz/vlvt/blob/main/docs/SECURITY_POLICY.md
 `;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send(securityTxt);
@@ -606,7 +605,9 @@ app.post('/auth/verify', verifyLimiter, (req: Request, res: Response) => {
   }
 });
 
-// Refresh token endpoint - Exchange a valid refresh token for a new access token
+// Refresh token endpoint - Exchange a valid refresh token for new access and refresh tokens
+// Implements token rotation: each refresh issues a NEW refresh token, old one is invalidated
+// Detects token reuse (replay attacks) and revokes entire token family if detected
 app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body;
@@ -618,9 +619,10 @@ app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
     // Hash the provided refresh token to look it up
     const tokenHash = hashToken(refreshToken);
 
-    // Find the refresh token in the database
+    // Find the refresh token in the database (including rotation tracking fields)
     const result = await pool.query(
-      `SELECT rt.id, rt.user_id, rt.expires_at, rt.revoked_at, u.provider, u.email
+      `SELECT rt.id, rt.user_id, rt.expires_at, rt.revoked_at, rt.token_family, rt.rotated_at,
+              rt.device_info, rt.ip_address, u.provider, u.email
        FROM refresh_tokens rt
        JOIN users u ON rt.user_id = u.id
        WHERE rt.token_hash = $1`,
@@ -628,6 +630,54 @@ app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
     );
 
     if (result.rows.length === 0) {
+      // Token not found - check if this is a reuse of an already-rotated token
+      // This indicates a potential replay attack where an attacker got hold of an old token
+      const reuseCheck = await pool.query(
+        `SELECT token_family, user_id FROM refresh_tokens WHERE superseded_by = $1`,
+        [tokenHash]
+      );
+
+      if (reuseCheck.rows.length > 0) {
+        // TOKEN REUSE DETECTED! This is a security incident.
+        // Revoke the entire token family to protect the user
+        const { token_family, user_id } = reuseCheck.rows[0];
+
+        // Log the reuse attempt for security monitoring
+        await pool.query(
+          `INSERT INTO token_reuse_attempts (token_hash, user_id, token_family, ip_address, user_agent)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [tokenHash, user_id, token_family, req.ip || null, req.headers['user-agent'] || null]
+        );
+
+        // Revoke all tokens in this family
+        await pool.query(
+          `UPDATE refresh_tokens
+           SET revoked_at = NOW(), revoked_reason = 'reuse_detected'
+           WHERE token_family = $1 AND revoked_at IS NULL`,
+          [token_family]
+        );
+
+        logger.warn('Token reuse detected - all sessions revoked', {
+          userId: user_id,
+          tokenFamily: token_family,
+          ip: req.ip
+        });
+
+        // Audit log the security incident
+        await auditLogger.logAuthEvent(AuditAction.TOKEN_REFRESH, {
+          userId: user_id,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: false,
+          metadata: { reason: 'token_reuse_detected', tokenFamily: token_family }
+        });
+
+        return res.status(401).json({
+          success: false,
+          error: 'Token reuse detected - all sessions revoked for security'
+        });
+      }
+
       logger.warn('Refresh attempt with unknown token', { ip: req.ip });
       return res.status(401).json({ success: false, error: 'Invalid refresh token' });
     }
@@ -643,27 +693,93 @@ app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, error: 'Refresh token has been revoked' });
     }
 
+    // Check if token has already been rotated (used)
+    // This catches the case where the original token is used but superseded_by wasn't found
+    // (e.g., if the new token was also already used and rotated)
+    if (tokenRecord.rotated_at) {
+      logger.warn('Refresh attempt with already-rotated token', {
+        userId: tokenRecord.user_id,
+        ip: req.ip
+      });
+
+      // Log the reuse attempt
+      await pool.query(
+        `INSERT INTO token_reuse_attempts (token_hash, user_id, token_family, ip_address, user_agent)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [tokenHash, tokenRecord.user_id, tokenRecord.token_family, req.ip || null, req.headers['user-agent'] || null]
+      );
+
+      // Revoke entire family as a precaution
+      await pool.query(
+        `UPDATE refresh_tokens
+         SET revoked_at = NOW(), revoked_reason = 'reuse_detected'
+         WHERE token_family = $1 AND revoked_at IS NULL`,
+        [tokenRecord.token_family]
+      );
+
+      await auditLogger.logAuthEvent(AuditAction.TOKEN_REFRESH, {
+        userId: tokenRecord.user_id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        success: false,
+        metadata: { reason: 'already_rotated_token_reuse', tokenFamily: tokenRecord.token_family }
+      });
+
+      return res.status(401).json({
+        success: false,
+        error: 'Refresh token has already been used'
+      });
+    }
+
     // Check if token has expired
     if (new Date() > new Date(tokenRecord.expires_at)) {
       logger.info('Refresh attempt with expired token', { userId: tokenRecord.user_id });
       return res.status(401).json({ success: false, error: 'Refresh token has expired' });
     }
 
-    // Update last_used_at timestamp
-    await pool.query(
-      'UPDATE refresh_tokens SET last_used_at = NOW() WHERE id = $1',
-      [tokenRecord.id]
-    );
+    // Generate new refresh token (token rotation)
+    const { token: newRefreshToken, tokenHash: newTokenHash, expires: newExpiresAt } = generateRefreshToken();
 
-    // Generate new short-lived access token (keep same refresh token for now)
-    // Note: For even stronger security, you could rotate refresh tokens here
+    // Use transaction to atomically rotate the token
+    await pool.query('BEGIN');
+
+    try {
+      // Mark old token as rotated and link to new token
+      await pool.query(
+        `UPDATE refresh_tokens
+         SET rotated_at = NOW(), superseded_by = $1, last_used_at = NOW()
+         WHERE id = $2`,
+        [newTokenHash, tokenRecord.id]
+      );
+
+      // Insert new token in the same token family
+      await pool.query(
+        `INSERT INTO refresh_tokens (user_id, token_hash, expires_at, device_info, ip_address, token_family)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          tokenRecord.user_id,
+          newTokenHash,
+          newExpiresAt,
+          tokenRecord.device_info || req.headers['user-agent']?.substring(0, 500) || null,
+          req.ip || req.socket.remoteAddress || null,
+          tokenRecord.token_family
+        ]
+      );
+
+      await pool.query('COMMIT');
+    } catch (txError) {
+      await pool.query('ROLLBACK');
+      throw txError;
+    }
+
+    // Generate new short-lived access token
     const accessToken = jwt.sign(
       { userId: tokenRecord.user_id, provider: tokenRecord.provider, email: tokenRecord.email },
       JWT_SECRET,
       { expiresIn: ACCESS_TOKEN_EXPIRY }
     );
 
-    // Audit log: token refresh
+    // Audit log: successful token refresh with rotation
     await auditLogger.logAuthEvent(AuditAction.TOKEN_REFRESH, {
       userId: tokenRecord.user_id,
       email: tokenRecord.email,
@@ -671,13 +787,18 @@ app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
       success: true,
+      metadata: { rotated: true, tokenFamily: tokenRecord.token_family }
     });
 
-    logger.info('Access token refreshed', { userId: tokenRecord.user_id });
+    logger.info('Access token refreshed with rotation', {
+      userId: tokenRecord.user_id,
+      tokenFamily: tokenRecord.token_family
+    });
 
     res.json({
       success: true,
       accessToken,
+      refreshToken: newRefreshToken, // Return the NEW rotated refresh token
       expiresIn: 15 * 60 // 15 minutes in seconds
     });
   } catch (error) {

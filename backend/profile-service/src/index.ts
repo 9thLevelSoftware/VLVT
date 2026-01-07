@@ -25,6 +25,7 @@ import { Pool } from 'pg';
 import { authMiddleware } from './middleware/auth';
 import { validateProfile, validateProfileUpdate } from './middleware/validation';
 import logger from './utils/logger';
+import { generateMatchId } from './utils/id-generator';
 import { redactCoordinates } from './utils/geo-redact';
 import { generalLimiter, profileCreationLimiter, discoveryLimiter } from './middleware/rate-limiter';
 import {
@@ -292,8 +293,7 @@ Canonical: https://api.getvlvt.vip/.well-known/security.txt
 # - Notifying you when the issue is resolved
 # - Crediting you (if desired) for responsible disclosure
 
-# Policy URL (placeholder - update when security policy page is available)
-# Policy: https://getvlvt.vip/security-policy
+Policy: https://github.com/dasblitz/vlvt/blob/main/docs/SECURITY_POLICY.md
 `;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send(securityTxt);
@@ -1528,7 +1528,7 @@ app.post('/swipes', authMiddleware, generalLimiter, async (req: Request, res: Re
 
           if (currentUserProfile && targetUserProfile) {
             // Generate a match ID for deep linking (matches the format used in chat-service)
-            const matchId = `match_${Date.now()}`;
+            const matchId = generateMatchId();
 
             // Create the match record in the database FIRST
             try {
