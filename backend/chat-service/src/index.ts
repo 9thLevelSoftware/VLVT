@@ -421,11 +421,16 @@ app.post('/matches', authMiddleware, matchLimiter, validateMatch, async (req: Re
   }
 });
 
-// Get messages for a match - Verify user is part of the match
+// Get messages for a match - Verify user is part of the match (with pagination)
 app.get('/messages/:matchId', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
   try {
     const { matchId } = req.params;
     const authenticatedUserId = req.user!.userId;
+
+    // Pagination parameters
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const before = req.query.before as string; // ISO timestamp cursor
+    const after = req.query.after as string;   // ISO timestamp cursor
 
     // Verify the user is part of this match
     const matchCheck = await pool.query(
@@ -441,15 +446,35 @@ app.get('/messages/:matchId', authMiddleware, generalLimiter, async (req: Reques
       });
     }
 
-    const result = await pool.query(
-      `SELECT id, match_id, sender_id, text, created_at
-       FROM messages
-       WHERE match_id = $1
-       ORDER BY created_at ASC`,
-      [matchId]
-    );
+    // Build query with pagination
+    let query = `
+      SELECT id, match_id, sender_id, text, created_at
+      FROM messages
+      WHERE match_id = $1
+    `;
+    const params: any[] = [matchId];
+    let paramIndex = 2;
 
-    const messages = result.rows.map(msg => ({
+    if (before) {
+      query += ` AND created_at < $${paramIndex}`;
+      params.push(before);
+      paramIndex++;
+    }
+
+    if (after) {
+      query += ` AND created_at > $${paramIndex}`;
+      params.push(after);
+      paramIndex++;
+    }
+
+    // Fetch one extra to check if there are more
+    query += ` ORDER BY created_at DESC LIMIT $${paramIndex}`;
+    params.push(limit + 1);
+
+    const result = await pool.query(query, params);
+
+    const hasMore = result.rows.length > limit;
+    const messages = result.rows.slice(0, limit).reverse().map(msg => ({
       id: msg.id,
       matchId: msg.match_id,
       senderId: msg.sender_id,
@@ -457,7 +482,16 @@ app.get('/messages/:matchId', authMiddleware, generalLimiter, async (req: Reques
       timestamp: msg.created_at
     }));
 
-    res.json({ success: true, messages });
+    res.json({
+      success: true,
+      messages,
+      pagination: {
+        limit,
+        hasMore,
+        oldestTimestamp: messages[0]?.timestamp || null,
+        newestTimestamp: messages[messages.length - 1]?.timestamp || null
+      }
+    });
   } catch (error) {
     logger.error('Failed to retrieve messages', { error, matchId: req.params.matchId });
     res.status(500).json({ success: false, error: 'Failed to retrieve messages' });

@@ -243,6 +243,8 @@ describe('Chat Service', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.messages).toBeInstanceOf(Array);
+      // Verify pagination structure is present
+      expect(response.body).toHaveProperty('pagination');
     });
 
     it('should return 403 when accessing messages for match not part of', async () => {
@@ -609,6 +611,206 @@ describe('Chat Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+    });
+  });
+
+  describe('Message Pagination', () => {
+    it('should limit results to specified page size', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Generate 25 messages
+      const messages = Array.from({ length: 25 }, (_, i) => ({
+        id: `msg_${i}`,
+        match_id: 'match_123',
+        sender_id: i % 2 === 0 ? 'user_1' : 'user_2',
+        text: `Message ${i}`,
+        created_at: new Date(Date.now() - (25 - i) * 1000), // Oldest first
+      }));
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages.slice(0, 21) }); // Return 21 messages (limit + 1)
+
+      const response = await request(app)
+        .get('/messages/match_123?limit=20')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.messages.length).toBeLessThanOrEqual(20);
+      expect(response.body).toHaveProperty('pagination');
+    });
+
+    it('should support cursor-based pagination with before param', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const beforeDate = '2024-01-15T12:00:00Z';
+      const messages = Array.from({ length: 10 }, (_, i) => ({
+        id: `msg_${i}`,
+        match_id: 'match_123',
+        sender_id: 'user_1',
+        text: `Message ${i}`,
+        created_at: new Date('2024-01-10T12:00:00Z'),
+      }));
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages });
+
+      const response = await request(app)
+        .get(`/messages/match_123?limit=20&before=${beforeDate}`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.messages.length).toBeLessThanOrEqual(20);
+    });
+
+    it('should return hasMore indicator', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Return 11 messages when asking for 10 (to indicate hasMore)
+      const messages = Array.from({ length: 11 }, (_, i) => ({
+        id: `msg_${i}`,
+        match_id: 'match_123',
+        sender_id: 'user_1',
+        text: `Message ${i}`,
+        created_at: new Date(Date.now() - (11 - i) * 1000),
+      }));
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages });
+
+      const response = await request(app)
+        .get('/messages/match_123?limit=10')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.pagination).toHaveProperty('hasMore');
+      expect(response.body.pagination.hasMore).toBe(true);
+    });
+
+    it('should default limit to 50 when not specified', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Return 30 messages (less than default limit)
+      const messages = Array.from({ length: 30 }, (_, i) => ({
+        id: `msg_${i}`,
+        match_id: 'match_123',
+        sender_id: 'user_1',
+        text: `Message ${i}`,
+        created_at: new Date(Date.now() - (30 - i) * 1000),
+      }));
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages });
+
+      const response = await request(app)
+        .get('/messages/match_123')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.messages.length).toBeLessThanOrEqual(50);
+      expect(response.body.pagination.limit).toBe(50);
+    });
+
+    it('should cap limit at 100 maximum', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Return 101 messages
+      const messages = Array.from({ length: 101 }, (_, i) => ({
+        id: `msg_${i}`,
+        match_id: 'match_123',
+        sender_id: 'user_1',
+        text: `Message ${i}`,
+        created_at: new Date(Date.now() - (101 - i) * 1000),
+      }));
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages });
+
+      const response = await request(app)
+        .get('/messages/match_123?limit=500')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.messages.length).toBeLessThanOrEqual(100);
+      expect(response.body.pagination.limit).toBe(100);
+    });
+
+    it('should return pagination timestamps', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const oldestTime = new Date('2024-01-01T10:00:00Z');
+      const newestTime = new Date('2024-01-01T12:00:00Z');
+
+      const messages = [
+        {
+          id: 'msg_1',
+          match_id: 'match_123',
+          sender_id: 'user_1',
+          text: 'First message',
+          created_at: oldestTime,
+        },
+        {
+          id: 'msg_2',
+          match_id: 'match_123',
+          sender_id: 'user_2',
+          text: 'Second message',
+          created_at: newestTime,
+        },
+      ];
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages.slice().reverse() }); // DB returns DESC
+
+      const response = await request(app)
+        .get('/messages/match_123?limit=10')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.pagination).toHaveProperty('oldestTimestamp');
+      expect(response.body.pagination).toHaveProperty('newestTimestamp');
+    });
+
+    it('should support after param for newer messages', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const afterDate = '2024-01-01T00:00:00Z';
+      const messages = Array.from({ length: 5 }, (_, i) => ({
+        id: `msg_${i}`,
+        match_id: 'match_123',
+        sender_id: 'user_1',
+        text: `Message ${i}`,
+        created_at: new Date('2024-01-02T12:00:00Z'),
+      }));
+
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: messages });
+
+      const response = await request(app)
+        .get(`/messages/match_123?limit=20&after=${afterDate}`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.messages.length).toBeLessThanOrEqual(20);
     });
   });
 
