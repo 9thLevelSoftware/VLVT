@@ -341,6 +341,96 @@ describe('Chat Service', () => {
 
       expect(response.body.success).toBe(false);
     });
+
+    it('should reject messages when sender is blocked by recipient', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Mock sequence:
+      // 1. Match check with user details
+      // 2. Block check - block exists (recipient blocked sender)
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123', user_id_1: 'user_1', user_id_2: 'user_2' }] }) // Match check
+        .mockResolvedValueOnce({ rows: [{ id: 'block_1' }] }); // Block exists
+
+      const response = await request(app)
+        .post('/messages')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          matchId: 'match_123',
+          senderId: 'user_1',
+          text: 'Hello!',
+        })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('blocked');
+    });
+
+    it('should reject messages when recipient is blocked by sender', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Block check should be bidirectional - even if sender blocked recipient,
+      // messaging should be prevented
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123', user_id_1: 'user_1', user_id_2: 'user_2' }] }) // Match check
+        .mockResolvedValueOnce({ rows: [{ id: 'block_2' }] }); // Block exists (bidirectional check)
+
+      const response = await request(app)
+        .post('/messages')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          matchId: 'match_123',
+          senderId: 'user_1',
+          text: 'Hello!',
+        })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('blocked');
+    });
+
+    it('should allow messages when no block exists', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Mock sequence - no block exists, profile complete, insert succeeds
+      mockPool.query
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123', user_id_1: 'user_1', user_id_2: 'user_2' }] }) // Match check
+        .mockResolvedValueOnce({ rows: [] }) // Block check - no blocks
+        .mockResolvedValueOnce({ // Profile check - complete profile
+          rows: [{
+            name: 'Test User',
+            age: 25,
+            bio: 'Test bio',
+            photos: ['photo1.jpg'],
+            id_verified: true,
+          }],
+        })
+        .mockResolvedValueOnce({ // Insert message
+          rows: [{
+            id: 'msg_1',
+            match_id: 'match_123',
+            sender_id: 'user_1',
+            text: 'Hello!',
+            created_at: new Date(),
+          }],
+        });
+
+      const response = await request(app)
+        .post('/messages')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          matchId: 'match_123',
+          senderId: 'user_1',
+          text: 'Hello!',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toHaveProperty('text', 'Hello!');
+    });
   });
 
   describe('DELETE /matches/:matchId', () => {

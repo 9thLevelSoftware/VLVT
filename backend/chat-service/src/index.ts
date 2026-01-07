@@ -482,9 +482,9 @@ app.post('/messages', authMiddleware, messageLimiter, validateMessage, async (re
       });
     }
 
-    // Verify the user is part of this match
+    // Verify the user is part of this match and get match details
     const matchCheck = await pool.query(
-      `SELECT id FROM matches
+      `SELECT id, user_id_1, user_id_2 FROM matches
        WHERE id = $1 AND (user_id_1 = $2 OR user_id_2 = $2)`,
       [matchId, authenticatedUserId]
     );
@@ -493,6 +493,33 @@ app.post('/messages', authMiddleware, messageLimiter, validateMessage, async (re
       return res.status(403).json({
         success: false,
         error: 'Forbidden: You are not part of this match'
+      });
+    }
+
+    // Get the recipient from the match
+    const match = matchCheck.rows[0];
+    const recipientId = match.user_id_1 === authenticatedUserId
+      ? match.user_id_2
+      : match.user_id_1;
+
+    // Check if either user has blocked the other (safety feature)
+    const blockCheck = await pool.query(
+      `SELECT 1 FROM blocks
+       WHERE (user_id = $1 AND blocked_user_id = $2)
+          OR (user_id = $2 AND blocked_user_id = $1)
+       LIMIT 1`,
+      [authenticatedUserId, recipientId]
+    );
+
+    if (blockCheck.rows.length > 0) {
+      logger.warn('Message blocked via REST - block exists between users', {
+        userId: authenticatedUserId,
+        recipientId,
+        matchId
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Unable to send message - user blocked'
       });
     }
 
