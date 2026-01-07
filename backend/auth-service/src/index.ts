@@ -84,8 +84,14 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutes - short-lived for security
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
-// CORS origin from environment variable
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:19006';
+// CORS origin from environment variable - require in production
+const CORS_ORIGIN = (() => {
+  const origin = process.env.CORS_ORIGIN;
+  if (!origin && process.env.NODE_ENV === 'production') {
+    throw new Error('CORS_ORIGIN environment variable is required in production');
+  }
+  return origin || 'http://localhost:19006';
+})();
 
 // Initialize Google OAuth2 client
 const googleClient = new OAuth2Client();
@@ -211,11 +217,7 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
-// CORS configuration - require explicit origin in production
-if (!CORS_ORIGIN && process.env.NODE_ENV === 'production') {
-  logger.error('CORS_ORIGIN not configured in production');
-  process.exit(1);
-}
+// CORS configuration (origin validation happens at startup via CORS_ORIGIN IIFE)
 app.use(cors({
   origin: CORS_ORIGIN,
   credentials: true,

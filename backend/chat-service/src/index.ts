@@ -91,14 +91,14 @@ if (!process.env.JWT_SECRET && process.env.NODE_ENV !== 'test') {
   process.exit(1);
 }
 
-// CORS origin from environment variable
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:19006';
-
-// Require explicit CORS origin in production
-if (!process.env.CORS_ORIGIN && process.env.NODE_ENV === 'production') {
-  logger.error('CORS_ORIGIN not configured in production');
-  process.exit(1);
-}
+// CORS origin from environment variable - require in production
+const CORS_ORIGIN = (() => {
+  const origin = process.env.CORS_ORIGIN;
+  if (!origin && process.env.NODE_ENV === 'production') {
+    throw new Error('CORS_ORIGIN environment variable is required in production');
+  }
+  return origin || 'http://localhost:19006';
+})();
 
 // Security middleware with comprehensive headers
 app.use(helmet({
