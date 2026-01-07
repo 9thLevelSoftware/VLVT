@@ -90,3 +90,30 @@ export function verifyToken(token: string, storedHash: string): boolean {
     return false;
   }
 }
+
+/**
+ * Timing-safe string comparison to prevent timing attacks.
+ * Use this for comparing secrets like webhook auth tokens.
+ * @param a First string to compare
+ * @param b Second string to compare
+ * @returns true if strings are equal
+ */
+export function timingSafeEqual(a: string, b: string): boolean {
+  try {
+    // Convert strings to buffers for timing-safe comparison
+    const bufferA = Buffer.from(a, 'utf8');
+    const bufferB = Buffer.from(b, 'utf8');
+
+    // If lengths differ, still do comparison to maintain constant time
+    // but return false (use the longer buffer padded to avoid length leak)
+    if (bufferA.length !== bufferB.length) {
+      // Compare against self to maintain constant time, then return false
+      crypto.timingSafeEqual(bufferA, bufferA);
+      return false;
+    }
+
+    return crypto.timingSafeEqual(bufferA, bufferB);
+  } catch {
+    return false;
+  }
+}

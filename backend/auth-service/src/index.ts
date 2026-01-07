@@ -24,7 +24,7 @@ import appleSignin from 'apple-signin-auth';
 import logger from './utils/logger';
 import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-limiter';
 import { authenticateJWT } from './middleware/auth';
-import { generateVerificationToken, generateResetToken, generateRefreshToken, hashToken, isTokenExpired, verifyToken } from './utils/crypto';
+import { generateVerificationToken, generateResetToken, generateRefreshToken, hashToken, isTokenExpired, verifyToken, timingSafeEqual } from './utils/crypto';
 import { validatePassword, hashPassword, verifyPassword } from './utils/password';
 import { emailService } from './services/email-service';
 import { validateInputMiddleware, validateEmail, validateUserId, validateArray } from './utils/input-validation';
@@ -2610,19 +2610,22 @@ app.get('/auth/kycaid/refresh', generalLimiter, async (req: Request, res: Respon
 // ===== REVENUECAT WEBHOOK =====
 // Receives subscription events from RevenueCat to sync with database
 
-const REVENUECAT_WEBHOOK_AUTH = process.env.REVENUECAT_WEBHOOK_AUTH;
-
 app.post('/auth/revenuecat/webhook', express.json(), async (req: Request, res: Response) => {
-  // Verify authorization header
-  const authHeader = req.headers.authorization;
+  // SECURITY: Require webhook auth to be configured - fail closed
+  const webhookAuth = process.env.REVENUECAT_WEBHOOK_AUTH;
+  if (!webhookAuth) {
+    logger.error('RevenueCat webhook: REVENUECAT_WEBHOOK_AUTH not configured - rejecting request');
+    return res.status(503).json({
+      success: false,
+      error: 'Webhook not configured'
+    });
+  }
 
-  if (REVENUECAT_WEBHOOK_AUTH) {
-    if (!authHeader || authHeader !== REVENUECAT_WEBHOOK_AUTH) {
-      logger.warn('RevenueCat webhook: Invalid or missing authorization header');
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
-  } else {
-    logger.warn('RevenueCat webhook: REVENUECAT_WEBHOOK_AUTH not configured - accepting all requests');
+  // Verify authorization header using timing-safe comparison
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !timingSafeEqual(authHeader, webhookAuth)) {
+    logger.warn('RevenueCat webhook: Invalid or missing authorization header');
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 
   try {
