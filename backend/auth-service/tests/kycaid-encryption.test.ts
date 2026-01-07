@@ -5,6 +5,10 @@ jest.mock('pg', () => {
   const mPool = {
     query: jest.fn(),
     on: jest.fn(),
+    connect: jest.fn().mockResolvedValue({
+      query: jest.fn(),
+      release: jest.fn(),
+    }),
   };
   return { Pool: jest.fn(() => mPool) };
 });
@@ -73,136 +77,131 @@ jest.mock('@vlvt/shared', () => ({
 jest.mock('../src/services/kycaid-service', () => ({
   createVerification: jest.fn(),
   getVerificationStatus: jest.fn(),
-  verifyCallbackSignature: jest.fn().mockReturnValue(true), // Allow signature to pass
-  parseCallbackData: jest.fn().mockReturnValue(null), // Will be overridden per test
-  extractVerifiedUserData: jest.fn().mockReturnValue({}),
+  verifyCallbackSignature: jest.fn().mockReturnValue(true),
+  parseCallbackData: jest.fn().mockReturnValue({
+    verification_id: 'test-verification-id',
+    applicant_id: 'test-applicant-id',
+    status: 'completed',
+    verification_status: 'approved',
+    verified: true,
+  }),
+  extractVerifiedUserData: jest.fn().mockReturnValue({
+    firstName: 'John',
+    lastName: 'Doe',
+    dateOfBirth: '1990-01-01',
+    documentNumber: 'ABC123',
+    documentExpiry: '2030-01-01',
+    documentType: 'passport',
+    documentCountry: 'US',
+    documentVerified: true,
+    faceMatchVerified: true,
+    livenessVerified: true,
+    amlCleared: true,
+  }),
 }));
 
 import app from '../src/index';
-import * as kycaidService from '../src/services/kycaid-service';
+import { Pool } from 'pg';
 
-describe('POST /auth/kycaid/webhook', () => {
+const mockPool = new Pool() as jest.Mocked<Pool>;
+
+describe('KYCAID PII Encryption', () => {
+  const originalEnv = process.env.KYCAID_ENCRYPTION_KEY;
+
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset to default mock behavior
-    (kycaidService.verifyCallbackSignature as jest.Mock).mockReturnValue(true);
-    // Set encryption key for all tests (encryption key validation tests are in kycaid-encryption.test.ts)
-    process.env.KYCAID_ENCRYPTION_KEY = 'test-encryption-key-32chars!!';
+    // Reset pool mock for each test
+    (mockPool.query as jest.Mock).mockReset();
   });
 
-  describe('Input validation', () => {
-    it('should reject requests without required fields', async () => {
-      const response = await request(app)
-        .post('/auth/kycaid/webhook')
-        .set('Content-Type', 'application/json')
-        .set('x-kycaid-signature', 'valid-signature')
-        .send(JSON.stringify({}));
+  afterAll(() => {
+    // Restore original env
+    if (originalEnv) {
+      process.env.KYCAID_ENCRYPTION_KEY = originalEnv;
+    } else {
+      delete process.env.KYCAID_ENCRYPTION_KEY;
+    }
+  });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('Missing required field');
+  describe('when KYCAID_ENCRYPTION_KEY is not set', () => {
+    beforeEach(() => {
+      delete process.env.KYCAID_ENCRYPTION_KEY;
     });
 
-    it('should reject requests with invalid type field', async () => {
+    it('should reject KYCAID webhook with 503', async () => {
+      // Note: App is already imported and configured, so we test behavior
+      // The implementation should check for encryption key early in the handler
+
       const response = await request(app)
         .post('/auth/kycaid/webhook')
         .set('Content-Type', 'application/json')
         .set('x-kycaid-signature', 'valid-signature')
         .send(JSON.stringify({
-          type: 123, // Invalid: should be string
+          type: 'VERIFICATION_COMPLETED',
           applicant_id: 'test-applicant-id',
           verification_id: 'test-verification-id'
         }));
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('type');
+      expect(response.status).toBe(503);
+      expect(response.body.error).toContain('encryption');
     });
 
-    it('should reject requests with null applicant_id', async () => {
+    it('should not process PII data when encryption key is missing', async () => {
       const response = await request(app)
         .post('/auth/kycaid/webhook')
         .set('Content-Type', 'application/json')
         .set('x-kycaid-signature', 'valid-signature')
         .send(JSON.stringify({
           type: 'VERIFICATION_COMPLETED',
-          applicant_id: null
+          applicant_id: 'test-applicant-id',
+          verification_id: 'test-verification-id'
         }));
 
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('applicant_id');
-    });
-
-    it('should reject requests with missing applicant_id', async () => {
-      const response = await request(app)
-        .post('/auth/kycaid/webhook')
-        .set('Content-Type', 'application/json')
-        .set('x-kycaid-signature', 'valid-signature')
-        .send(JSON.stringify({
-          type: 'VERIFICATION_COMPLETED'
-        }));
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('applicant_id');
-    });
-
-    it('should reject requests with invalid applicant_id type', async () => {
-      const response = await request(app)
-        .post('/auth/kycaid/webhook')
-        .set('Content-Type', 'application/json')
-        .set('x-kycaid-signature', 'valid-signature')
-        .send(JSON.stringify({
-          type: 'VERIFICATION_COMPLETED',
-          applicant_id: { id: 'nested' } // Invalid: should be string
-        }));
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('applicant_id');
-    });
-
-    it('should reject requests with missing verification_id', async () => {
-      const response = await request(app)
-        .post('/auth/kycaid/webhook')
-        .set('Content-Type', 'application/json')
-        .set('x-kycaid-signature', 'valid-signature')
-        .send(JSON.stringify({
-          type: 'VERIFICATION_COMPLETED',
-          applicant_id: 'test-applicant-id'
-        }));
-
-      expect(response.status).toBe(400);
-      expect(response.body.error).toContain('verification_id');
+      expect(response.status).toBe(503);
+      expect(response.body.success).toBe(false);
     });
   });
 
-  describe('Signature validation', () => {
-    it('should reject requests without signature header', async () => {
-      const response = await request(app)
-        .post('/auth/kycaid/webhook')
-        .set('Content-Type', 'application/json')
-        .send(JSON.stringify({
-          type: 'VERIFICATION_COMPLETED',
-          applicant_id: 'test-applicant-id',
-          verification_id: 'test-verification-id'
-        }));
-
-      expect(response.status).toBe(401);
-      expect(response.body.error).toContain('Invalid signature');
+  describe('when KYCAID_ENCRYPTION_KEY is set', () => {
+    beforeEach(() => {
+      process.env.KYCAID_ENCRYPTION_KEY = 'test-encryption-key-32chars!!';
+      // Mock DB queries for successful webhook processing
+      (mockPool.query as jest.Mock)
+        .mockResolvedValueOnce({
+          rows: [{ id: 'verification-1', user_id: 'user-1' }]
+        });
     });
 
-    it('should reject requests with invalid signature', async () => {
-      (kycaidService.verifyCallbackSignature as jest.Mock).mockReturnValue(false);
-
+    it('should process webhook normally (not return 503)', async () => {
       const response = await request(app)
         .post('/auth/kycaid/webhook')
         .set('Content-Type', 'application/json')
-        .set('x-kycaid-signature', 'invalid-signature')
+        .set('x-kycaid-signature', 'valid-signature')
         .send(JSON.stringify({
           type: 'VERIFICATION_COMPLETED',
           applicant_id: 'test-applicant-id',
           verification_id: 'test-verification-id'
         }));
 
-      expect(response.status).toBe(401);
-      expect(response.body.error).toContain('Invalid signature');
+      // May fail on DB operations, but should NOT be 503 (encryption config error)
+      expect(response.status).not.toBe(503);
+    });
+
+    it('should not return encryption configuration error', async () => {
+      const response = await request(app)
+        .post('/auth/kycaid/webhook')
+        .set('Content-Type', 'application/json')
+        .set('x-kycaid-signature', 'valid-signature')
+        .send(JSON.stringify({
+          type: 'VERIFICATION_COMPLETED',
+          applicant_id: 'test-applicant-id',
+          verification_id: 'test-verification-id'
+        }));
+
+      // Should not have encryption-related error
+      if (response.body.error) {
+        expect(response.body.error).not.toContain('encryption');
+      }
     });
   });
 });

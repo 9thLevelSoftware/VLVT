@@ -2377,6 +2377,16 @@ app.get('/auth/kycaid/status', generalLimiter, async (req: Request, res: Respons
 // This endpoint does NOT require authentication - it receives callbacks from KYCAID
 app.post('/auth/kycaid/webhook', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
   try {
+    // Security: Require encryption key for PII storage - fail closed
+    const encryptionKey = process.env.KYCAID_ENCRYPTION_KEY;
+    if (!encryptionKey) {
+      logger.error('KYCAID_ENCRYPTION_KEY not set - cannot store PII securely');
+      return res.status(503).json({
+        success: false,
+        error: 'KYC service not properly configured for encryption'
+      });
+    }
+
     // Verify signature
     const signature = req.headers['x-kycaid-signature'] as string;
     const rawBody = req.body;
@@ -2445,8 +2455,7 @@ app.post('/auth/kycaid/webhook', express.raw({ type: 'application/json' }), asyn
       await client.query('BEGIN');
 
       // Update verification record
-      // Security: Encrypt sensitive PII data before storing
-      const encryptionKey = process.env.KYCAID_ENCRYPTION_KEY;
+      // Security: Encrypt sensitive PII data before storing (encryption key validated at handler start)
       const piiData = {
         firstName: userData.firstName,
         lastName: userData.lastName,
@@ -2455,83 +2464,42 @@ app.post('/auth/kycaid/webhook', express.raw({ type: 'application/json' }), asyn
         documentExpiry: userData.documentExpiry
       };
 
-      if (encryptionKey) {
-        // Store encrypted PII, clear plaintext columns
-        await client.query(
-          `UPDATE kycaid_verifications SET
-             status = $1,
-             verification_status = $2,
-             encrypted_pii = encrypt_kycaid_pii($3::jsonb, $4),
-             document_type = $5,
-             document_country = $6,
-             document_verified = $7,
-             face_match_verified = $8,
-             liveness_verified = $9,
-             aml_cleared = $10,
-             kycaid_response = $11,
-             completed_at = NOW(),
-             -- Clear plaintext PII columns
-             first_name = NULL,
-             last_name = NULL,
-             date_of_birth = NULL,
-             document_number = NULL,
-             document_expiry = NULL
-           WHERE id = $12`,
-          [
-            status,
-            callbackData.verification_status,
-            JSON.stringify(piiData),
-            encryptionKey,
-            userData.documentType,
-            userData.documentCountry,
-            userData.documentVerified,
-            userData.faceMatchVerified,
-            userData.livenessVerified,
-            userData.amlCleared,
-            JSON.stringify(body),
-            verification.id
-          ]
-        );
-      } else {
-        // Fallback: Store in plaintext with warning (for backwards compatibility during migration)
-        logger.warn('KYCAID_ENCRYPTION_KEY not set - storing PII in plaintext. THIS IS A SECURITY RISK.');
-        await client.query(
-          `UPDATE kycaid_verifications SET
-             status = $1,
-             verification_status = $2,
-             first_name = $3,
-             last_name = $4,
-             date_of_birth = $5,
-             document_type = $6,
-             document_number = $7,
-             document_country = $8,
-             document_expiry = $9,
-             document_verified = $10,
-             face_match_verified = $11,
-             liveness_verified = $12,
-             aml_cleared = $13,
-             kycaid_response = $14,
-             completed_at = NOW()
-           WHERE id = $15`,
-          [
-            status,
-            callbackData.verification_status,
-            userData.firstName,
-            userData.lastName,
-            userData.dateOfBirth,
-            userData.documentType,
-            userData.documentNumber,
-            userData.documentCountry,
-            userData.documentExpiry,
-            userData.documentVerified,
-            userData.faceMatchVerified,
-            userData.livenessVerified,
-            userData.amlCleared,
-            JSON.stringify(body),
-            verification.id
-          ]
-        );
-      }
+      // Store encrypted PII, clear plaintext columns
+      await client.query(
+        `UPDATE kycaid_verifications SET
+           status = $1,
+           verification_status = $2,
+           encrypted_pii = encrypt_kycaid_pii($3::jsonb, $4),
+           document_type = $5,
+           document_country = $6,
+           document_verified = $7,
+           face_match_verified = $8,
+           liveness_verified = $9,
+           aml_cleared = $10,
+           kycaid_response = $11,
+           completed_at = NOW(),
+           -- Clear plaintext PII columns
+           first_name = NULL,
+           last_name = NULL,
+           date_of_birth = NULL,
+           document_number = NULL,
+           document_expiry = NULL
+         WHERE id = $12`,
+        [
+          status,
+          callbackData.verification_status,
+          JSON.stringify(piiData),
+          encryptionKey,
+          userData.documentType,
+          userData.documentCountry,
+          userData.documentVerified,
+          userData.faceMatchVerified,
+          userData.livenessVerified,
+          userData.amlCleared,
+          JSON.stringify(body),
+          verification.id
+        ]
+      );
 
       // If approved, update user as verified
       if (isApproved) {
