@@ -36,7 +36,7 @@ import {
   canUploadMorePhotos,
   MAX_PHOTOS_PER_PROFILE,
 } from './utils/image-handler';
-import { resolvePhotoUrls, uploadToR2, getPresignedUrl } from './utils/r2-client';
+import { resolvePhotoUrls, uploadToR2, getPresignedUrl, deleteUserPhotos } from './utils/r2-client';
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 import { initializeFirebase, sendMatchNotification } from './services/fcm-service';
 import {
@@ -529,6 +529,14 @@ app.delete('/profile/:userId', authMiddleware, generalLimiter, async (req: Reque
       });
     }
 
+    // Get photos before deletion for R2 cleanup (GDPR right-to-erasure)
+    const photoResult = await pool.query(
+      `SELECT photos FROM profiles WHERE user_id = $1`,
+      [requestedUserId]
+    );
+    const photos: string[] = photoResult.rows[0]?.photos || [];
+
+    // Delete profile from database
     const result = await pool.query(
       `DELETE FROM profiles WHERE user_id = $1 RETURNING user_id`,
       [requestedUserId]
@@ -536,6 +544,13 @@ app.delete('/profile/:userId', authMiddleware, generalLimiter, async (req: Reque
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Profile not found' });
+    }
+
+    // Clean up photos from R2 (async, don't block response)
+    if (photos.length > 0) {
+      deleteUserPhotos(requestedUserId, photos).catch((error) => {
+        logger.error('Background R2 cleanup failed', { userId: requestedUserId, error });
+      });
     }
 
     res.json({ success: true, message: 'Profile deleted' });

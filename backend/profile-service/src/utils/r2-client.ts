@@ -180,4 +180,83 @@ export async function resolvePhotoUrls(photosKeysOrUrls: string[]): Promise<stri
   return Promise.all(photosKeysOrUrls.map(resolvePhotoUrl));
 }
 
+/**
+ * Extract R2 key from a photo URL or return the key if it's already a key
+ * Handles both full URLs (https://...) and direct R2 keys
+ * @param photoKeyOrUrl - Photo URL or R2 key
+ * @returns The R2 key, or null if extraction failed
+ */
+function extractR2Key(photoKeyOrUrl: string): string | null {
+  // If it's already a key (not a URL), return it
+  if (!photoKeyOrUrl.startsWith('http://') && !photoKeyOrUrl.startsWith('https://')) {
+    // Legacy local path - cannot delete from R2
+    if (photoKeyOrUrl.startsWith('/uploads/')) {
+      return null;
+    }
+    return photoKeyOrUrl;
+  }
+
+  // Try to extract path from URL
+  try {
+    const url = new URL(photoKeyOrUrl);
+    const pathname = url.pathname;
+    // Remove leading slash if present
+    return pathname.startsWith('/') ? pathname.slice(1) : pathname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Delete all photos for a user (batch deletion)
+ * Used during profile deletion for GDPR compliance
+ * @param userId - User ID for logging purposes
+ * @param photoKeysOrUrls - Array of photo keys or URLs to delete
+ * @returns Object with deleted and failed counts
+ */
+export async function deleteUserPhotos(
+  userId: string,
+  photoKeysOrUrls: string[]
+): Promise<{ deleted: number; failed: number }> {
+  // Check if R2 is configured
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY) {
+    logger.warn('R2 credentials not configured - photo cleanup disabled', { userId });
+    return { deleted: 0, failed: 0 };
+  }
+
+  if (!photoKeysOrUrls || photoKeysOrUrls.length === 0) {
+    return { deleted: 0, failed: 0 };
+  }
+
+  let deleted = 0;
+  let failed = 0;
+
+  for (const photoKeyOrUrl of photoKeysOrUrls) {
+    const key = extractR2Key(photoKeyOrUrl);
+
+    if (!key) {
+      // Skip legacy local paths or invalid URLs
+      logger.debug('Skipping non-R2 photo', { userId, photoKeyOrUrl });
+      continue;
+    }
+
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+      });
+
+      await r2Client.send(command);
+      deleted++;
+      logger.debug('Deleted photo from R2', { userId, key });
+    } catch (error) {
+      failed++;
+      logger.error('Failed to delete photo from R2', { userId, key, error });
+    }
+  }
+
+  logger.info('R2 photo cleanup completed', { userId, deleted, failed, total: photoKeysOrUrls.length });
+  return { deleted, failed };
+}
+
 export { R2_BUCKET_NAME };
