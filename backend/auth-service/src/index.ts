@@ -102,6 +102,8 @@ const pool = new Pool({
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
+  // TODO: Railway uses self-signed certs. See docs/DATABASE_SSL.md for improvement plan.
+  // When Railway provides CA bundle, update to rejectUnauthorized: true with CA.
   ssl: process.env.DATABASE_URL?.includes('railway')
     ? { rejectUnauthorized: false }
     : false,
