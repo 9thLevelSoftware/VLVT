@@ -1198,10 +1198,7 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
       totalCount = parseInt(countResult.rows[0].count);
     }
 
-    // Calculate random offset (ensure we have enough profiles for LIMIT 20)
     const limit = 20;
-    const maxOffset = Math.max(0, totalCount - limit);
-    const randomOffset = Math.floor(Math.random() * (maxOffset + 1));
 
     // Helper function to build discovery query with new user boost
     const buildDiscoveryQuery = (effectiveMaxDistance: number | null) => {
@@ -1231,7 +1228,8 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
           WHERE distance <= $${paramIndex + 2}
           ORDER BY
             CASE WHEN created_at > NOW() - INTERVAL '48 hours' THEN 0 ELSE 1 END,
-            distance ASC
+            distance ASC,
+            RANDOM()
           LIMIT ${limit}
         `;
         queryParams.push(userLocation.latitude, userLocation.longitude, effectiveMaxDistance);
@@ -1244,7 +1242,7 @@ app.get('/profiles/discover', authMiddleware, discoveryLimiter, async (req: Requ
           WHERE ${whereClause}
           ORDER BY
             CASE WHEN created_at > NOW() - INTERVAL '48 hours' THEN 0 ELSE 1 END,
-            user_id
+            RANDOM()
           LIMIT ${limit}
         `;
       }
