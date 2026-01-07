@@ -428,9 +428,23 @@ app.get('/messages/:matchId', authMiddleware, generalLimiter, async (req: Reques
     const authenticatedUserId = req.user!.userId;
 
     // Pagination parameters
-    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const limit = Math.max(1, Math.min(parseInt(req.query.limit as string) || 50, 100));
     const before = req.query.before as string; // ISO timestamp cursor
     const after = req.query.after as string;   // ISO timestamp cursor
+
+    // Validate timestamp format
+    if (before && isNaN(Date.parse(before))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid before timestamp. Use ISO 8601 format.'
+      });
+    }
+    if (after && isNaN(Date.parse(after))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid after timestamp. Use ISO 8601 format.'
+      });
+    }
 
     // Verify the user is part of this match
     const matchCheck = await pool.query(
