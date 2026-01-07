@@ -5,11 +5,11 @@
 
 import { Server as SocketServer } from 'socket.io';
 import { Pool } from 'pg';
-import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger';
 import { SocketWithAuth } from './auth-middleware';
 import { sendMessageNotification } from '../services/fcm-service';
 import { isProfileComplete } from '../utils/profile-check';
+import { generateMessageId } from '../utils/id-generator';
 import { SocketRateLimiter } from '@vlvt/shared';
 
 interface SendMessageData {
@@ -152,7 +152,7 @@ export const setupMessageHandlers = (
       }
 
       // Create the message
-      const messageId = uuidv4();
+      const messageId = generateMessageId();
       const now = new Date();
 
       const result = await pool.query(
