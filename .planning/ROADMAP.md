@@ -24,6 +24,13 @@
 
 **Rationale:** Location fuzzing and verification gates cannot be retrofitted. The database schema must exist before any features can be built. GDPR compliance starts at the data layer.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Database migration for After Hours tables and GDPR consent
+- [ ] 01-02-PLAN.md — Location fuzzing utility for privacy protection
+- [ ] 01-03-PLAN.md — After Hours authorization middleware (premium + verified + consent)
+
 ### Requirements Addressed
 - Location fuzzing (general area, not exact coordinates)
 - Only verified users can access After Hours mode
