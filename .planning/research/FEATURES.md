@@ -1,14 +1,14 @@
-# Feature Landscape: Hookup/Proximity Matching
+# Feature Landscape: After Hours/Proximity Matching
 
-**Domain:** Hookup/proximity dating features
+**Domain:** After Hours/proximity dating features
 **Researched:** 2026-01-22
 **Overall Confidence:** HIGH (based on multiple verified sources)
 
 ## Executive Summary
 
-The hookup/proximity dating market has matured significantly, with clear patterns emerging across Grindr, Tinder, Bumble, Feeld, Pure, and Happn. Table stakes features have converged around safety (verification, blocking), privacy (location fuzzing), and real-time intent signaling. Differentiators focus on session-based ephemeral interactions, intent clarity, and kink/preference matching.
+The After Hours/proximity dating market has matured significantly, with clear patterns emerging across Grindr, Tinder, Bumble, Feeld, Pure, and Happn. Table stakes features have converged around safety (verification, blocking), privacy (location fuzzing), and real-time intent signaling. Differentiators focus on session-based ephemeral interactions, intent clarity, and kink/preference matching.
 
-VLVT's proposed Hookup Mode aligns well with market expectations, but some planned features are genuinely differentiating (auto-matching system, ephemeral-by-default with mutual save) while others need refinement against what users now expect as standard.
+VLVT's proposed After Hours Mode aligns well with market expectations, but some planned features are genuinely differentiating (auto-matching system, ephemeral-by-default with mutual save) while others need refinement against what users now expect as standard.
 
 ---
 
@@ -18,11 +18,11 @@ Features users expect. Missing = product feels incomplete or unsafe.
 
 | Feature | Why Expected | Complexity | VLVT Status | Notes |
 |---------|--------------|------------|-------------|-------|
-| **Photo Verification** | Tinder mandating Face Check in 2025; 60% reduction in bad actors reported. Users expect verified badges. | Medium | Existing (Rekognition) | Already have face verification - ensure hookup profiles require it |
-| **Blocking (Immediate, Permanent)** | Industry standard. Users expect instant, complete removal from all surfaces. | Low | Existing | Confirm blocks carry over bidirectionally (main -> hookup, hookup -> main) |
-| **Reporting Mechanism** | All major apps have quick-report. Expectation of fast action on safety issues. | Low | Existing | Add hookup-specific report categories (misrepresentation, harassment) |
+| **Photo Verification** | Tinder mandating Face Check in 2025; 60% reduction in bad actors reported. Users expect verified badges. | Medium | Existing (Rekognition) | Already have face verification - ensure After Hours profiles require it |
+| **Blocking (Immediate, Permanent)** | Industry standard. Users expect instant, complete removal from all surfaces. | Low | Existing | Confirm blocks carry over bidirectionally (main -> After Hours, After Hours -> main) |
+| **Reporting Mechanism** | All major apps have quick-report. Expectation of fast action on safety issues. | Low | Existing | Add after-hours-specific report categories (misrepresentation, harassment) |
 | **Location Privacy/Fuzzing** | Security research shows exact location leaks are common attack vector. Users expect fuzzy distances. | Medium | Planned | Critical - show "within X miles" not exact coordinates. Grindr/Happn learned this the hard way |
-| **Profile Photos** | Users expect to see who they're matching with. Photo-first is universal. | Low | Planned | Hookup-specific photo required |
+| **Profile Photos** | Users expect to see who they're matching with. Photo-first is universal. | Low | Planned | after-hours-specific photo required |
 | **Text Chat** | Basic messaging is universal expectation post-match. | Low | Existing | Adapt existing Socket.IO chat for ephemeral mode |
 | **Preference Filters** | Gender/distance filtering is table stakes across all apps reviewed. | Low | Planned | Gender seeking + distance range minimum |
 | **Session/Activity Status** | Users want to know who's actually active NOW (not hours ago). Grindr's "Right Now" success proves this. | Medium | Implicit | Session mode = inherently "active now" |
@@ -30,10 +30,10 @@ Features users expect. Missing = product feels incomplete or unsafe.
 
 ### Critical Implementation Notes for Table Stakes
 
-**Photo Verification:** Tinder's Face Check (October 2025) established facial liveness verification as the new standard. VLVT already has Rekognition - ensure it's mandatory for hookup mode, not optional.
+**Photo Verification:** Tinder's Face Check (October 2025) established facial liveness verification as the new standard. VLVT already has Rekognition - ensure it's mandatory for After Hours Mode, not optional.
 
 **Blocking:** Current best practice (per Tinder/Bumble) is immediate, complete removal. When blocked:
-- User disappears from all surfaces (main app AND hookup mode)
+- User disappears from all surfaces (main app AND After Hours Mode)
 - Cannot see blocker's profile
 - Cannot appear in blocker's matches
 - Persists across sessions (never resets)
@@ -56,7 +56,7 @@ Features that set VLVT apart. Not expected, but valued if executed well.
 | **Ephemeral Chat (Disappears by Default)** | Privacy-first design. Users more comfortable sharing in temporary context. | High | Core Feature | Pure pioneered this. Rare in mainstream apps. Strong differentiator. |
 | **Mutual Save to Persist** | Both parties consent to continued connection. Respects privacy while enabling real connections. | Medium | Core Feature | Unique mechanism. Most apps are persist-by-default. |
 | **Session-Based Decline Reset** | "Not tonight" != "Never". Moods change. Same person might be right tomorrow. | Low | Core Feature | Different from permanent pass/left-swipe. Reduces pressure on decisions. |
-| **Separate Hookup Profile** | Context-appropriate presentation. Users want different photos/text for casual vs serious. | Medium | Core Feature | Feeld and Grindr support multiple intents on same profile. VLVT's separate profile approach is cleaner. |
+| **Separate After Hours Profile** | Context-appropriate presentation. Users want different photos/text for casual vs serious. | Medium | Core Feature | Feeld and Grindr support multiple intents on same profile. VLVT's separate profile approach is cleaner. |
 | **Kinks/Interests Tags** | Specific preference matching beyond gender. Reduces mismatched expectations. | Medium | Planned | Feeld has 30+ "Desires". Grindr uses tags. OkCupid uses questions. Tags are lighter-weight than questionnaires. |
 | **Premium-Only Access** | Keeps feature exclusive, higher intent users, monetization lever. | Low | Planned | Standard for advanced features (Grindr Unlimited, Bumble Premium, Feeld Majestic) |
 | **Verification Required** | Safety gate ensures higher trust environment. | Low | Planned | Feeld and Tinder moving toward mandatory verification. Strong safety differentiator. |
@@ -81,7 +81,7 @@ Implementation consideration: Need to balance automation with user control. User
 
 **Ephemeral Chat with Mutual Save**
 
-Pure's 24-hour message deletion proved users value ephemeral communication for hookup context. But Pure doesn't have the "mutual save" mechanic.
+Pure's 24-hour message deletion proved users value ephemeral communication for After Hours context. But Pure doesn't have the "mutual save" mechanic.
 
 VLVT's approach combines:
 - Default ephemerality (chats disappear when session ends)
@@ -104,21 +104,21 @@ Market reference points:
 
 ## Anti-Features
 
-Features to explicitly NOT build. Common mistakes in hookup app space.
+Features to explicitly NOT build. Common mistakes in After Hours app space.
 
 | Anti-Feature | Why Avoid | What to Do Instead | Market Examples of Failure |
 |--------------|-----------|-------------------|---------------------------|
 | **Exact Location Display** | Security researchers exploited Grindr/Happn location data to track users. Privacy and safety liability. | Fuzzy distance ranges + random jitter | Grindr has been sued; Happn added "safety perimeter" delay |
 | **Persistent Chat History (Default)** | Conflicts with privacy-first design. Creates evidence trail users don't want. | Ephemeral by default with mutual save option | Pure's ephemeral design is praised; traditional apps criticized |
 | **Unlimited Session Duration** | Creates zombie profiles (people forget they're "active"). Degrades signal of who's actually available. | Fixed duration (30 min) with optional extension | Grindr grid filled with "last active: 3 days ago" |
-| **Free Tier Hookup Mode** | Attracts lower-intent users, creates spam, undermines premium value prop. | Premium-only with free trial consideration | Grindr's free tier has bot problems; Feeld Majestic is premium |
-| **Unverified User Access** | Safety risk. Hookup context requires higher trust. | Verification gate is mandatory | Tinder mandating Face Check in 2025 for this reason |
-| **Complex Questionnaires** | OkCupid-style extensive questions create friction for spontaneous hookup context. | Lightweight tags/preferences instead | OkCupid is for relationship seeking, not hookups |
+| **Free Tier After Hours Mode** | Attracts lower-intent users, creates spam, undermines premium value prop. | Premium-only with free trial consideration | Grindr's free tier has bot problems; Feeld Majestic is premium |
+| **Unverified User Access** | Safety risk. After Hours context requires higher trust. | Verification gate is mandatory | Tinder mandating Face Check in 2025 for this reason |
+| **Complex Questionnaires** | OkCupid-style extensive questions create friction for spontaneous After Hours context. | Lightweight tags/preferences instead | OkCupid is for relationship seeking, not After Hourss |
 | **Algorithmic "Desirability" Scoring** | Creates feedback loops, makes some users invisible. Ethical concerns and user complaints. | Equal visibility within preference matches | Tinder abandoned Elo system due to backlash |
-| **Swipe-Based Interface** | Conflicts with auto-matching concept. Creates decision fatigue in hookup context. | Profile card pops up: Chat or Decline (binary) | Swipe fatigue is major user complaint across apps |
+| **Swipe-Based Interface** | Conflicts with auto-matching concept. Creates decision fatigue in After Hours context. | Profile card pops up: Chat or Decline (binary) | Swipe fatigue is major user complaint across apps |
 | **Message "Read" Receipts in Ephemeral Chat** | Creates pressure in casual context. Users want less pressure, not more. | Consider removing or making optional | Signal/WhatsApp offer disable option |
-| **AI-Generated Responses** | Users in hookup context want authenticity, not chatbot vibes. Trust is paramount. | Keep communication human-only | Bumble AI Icebreakers criticized; Grindr's gAI is controversial |
-| **Social Media Integration** | Privacy concern in sensitive context. Users don't want hookup activity linked to real identity. | Email/phone signup only, no social logins for hookup | Pure avoids social logins entirely |
+| **AI-Generated Responses** | Users in After Hours context want authenticity, not chatbot vibes. Trust is paramount. | Keep communication human-only | Bumble AI Icebreakers criticized; Grindr's gAI is controversial |
+| **Social Media Integration** | Privacy concern in sensitive context. Users don't want After Hours activity linked to real identity. | Email/phone signup only, no social logins for After Hours | Pure avoids social logins entirely |
 | **Permanent Pass/Block Confusion** | Users often conflate "decline" (not now) with "block" (never). | Clear UI distinction: Decline (session) vs Block (permanent) | Common user complaint across apps |
 
 ### Anti-Feature Rationale
@@ -132,7 +132,7 @@ Instead: Random matching within preference criteria, or simple recency-based (mo
 
 **Why no swipes:** The swipe mechanic is designed for browsing/selection. VLVT's auto-matching inverts this - the system selects, user just confirms. Forcing swipes into this model creates conceptual confusion.
 
-**Why no social logins for hookup mode:** Even if main VLVT app uses Google/Apple Sign-In, hookup mode should not surface this connection. Users want compartmentalization between hookup activity and main identity.
+**Why no social logins for After Hours Mode:** Even if main VLVT app uses Google/Apple Sign-In, After Hours Mode should not surface this connection. Users want compartmentalization between After Hours activity and main identity.
 
 ---
 
@@ -140,8 +140,8 @@ Instead: Random matching within preference criteria, or simple recency-based (mo
 
 ```
 Verification System (existing)
-    └── Hookup Mode Access Gate
-            └── Hookup Profile Creation
+    └── After Hours Mode Access Gate
+            └── After Hours Profile Creation
                     ├── Photo Upload (existing system)
                     ├── Description Text
                     └── Preferences (gender, distance, interests)
@@ -158,16 +158,16 @@ Verification System (existing)
                                                     └── Ephemeral Chat Cleanup
 
 Blocking System (existing)
-    └── Hookup Mode Block (permanent, bidirectional)
+    └── After Hours Mode Block (permanent, bidirectional)
 
 Premium Subscription (existing)
-    └── Hookup Mode Feature Gate
+    └── After Hours Mode Feature Gate
 ```
 
 ### Dependency Notes
 
-1. **Verification must precede hookup access** - Non-negotiable safety requirement
-2. **Hookup profile must exist before session** - Can't activate without profile
+1. **Verification must precede After Hours access** - Non-negotiable safety requirement
+2. **After Hours profile must exist before session** - Can't activate without profile
 3. **Preferences must be set before matching** - System needs criteria to match
 4. **Session timer and chat cleanup are tightly coupled** - When session ends, ephemeral state must be handled
 5. **"Save" must happen BEFORE session ends** - Or provide grace period after session expiry
@@ -180,8 +180,8 @@ Premium Subscription (existing)
 
 Based on table stakes analysis, these features cannot be absent:
 
-1. **Photo verification gate** (existing, adapt for hookup)
-2. **Separate hookup profile** (photo + description)
+1. **Photo verification gate** (existing, adapt for After Hours)
+2. **Separate After Hours profile** (photo + description)
 3. **Basic preferences** (gender seeking, distance range)
 4. **Timed session activation** (30 min default)
 5. **Auto-matching with profile card** (core differentiator)
@@ -198,7 +198,7 @@ Based on table stakes analysis, these features cannot be absent:
 - **Session extension option** - Can add once base works
 - **Activity notifications** ("X just went live nearby") - Engagement optimization
 - **Voice messages in chat** - Enhancement
-- **Video verification for hookup profile** - Nice-to-have safety layer
+- **Video verification for After Hours profile** - Nice-to-have safety layer
 - **Incognito browsing** - May not be needed given session-based design
 
 ### Rationale

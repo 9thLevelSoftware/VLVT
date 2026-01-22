@@ -1,12 +1,12 @@
-# VLVT — Hookup Mode
+# VLVT — After Hours Mode
 
 ## What This Is
 
-VLVT is a dating app with a Flutter frontend and Node.js microservices backend. This milestone adds **Hookup Mode** — a premium, time-boxed feature for spontaneous connections. Users activate a session, set preferences, and get auto-matched with nearby users also in hookup mode. Matches pop up as profile cards; users can instantly chat or decline.
+VLVT is a dating app with a Flutter frontend and Node.js microservices backend. This milestone adds **After Hours Mode** — a premium, time-boxed feature for spontaneous connections. Users activate a session, set preferences, and get auto-matched with nearby users also in After Hours mode. Matches pop up as profile cards; users can instantly chat or decline.
 
 ## Core Value
 
-When users activate Hookup Mode, they connect with nearby interested people *immediately* — no waiting for mutual swipes, no browsing. The system does the matching; users just decide yes or no.
+When users activate After Hours Mode, they connect with nearby interested people *immediately* — no waiting for mutual swipes, no browsing. The system does the matching; users just decide yes or no.
 
 ## Requirements
 
@@ -30,11 +30,11 @@ Existing VLVT capabilities (from codebase analysis):
 
 ### Active
 
-Hookup Mode feature set:
+After Hours Mode feature set:
 
-- [ ] User can create separate hookup profile (dedicated photo + description)
-- [ ] User can set hookup preferences (gender seeking, kinks/interests, distance range)
-- [ ] User can activate hookup mode session (fixed duration)
+- [ ] User can create separate After Hours profile (dedicated photo + description)
+- [ ] User can set After Hours preferences (gender seeking, kinks/interests, distance range)
+- [ ] User can activate After Hours mode session (fixed duration)
 - [ ] System auto-matches users by proximity within preference criteria
 - [ ] Matched profile card pops up with photo and description
 - [ ] User can tap "Chat" to connect instantly with ephemeral chat
@@ -42,19 +42,19 @@ Hookup Mode feature set:
 - [ ] Ephemeral chat disappears when session ends
 - [ ] Both users can tap "Save" to convert chat to regular match
 - [ ] Declined users reappear in future sessions (fresh each session)
-- [ ] Only verified users can access hookup mode
-- [ ] Blocks from main app carry over to hookup mode
-- [ ] User can block within hookup mode (permanent)
+- [ ] Only verified users can access After Hours mode
+- [ ] Blocks from main app carry over to After Hours mode
+- [ ] User can block within After Hours mode (permanent)
 - [ ] Quick report/exit mechanism for bad matches
 - [ ] Location fuzzing (general area, not exact coordinates)
-- [ ] Hookup mode requires premium subscription
+- [ ] After Hours mode requires premium subscription
 
 ### Out of Scope
 
 - Role/position preferences (top/bottom/vers) — keep preferences focused on gender + interests for v1
-- Persistent hookup chat history — ephemeral by design, conflicts with privacy goals
-- Free tier access to hookup mode — premium differentiator
-- Hookup mode for unverified users — safety requirement
+- Persistent After Hours chat history — ephemeral by design, conflicts with privacy goals
+- Free tier access to After Hours mode — premium differentiator
+- After Hours mode for unverified users — safety requirement
 
 ## Context
 
@@ -66,15 +66,15 @@ Hookup Mode feature set:
 - Verification system (KYCAid + Rekognition) already in place
 
 **Implementation considerations:**
-- Hookup profiles need separate storage from main profiles
-- Session management for timed hookup mode
+- After Hours profiles need separate storage from main profiles
+- Session management for timed After Hours mode
 - Matching algorithm needs proximity + preference filtering
 - Ephemeral chat requires separate handling from regular chat
 - "Save" mechanism converts ephemeral state to persistent match
 
 ## Constraints
 
-- **Premium only**: Hookup mode gated by RevenueCat subscription — monetization requirement
+- **Premium only**: After Hours mode gated by RevenueCat subscription — monetization requirement
 - **Verification required**: Only verified users can access — safety requirement
 - **Fixed session duration**: Timed sessions (e.g., 30 min) prevent indefinite active state
 - **Location privacy**: Fuzzy location display, not exact coordinates
@@ -84,7 +84,7 @@ Hookup Mode feature set:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Separate hookup profile | Users want different presentation for hookup vs dating | — Pending |
+| Separate After Hours profile | Users want different presentation for After Hours vs regular dating | — Pending |
 | Ephemeral chat by default | Privacy-first design for sensitive feature | — Pending |
 | Session-based decline reset | Moods change, same person might be right tomorrow | — Pending |
 | Auto-matching vs manual browse | Removes friction, creates urgency and spontaneity | — Pending |

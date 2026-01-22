@@ -1,6 +1,6 @@
-# Domain Pitfalls: Hookup/Proximity Dating Features
+# Domain Pitfalls: After Hours/Proximity Dating Features
 
-**Domain:** Hookup mode addition to existing dating app (VLVT)
+**Domain:** After Hours Mode addition to existing dating app (VLVT)
 **Researched:** 2026-01-22
 **Confidence:** HIGH (multiple authoritative sources, recent legal cases, security research)
 
@@ -166,7 +166,7 @@ Mistakes that cause rewrites, legal liability, or catastrophic user harm.
 
 ### Pitfall 5: GDPR/Privacy Law Violations with Location Data
 
-**What goes wrong:** Location data, especially combined with sexual orientation (implied by hookup app usage), is "special category" data under GDPR Article 9. Sharing with advertisers, poor consent flows, or inadequate security triggers massive fines.
+**What goes wrong:** Location data, especially combined with sexual orientation (implied by After Hours app usage), is "special category" data under GDPR Article 9. Sharing with advertisers, poor consent flows, or inadequate security triggers massive fines.
 
 **Why it happens:**
 - Sexual orientation is inferred from app usage
@@ -301,7 +301,7 @@ Mistakes that cause delays, technical debt, or degraded user experience.
 **What goes wrong:** Reports flood in faster than human moderators can review, creating backlogs. AI moderation alone misses context-dependent harassment.
 
 **Why it happens:**
-- Hookup contexts have higher harassment rates
+- After Hours contexts have higher harassment rates
 - LGBTQ+ users face elevated discrimination/threats
 - AI struggles with coded language, cultural context
 - "Mass reporting" abuse by bad actors
@@ -379,18 +379,18 @@ Mistakes that cause annoyance but are fixable with iteration.
 
 ### Pitfall 12: Block List Not Comprehensive
 
-**What goes wrong:** User blocks someone in main app, still sees them in hookup mode (or vice versa).
+**What goes wrong:** User blocks someone in main app, still sees them in After Hours Mode (or vice versa).
 
 **Why it happens:**
 - Separate databases/services for features
 - Block list not synchronized across modes
-- Edge cases: blocked before hookup mode existed
+- Edge cases: blocked before After Hours Mode existed
 
 **Prevention:**
 1. Single source of truth for blocks
 2. Blocks are bidirectional and cross-feature
-3. Migration script for existing blocks when launching hookup mode
-4. Block from hookup mode also blocks in main app
+3. Migration script for existing blocks when launching After Hours Mode
+4. Block from After Hours Mode also blocks in main app
 
 **VLVT advantage:** You've planned for "blocks carry over" - ensure implementation is bulletproof. Test edge cases.
 
@@ -400,7 +400,7 @@ Mistakes that cause annoyance but are fixable with iteration.
 
 ### Pitfall 13: Location Permission Fatigue
 
-**What goes wrong:** Users decline "always allow" location because they don't understand why hookup mode needs background access.
+**What goes wrong:** Users decline "always allow" location because they don't understand why After Hours Mode needs background access.
 
 **Why it happens:**
 - iOS/Android permission prompts are generic
@@ -439,7 +439,7 @@ Your planned mitigations evaluated against research:
 | KYCAid + Rekognition verification | GOOD - but needs deepfake detection, 99% threshold | Add ISO 30107-3 liveness, ongoing re-verification |
 | Location fuzzing (general area) | ESSENTIAL - implement server-side | Must be server-side with jitter, not client-side |
 | Blocks carry over | GOOD - single source of truth | Test edge cases, bidirectional enforcement |
-| Can block within hookup mode | GOOD - table stakes | Ensure cross-feature |
+| Can block within After Hours Mode | GOOD - table stakes | Ensure cross-feature |
 | Premium-only (barrier to abuse) | MODERATE - not sufficient alone | Do not rely on this for safety |
 | Ephemeral chat by default | MIXED - good for privacy, risk for evidence | Server-side retention for investigations |
 

@@ -1,12 +1,12 @@
-# Technology Stack: VLVT Hookup Mode
+# Technology Stack: VLVT After Hours Mode
 
-**Project:** VLVT Dating App - Hookup Mode Feature
+**Project:** VLVT Dating App - After Hours Mode Feature
 **Researched:** 2026-01-22
 **Overall Confidence:** HIGH
 
 ## Executive Summary
 
-This document recommends the additional libraries, services, and infrastructure needed to implement proximity-based hookup mode in VLVT. The existing stack (Flutter + Node.js/Express + Socket.IO + PostgreSQL + Redis) provides a solid foundation. The recommendations focus on four areas: real-time proximity matching, ephemeral chat sessions, session management for timed hookup mode, and location fuzzing for privacy.
+This document recommends the additional libraries, services, and infrastructure needed to implement proximity-based After Hours Mode in VLVT. The existing stack (Flutter + Node.js/Express + Socket.IO + PostgreSQL + Redis) provides a solid foundation. The recommendations focus on four areas: real-time proximity matching, ephemeral chat sessions, session management for timed After Hours Mode, and location fuzzing for privacy.
 
 ---
 
@@ -27,7 +27,7 @@ The current system stores latitude/longitude as DECIMAL columns with B-tree inde
 - Edge cases (users near geohash boundaries) must be handled
 
 **Dual-layer approach:**
-1. **Redis Geo** (hot path): Real-time proximity queries for active hookup mode users. Use GEOADD to store active user locations, GEOSEARCH to find nearby users. Sub-millisecond queries, handles 1000s of users per geohash cell.
+1. **Redis Geo** (hot path): Real-time proximity queries for active After Hours Mode users. Use GEOADD to store active user locations, GEOSEARCH to find nearby users. Sub-millisecond queries, handles 1000s of users per geohash cell.
 
 2. **PostGIS** (cold path + persistence): Store location history, complex spatial queries, geofencing for future features. The existing comment in migration 004 already recommends PostGIS for production.
 
@@ -63,9 +63,9 @@ Ephemeral chat requires:
 
 ```
 Session Creation:
-1. Create hookup_sessions row with expires_at timestamp
+1. Create after_hours_sessions row with expires_at timestamp
 2. Add BullMQ delayed job for session expiry notification
-3. Store messages in hookup_messages with session_id FK
+3. Store messages in after_hours_messages with session_id FK
 
 Session Expiry:
 1. BullMQ worker fires at expires_at
@@ -75,7 +75,7 @@ Session Expiry:
 ```
 
 **Why BullMQ over alternatives:**
-- **vs node-cron**: node-cron is in-memory only, jobs lost on restart. Hookup sessions MUST survive restarts.
+- **vs node-cron**: node-cron is in-memory only, jobs lost on restart. After Hours sessions MUST survive restarts.
 - **vs Agenda**: Last major release Nov 2022, effectively unmaintained
 - **vs Bull**: Bull is in maintenance mode, BullMQ is the active successor
 - BullMQ's Job Schedulers (v5.16+) provide robust repeatable/delayed job management
@@ -95,7 +95,7 @@ Sources:
 
 ---
 
-### 3. Session Management for Timed Hookup Mode
+### 3. Session Management for Timed After Hours Mode
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
@@ -105,30 +105,30 @@ Sources:
 
 **Rationale:**
 
-Timed hookup sessions need:
-1. **Active state tracking**: Who is in hookup mode right now
+Timed After Hours sessions need:
+1. **Active state tracking**: Who is in After Hours Mode right now
 2. **Session channels**: Real-time communication between matched users
 3. **Timer management**: Countdown, warnings, expiration
 
 **Session state in Redis:**
 
 ```javascript
-// User enters hookup mode
-await redis.setex(`hookup:active:${userId}`, 3600, JSON.stringify({
+// User enters After Hours Mode
+await redis.setex(`After Hours:active:${userId}`, 3600, JSON.stringify({
   startedAt: Date.now(),
   preferences: { maxDistance: 5, ageRange: [25, 35] },
   location: { lat: 34.0522, lng: -118.2437 }
 }));
 
 // Also add to geo index
-await redis.geoAdd('hookup:locations', {
+await redis.geoAdd('After Hours:locations', {
   longitude: -118.2437,
   latitude: 34.0522,
   member: userId
 });
 
 // Find nearby users
-const nearby = await redis.geoSearch('hookup:locations', {
+const nearby = await redis.geoSearch('After Hours:locations', {
   longitude: userLng,
   latitude: userLat,
   radius: 5,
@@ -140,12 +140,12 @@ const nearby = await redis.geoSearch('hookup:locations', {
 
 ```javascript
 // When match created, both users join session room
-socket.join(`hookup:session:${sessionId}`);
+socket.join(`After Hours:session:${sessionId}`);
 
 // Emit to session participants only
-io.to(`hookup:session:${sessionId}`).emit('message', data);
-io.to(`hookup:session:${sessionId}`).emit('timer:update', { remaining: 1800 });
-io.to(`hookup:session:${sessionId}`).emit('session:expiring', { warning: '5min' });
+io.to(`After Hours:session:${sessionId}`).emit('message', data);
+io.to(`After Hours:session:${sessionId}`).emit('timer:update', { remaining: 1800 });
+io.to(`After Hours:session:${sessionId}`).emit('session:expiring', { warning: '5min' });
 ```
 
 **IMPORTANT - Upgrade socket.io-redis:**
@@ -172,7 +172,7 @@ Sources:
 
 **Rationale:**
 
-Dating apps have been exploited via trilateration - attackers use precise distances from multiple points to pinpoint exact locations. Hookup mode increases this risk because:
+Dating apps have been exploited via trilateration - attackers use precise distances from multiple points to pinpoint exact locations. After Hours Mode increases this risk because:
 - Users share location more frequently
 - Real-time updates provide more data points
 - Proximity queries reveal relative positions
@@ -208,8 +208,8 @@ function fuzzLocation(lat: number, lng: number, precisionMeters: number): Fuzzed
 
 // Configuration per feature
 const FUZZING_CONFIG = {
-  hookupDiscovery: 500,    // 500m fuzzing for "nearby" display
-  hookupMatching: 100,     // 100m for matching algorithm (need reasonable accuracy)
+  After HoursDiscovery: 500,    // 500m fuzzing for "nearby" display
+  After HoursMatching: 100,     // 100m for matching algorithm (need reasonable accuracy)
   profileDisplay: 1000,    // 1km for showing distance on profiles
 };
 ```
@@ -237,12 +237,12 @@ Sources:
 
 | Package | Version | Purpose | Why | Confidence |
 |---------|---------|---------|-----|------------|
-| **flutter_foreground_task** | ^8.x | Background location for active hookup mode | Reliable foreground service, survives app minimize | HIGH |
+| **flutter_foreground_task** | ^8.x | Background location for active After Hours Mode | Reliable foreground service, survives app minimize | HIGH |
 | **geolocator** | ^14.0.2 | (existing) Location services | Already in stack, well-maintained | HIGH |
 
 **Rationale:**
 
-When user is in active hookup mode, the app needs to:
+When user is in active After Hours Mode, the app needs to:
 1. Track location even when minimized
 2. Show persistent notification (required by Android 14+)
 3. Send location updates to server
@@ -264,11 +264,11 @@ When user is in active hookup mode, the app needs to:
 **Implementation pattern:**
 
 ```dart
-// Start hookup mode
+// Start After Hours Mode
 await FlutterForegroundTask.init(
   androidNotificationOptions: AndroidNotificationOptions(
-    channelId: 'hookup_mode',
-    channelName: 'Hookup Mode Active',
+    channelId: 'after_hours_mode',
+    channelName: 'After Hours Mode Active',
     channelDescription: 'Location tracking for nearby matches',
   ),
   foregroundTaskOptions: ForegroundTaskOptions(
@@ -281,7 +281,7 @@ await FlutterForegroundTask.init(
 // In foreground task callback
 void onLocation(Position position) {
   // Send to server via existing socket connection
-  socketService.emit('hookup:location', {
+  socketService.emit('After Hours:location', {
     'lat': position.latitude,
     'lng': position.longitude,
   });
@@ -310,8 +310,8 @@ Sources:
 -- Enable PostGIS
 CREATE EXTENSION IF NOT EXISTS postgis;
 
--- Hookup sessions
-CREATE TABLE hookup_sessions (
+-- After Hours sessions
+CREATE TABLE after_hours_sessions (
   id VARCHAR(36) PRIMARY KEY,
   user_a_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
   user_b_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
@@ -324,10 +324,10 @@ CREATE TABLE hookup_sessions (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Hookup messages (ephemeral)
-CREATE TABLE hookup_messages (
+-- After Hours messages (ephemeral)
+CREATE TABLE after_hours_messages (
   id VARCHAR(36) PRIMARY KEY,
-  session_id VARCHAR(36) REFERENCES hookup_sessions(id) ON DELETE CASCADE,
+  session_id VARCHAR(36) REFERENCES after_hours_sessions(id) ON DELETE CASCADE,
   sender_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP

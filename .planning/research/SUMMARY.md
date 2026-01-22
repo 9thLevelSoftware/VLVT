@@ -1,7 +1,7 @@
 # Project Research Summary
 
 **Project:** VLVT Dating App - After Hours Mode
-**Domain:** Proximity-based hookup/casual dating feature
+**Domain:** Proximity-based After Hours/casual dating feature
 **Researched:** 2026-01-22
 **Confidence:** HIGH
 
@@ -45,7 +45,7 @@ The existing VLVT stack (Flutter + Node.js/Express + Socket.IO + PostgreSQL + Re
 - **Auto-matching system** - No swiping; system assigns matches and pushes profile cards
 - **Ephemeral-by-default with mutual save** - Privacy first, but connections can persist
 - **Session-scoped declines** - "Not tonight" does not equal "never"
-- **Separate hookup profile** - Context-appropriate presentation
+- **Separate After Hours profile** - Context-appropriate presentation
 
 ### Anti-Features (Do NOT Build)
 - Exact location display (trilateration risk)
@@ -65,26 +65,26 @@ The existing VLVT stack (Flutter + Node.js/Express + Socket.IO + PostgreSQL + Re
 
 **Recommendation: Extend existing services, not new microservice.**
 
-- **profile-service** gains: hookup profiles, preferences, session lifecycle, proximity matching
-- **chat-service** gains: hookup Socket.IO rooms, ephemeral messages, save-to-permanent flow
+- **profile-service** gains: After Hours profiles, preferences, session lifecycle, proximity matching
+- **chat-service** gains: After Hours Socket.IO rooms, ephemeral messages, save-to-permanent flow
 - **auth-service**: No changes needed (existing JWT + middleware patterns sufficient)
 
 **Data Flow:**
 1. User activates session via profile-service (validates premium + verification)
 2. profile-service creates session record, adds user to matching pool
 3. Matching runs periodically, finds compatible nearby active users
-4. chat-service notifies both users via Socket.IO (`hookup:new_match`)
-5. Users chat in ephemeral room; messages stored in `hookup_messages` table
+4. chat-service notifies both users via Socket.IO (`After Hours:new_match`)
+5. Users chat in ephemeral room; messages stored in `after_hours_messages` table
 6. Session expires: messages deleted unless both tapped "Save"
 7. Mutual save: messages copied to permanent `messages` table, regular match created
 
 **New Database Tables:**
-- `hookup_profiles` - Separate profile for After Hours
-- `hookup_preferences` - Gender seeking, distance, interests
-- `hookup_sessions` - Active sessions with expiry
-- `hookup_declines` - Session-scoped declines (reset each session)
-- `hookup_matches` - Temporary connections
-- `hookup_messages` - Ephemeral messages (auto-cleanup)
+- `after_hours_profiles` - Separate profile for After Hours
+- `after_hours_preferences` - Gender seeking, distance, interests
+- `after_hours_sessions` - Active sessions with expiry
+- `after_hours_declines` - Session-scoped declines (reset each session)
+- `after_hours_matches` - Temporary connections
+- `after_hours_messages` - Ephemeral messages (auto-cleanup)
 
 ## Critical Risks
 
@@ -124,7 +124,7 @@ Based on dependencies and risk analysis:
 **Delivers:** Database schema, location privacy utilities, enhanced verification gate
 **Addresses:** Trilateration risk, GDPR compliance, deepfake bypass
 **Build Order:**
-1. Database migrations (hookup tables)
+1. Database migrations (After Hours tables)
 2. Server-side location fuzzing utility
 3. Premium + verification middleware
 4. Consent flow updates
@@ -134,7 +134,7 @@ Based on dependencies and risk analysis:
 **Delivers:** After Hours profile CRUD, preferences, session lifecycle
 **Implements:** profile-service extensions
 **Build Order:**
-1. Hookup profile endpoints
+1. After Hours profile endpoints
 2. Preferences endpoints
 3. Session start/end endpoints
 4. Session expiry with BullMQ
@@ -153,9 +153,9 @@ Based on dependencies and risk analysis:
 **Delivers:** Ephemeral chat rooms, session-scoped messaging, Socket.IO events
 **Avoids:** Battery drain (adaptive polling), overwhelming notifications
 **Build Order:**
-1. Socket.IO room management for hookup
+1. Socket.IO room management for After Hours
 2. Ephemeral message storage
-3. hookup:* event handlers
+3. After Hours:* event handlers
 4. Session expiry notifications
 5. Server-side retention for safety
 
@@ -170,10 +170,10 @@ Based on dependencies and risk analysis:
 
 ### Phase 6: Frontend Integration (Weeks 9-11)
 **Rationale:** Backend must be complete for testing.
-**Delivers:** HookupService state machine, profile screens, preference settings, match card UI, ephemeral chat UI, save interaction
+**Delivers:** After HoursService state machine, profile screens, preference settings, match card UI, ephemeral chat UI, save interaction
 **Uses:** flutter_foreground_task for background location
 **Build Order:**
-1. HookupService (session state)
+1. After HoursService (session state)
 2. Profile creation screens
 3. Preference settings
 4. Match card UI

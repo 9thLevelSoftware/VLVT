@@ -1,6 +1,6 @@
 # Architecture Patterns
 
-**Domain:** Hookup Mode for Dating App
+**Domain:** After Hours Mode for Dating App
 **Researched:** 2026-01-22
 **Confidence:** MEDIUM-HIGH
 
@@ -9,9 +9,9 @@
 After analyzing VLVT's existing architecture, the recommended approach is to **extend existing services** rather than create a new microservice.
 
 **Rationale:**
-1. VLVT already has three well-scoped services (auth, profile, chat) that map cleanly to hookup mode needs
+1. VLVT already has three well-scoped services (auth, profile, chat) that map cleanly to After Hours Mode needs
 2. Adding a fourth service introduces deployment complexity, inter-service communication overhead, and operational burden for a team presumably optimizing for delivery speed
-3. Hookup mode is conceptually "profiles + matching + chat" with time constraints — not a fundamentally different domain
+3. After Hours Mode is conceptually "profiles + matching + chat" with time constraints — not a fundamentally different domain
 4. Socket.IO infrastructure in chat-service already handles real-time messaging at the right abstraction level
 
 ## Recommended Architecture
@@ -20,7 +20,7 @@ After analyzing VLVT's existing architecture, the recommended approach is to **e
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              Flutter Frontend                                │
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────────────┐   │
-│  │ HookupService │  │ HookupProfile │  │ HookupChatService             │   │
+│  │ After HoursService │  │ After HoursProfile │  │ After HoursChatService             │   │
 │  │ (session mgmt)│  │ (separate     │  │ (ephemeral chat, integrates   │   │
 │  │               │  │  from main)   │  │  with existing SocketService) │   │
 │  └───────┬───────┘  └───────┬───────┘  └───────────────┬───────────────┘   │
@@ -33,11 +33,11 @@ After analyzing VLVT's existing architecture, the recommended approach is to **e
 │  (port 3002)     │  │  (port 3002)     │  │       (port 3003)           │
 │                  │  │                  │  │                             │
 │ NEW ENDPOINTS:   │  │ NEW TABLES:      │  │ NEW FUNCTIONALITY:          │
-│ - POST /hookup/  │  │ - hookup_profiles│  │ - Hookup Socket.IO rooms    │
-│     session      │  │ - hookup_prefs   │  │ - Ephemeral message storage │
-│ - GET /hookup/   │  │ - hookup_sessions│  │ - Session-scoped chat       │
-│     matches      │  │ - hookup_declines│  │ - Save-to-permanent flow    │
-│ - POST /hookup/  │  │                  │  │ - Matching queue broadcast  │
+│ - POST /After Hours/  │  │ - after_hours_profiles│  │ - After Hours Socket.IO rooms    │
+│     session      │  │ - after_hours_prefs   │  │ - Ephemeral message storage │
+│ - GET /After Hours/   │  │ - after_hours_sessions│  │ - Session-scoped chat       │
+│     matches      │  │ - after_hours_declines│  │ - Save-to-permanent flow    │
+│ - POST /After Hours/  │  │                  │  │ - Matching queue broadcast  │
 │     preferences  │  │                  │  │                             │
 └────────┬─────────┘  └────────┬─────────┘  └──────────────┬──────────────┘
          │                     │                           │
@@ -48,7 +48,7 @@ After analyzing VLVT's existing architecture, the recommended approach is to **e
                     │    PostgreSQL      │
                     │                    │
                     │  Existing tables + │
-                    │  NEW hookup tables │
+                    │  NEW After Hours tables │
                     └────────────────────┘
                                │
                          (Optional)
@@ -68,30 +68,30 @@ After analyzing VLVT's existing architecture, the recommended approach is to **e
 
 **Current responsibilities:** User profiles, photos, discovery, face verification
 
-**New responsibilities for Hookup Mode:**
+**New responsibilities for After Hours Mode:**
 | Responsibility | Why Here |
 |----------------|----------|
-| Hookup profile CRUD | Natural extension of profile management |
-| Hookup preferences storage | Preferences are profile-adjacent data |
+| After Hours profile CRUD | Natural extension of profile management |
+| After Hours preferences storage | Preferences are profile-adjacent data |
 | Session lifecycle management | Sessions gate profile visibility |
 | Proximity matching logic | Discovery filtering already uses Haversine here |
 | Decline tracking | Similar to existing swipes table pattern |
 
 **New endpoints:**
 ```
-POST   /api/v1/hookup/profile          # Create/update hookup profile
-GET    /api/v1/hookup/profile          # Get own hookup profile
-POST   /api/v1/hookup/preferences      # Set hookup preferences
-GET    /api/v1/hookup/preferences      # Get hookup preferences
-POST   /api/v1/hookup/session/start    # Start timed session
-POST   /api/v1/hookup/session/end      # End session early
-GET    /api/v1/hookup/session          # Get current session status
-GET    /api/v1/hookup/matches          # Get matching users in proximity
-POST   /api/v1/hookup/decline/:userId  # Decline user for this session
+POST   /api/v1/After Hours/profile          # Create/update After Hours profile
+GET    /api/v1/After Hours/profile          # Get own After Hours profile
+POST   /api/v1/After Hours/preferences      # Set After Hours preferences
+GET    /api/v1/After Hours/preferences      # Get After Hours preferences
+POST   /api/v1/After Hours/session/start    # Start timed session
+POST   /api/v1/After Hours/session/end      # End session early
+GET    /api/v1/After Hours/session          # Get current session status
+GET    /api/v1/After Hours/matches          # Get matching users in proximity
+POST   /api/v1/After Hours/decline/:userId  # Decline user for this session
 ```
 
 **Why not a new service:**
-- Hookup profiles reference the same user_id
+- After Hours profiles reference the same user_id
 - Photo handling infrastructure already exists
 - Geo-proximity filtering (Haversine) already implemented
 - Premium/verification checks can reuse existing middleware
@@ -100,79 +100,79 @@ POST   /api/v1/hookup/decline/:userId  # Decline user for this session
 
 **Current responsibilities:** Matches, messages, Socket.IO real-time, push notifications
 
-**New responsibilities for Hookup Mode:**
+**New responsibilities for After Hours Mode:**
 | Responsibility | Why Here |
 |----------------|----------|
 | Ephemeral chat rooms | Extension of existing Socket.IO rooms |
 | Session-scoped messaging | Messages already have match_id context |
-| Save-to-permanent conversion | Creates regular match from hookup state |
+| Save-to-permanent conversion | Creates regular match from After Hours state |
 | Real-time match notifications | Existing FCM + Socket.IO infrastructure |
-| Hookup match creation | Similar to current match POST endpoint |
+| After Hours match creation | Similar to current match POST endpoint |
 
 **New endpoints:**
 ```
-POST   /api/v1/hookup/connect/:userId  # Create hookup connection (not full match)
-POST   /api/v1/hookup/save/:matchId    # Vote to save (needs mutual)
-GET    /api/v1/hookup/messages/:matchId # Get ephemeral messages
+POST   /api/v1/After Hours/connect/:userId  # Create After Hours connection (not full match)
+POST   /api/v1/After Hours/save/:matchId    # Vote to save (needs mutual)
+GET    /api/v1/After Hours/messages/:matchId # Get ephemeral messages
 ```
 
 **New Socket.IO events:**
 ```
-Event: hookup:new_match
+Event: After Hours:new_match
   Direction: Server → Client
   Payload: { matchedUserId, profile, distance, sessionExpiresAt }
 
-Event: hookup:match_declined
+Event: After Hours:match_declined
   Direction: Client → Server
   Payload: { matchedUserId }
 
-Event: hookup:send_message
+Event: After Hours:send_message
   Direction: Client → Server
   Payload: { matchId, text }
 
-Event: hookup:message
+Event: After Hours:message
   Direction: Server → Client
   Payload: { matchId, message }
 
-Event: hookup:save_requested
+Event: After Hours:save_requested
   Direction: Server → Client
   Payload: { matchId, requestedBy }
 
-Event: hookup:save_confirmed
+Event: After Hours:save_confirmed
   Direction: Server → Client
   Payload: { matchId, permanentMatchId }
 
-Event: hookup:session_ending
+Event: After Hours:session_ending
   Direction: Server → Client
   Payload: { expiresAt, minutesRemaining }
 
-Event: hookup:session_expired
+Event: After Hours:session_expired
   Direction: Server → Client
   Payload: { }
 ```
 
 ### 3. auth-service (No Changes)
 
-Auth-service handles authentication only. Hookup mode authorization (premium + verified checks) uses existing JWT payload and middleware patterns already in profile-service and chat-service.
+Auth-service handles authentication only. After Hours Mode authorization (premium + verified checks) uses existing JWT payload and middleware patterns already in profile-service and chat-service.
 
 ## Data Flow
 
 ### Session Start Flow
 
 ```
-1. User taps "Start Hookup Mode" in Flutter app
+1. User taps "Start After Hours Mode" in Flutter app
 
-2. Frontend → profile-service POST /hookup/session/start
+2. Frontend → profile-service POST /After Hours/session/start
    - Validates: premium subscription (RevenueCat check)
    - Validates: user is verified (verifications table)
-   - Validates: hookup profile exists
+   - Validates: After Hours profile exists
    - Validates: no active session
-   - Creates: hookup_sessions record with expires_at
+   - Creates: after_hours_sessions record with expires_at
    - Returns: { sessionId, expiresAt, duration }
 
 3. Frontend → chat-service (Socket.IO)
-   - Emits: join_hookup_session { sessionId }
-   - Server: Joins user to hookup-active room
+   - Emits: join_after_hours_session { sessionId }
+   - Server: Joins user to after-hours-active room
    - Server: Starts checking for matches
 
 4. Frontend starts local countdown timer
@@ -185,7 +185,7 @@ Auth-service handles authentication only. Hookup mode authorization (premium + v
 
 2. Matching query:
    SELECT users with:
-   - Active hookup session (not expired)
+   - Active After Hours session (not expired)
    - Within distance preference of current user
    - Gender matches current user's seeking preference
    - Current user's gender matches their seeking preference
@@ -195,7 +195,7 @@ Auth-service handles authentication only. Hookup mode authorization (premium + v
 
 3. For each match found:
    - profile-service notifies chat-service (internal HTTP or message queue)
-   - chat-service emits hookup:new_match to both users
+   - chat-service emits After Hours:new_match to both users
 
 4. Users see profile card, can Chat or Decline
 ```
@@ -205,23 +205,23 @@ Auth-service handles authentication only. Hookup mode authorization (premium + v
 ```
 1. User A taps "Chat" on User B's profile card
 
-2. Frontend → chat-service POST /hookup/connect/:userB
-   - Creates: hookup_matches record (type='hookup', not regular match)
-   - Creates: hookup_conversations record with session_id
+2. Frontend → chat-service POST /After Hours/connect/:userB
+   - Creates: after_hours_matches record (type='After Hours', not regular match)
+   - Creates: after_hours_conversations record with session_id
    - Returns: { matchId, conversationId }
 
 3. chat-service emits to both users:
-   - hookup:connected { matchId, partnerProfile }
+   - After Hours:connected { matchId, partnerProfile }
 
 4. Messages flow through existing Socket.IO:
-   - Client emits: hookup:send_message { matchId, text }
-   - Server stores in hookup_messages (separate table, auto-expires)
-   - Server emits: hookup:message to match partner
+   - Client emits: After Hours:send_message { matchId, text }
+   - Server stores in after_hours_messages (separate table, auto-expires)
+   - Server emits: After Hours:message to match partner
 
 5. When session expires:
-   - Server emits: hookup:session_expired
+   - Server emits: After Hours:session_expired
    - Messages NOT deleted immediately (grace period for save)
-   - After grace period, cleanup job purges hookup_messages
+   - After grace period, cleanup job purges after_hours_messages
 ```
 
 ### Save-to-Permanent Flow
@@ -229,16 +229,16 @@ Auth-service handles authentication only. Hookup mode authorization (premium + v
 ```
 1. User A taps "Save" in ephemeral chat
 
-2. Frontend → chat-service POST /hookup/save/:matchId
+2. Frontend → chat-service POST /After Hours/save/:matchId
    - Records: save_votes for this match
    - If only User A voted: notify User B via Socket.IO
    - If both voted: proceed to step 3
 
 3. Mutual save detected:
    - Creates: regular matches record (permanent)
-   - Copies: hookup_messages to regular messages table
-   - Clears: hookup state for this pair
-   - Emits: hookup:save_confirmed { permanentMatchId }
+   - Copies: after_hours_messages to regular messages table
+   - Clears: After Hours state for this pair
+   - Emits: After Hours:save_confirmed { permanentMatchId }
 
 4. Users redirected to regular chat for this new permanent match
 ```
@@ -248,17 +248,17 @@ Auth-service handles authentication only. Hookup mode authorization (premium + v
 ### New Tables
 
 ```sql
--- Separate hookup profile (different from main profile)
-CREATE TABLE hookup_profiles (
+-- Separate After Hours profile (different from main profile)
+CREATE TABLE after_hours_profiles (
     user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    photo_url TEXT NOT NULL,           -- Single hookup photo
-    description TEXT,                   -- Hookup-specific bio
+    photo_url TEXT NOT NULL,           -- Single After Hours photo
+    description TEXT,                   -- after-hours-specific bio
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Hookup preferences
-CREATE TABLE hookup_preferences (
+-- After Hours preferences
+CREATE TABLE after_hours_preferences (
     user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     seeking_gender VARCHAR(50) NOT NULL,  -- Male, Female, Any
     max_distance_km INTEGER DEFAULT 10,   -- Proximity range
@@ -266,8 +266,8 @@ CREATE TABLE hookup_preferences (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Active hookup sessions
-CREATE TABLE hookup_sessions (
+-- Active After Hours sessions
+CREATE TABLE after_hours_sessions (
     id VARCHAR(255) PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -279,18 +279,18 @@ CREATE TABLE hookup_sessions (
 );
 
 -- Session declines (reset each session)
-CREATE TABLE hookup_declines (
-    session_id VARCHAR(255) NOT NULL REFERENCES hookup_sessions(id) ON DELETE CASCADE,
+CREATE TABLE after_hours_declines (
+    session_id VARCHAR(255) NOT NULL REFERENCES after_hours_sessions(id) ON DELETE CASCADE,
     user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     declined_user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (session_id, user_id, declined_user_id)
 );
 
--- Hookup connections (temporary matches)
-CREATE TABLE hookup_matches (
+-- After Hours connections (temporary matches)
+CREATE TABLE after_hours_matches (
     id VARCHAR(255) PRIMARY KEY,
-    session_id VARCHAR(255) NOT NULL REFERENCES hookup_sessions(id),
+    session_id VARCHAR(255) NOT NULL REFERENCES after_hours_sessions(id),
     user_id_1 VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     user_id_2 VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -301,20 +301,20 @@ CREATE TABLE hookup_matches (
 );
 
 -- Ephemeral messages (auto-cleanup)
-CREATE TABLE hookup_messages (
+CREATE TABLE after_hours_messages (
     id VARCHAR(255) PRIMARY KEY,
-    hookup_match_id VARCHAR(255) NOT NULL REFERENCES hookup_matches(id) ON DELETE CASCADE,
+    after_hours_match_id VARCHAR(255) NOT NULL REFERENCES after_hours_matches(id) ON DELETE CASCADE,
     sender_id VARCHAR(255) NOT NULL REFERENCES users(id),
     text TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes for performance
-CREATE INDEX idx_hookup_sessions_active ON hookup_sessions(user_id) WHERE ended_at IS NULL;
-CREATE INDEX idx_hookup_sessions_location ON hookup_sessions(latitude, longitude) WHERE ended_at IS NULL;
-CREATE INDEX idx_hookup_sessions_expires ON hookup_sessions(expires_at) WHERE ended_at IS NULL;
-CREATE INDEX idx_hookup_matches_session ON hookup_matches(session_id);
-CREATE INDEX idx_hookup_messages_match ON hookup_messages(hookup_match_id);
+CREATE INDEX idx_after_hours_sessions_active ON after_hours_sessions(user_id) WHERE ended_at IS NULL;
+CREATE INDEX idx_after_hours_sessions_location ON after_hours_sessions(latitude, longitude) WHERE ended_at IS NULL;
+CREATE INDEX idx_after_hours_sessions_expires ON after_hours_sessions(expires_at) WHERE ended_at IS NULL;
+CREATE INDEX idx_after_hours_matches_session ON after_hours_matches(session_id);
+CREATE INDEX idx_after_hours_messages_match ON after_hours_messages(after_hours_match_id);
 ```
 
 ## Proximity Matching Options
@@ -336,9 +336,9 @@ SELECT
         cos(radians(hs.longitude) - radians($2)) +
         sin(radians($1)) * sin(radians(hs.latitude))
     )) AS distance_km
-FROM hookup_sessions hs
-JOIN hookup_profiles hp ON hs.user_id = hp.user_id
-JOIN hookup_preferences hpref ON hs.user_id = hpref.user_id
+FROM after_hours_sessions hs
+JOIN after_hours_profiles hp ON hs.user_id = hp.user_id
+JOIN after_hours_preferences hpref ON hs.user_id = hpref.user_id
 WHERE hs.ended_at IS NULL
   AND hs.expires_at > NOW()
   AND hs.user_id != $3
@@ -347,7 +347,7 @@ WHERE hs.ended_at IS NULL
   AND (hpref.seeking_gender = $5 OR hpref.seeking_gender = 'Any')
   -- Not declined this session
   AND hs.user_id NOT IN (
-      SELECT declined_user_id FROM hookup_declines
+      SELECT declined_user_id FROM after_hours_declines
       WHERE session_id = $6 AND user_id = $3
   )
   -- Not blocked
@@ -367,19 +367,19 @@ LIMIT 20;
 
 **Cons:**
 - Query complexity increases with active user count
-- Not optimal for thousands of concurrent hookup sessions
+- Not optimal for thousands of concurrent After Hours sessions
 
 ### Option B: Redis Geospatial (Phase 2 if scale demands)
 
-If hookup mode scales to hundreds of concurrent active sessions:
+If After Hours Mode scales to hundreds of concurrent active sessions:
 
 ```javascript
 // On session start
-await redis.geoadd('hookup:active', longitude, latitude, `user:${userId}`);
-await redis.expire('hookup:active', sessionDurationSeconds);
+await redis.geoadd('After Hours:active', longitude, latitude, `user:${userId}`);
+await redis.expire('After Hours:active', sessionDurationSeconds);
 
 // Find nearby users
-const nearby = await redis.georadius('hookup:active', longitude, latitude,
+const nearby = await redis.georadius('After Hours:active', longitude, latitude,
     maxDistanceKm, 'km', 'WITHDIST', 'COUNT', 50);
 
 // Filter by preferences (still hit Postgres for preference matching)
@@ -401,12 +401,12 @@ const nearby = await redis.georadius('hookup:active', longitude, latitude,
 
 ### Separation Strategy
 
-| Aspect | Regular Chat | Hookup Chat |
+| Aspect | Regular Chat | After Hours Chat |
 |--------|--------------|-------------|
-| Table | messages | hookup_messages |
+| Table | messages | after_hours_messages |
 | Lifecycle | Permanent | Session-scoped |
-| Match reference | matches.id | hookup_matches.id |
-| Socket.IO events | send_message | hookup:send_message |
+| Match reference | matches.id | after_hours_matches.id |
+| Socket.IO events | send_message | After Hours:send_message |
 | Retention | Forever | Until session ends + grace period |
 
 ### Message Conversion on Save
@@ -429,12 +429,12 @@ SELECT
     sender_id,
     text,
     created_at
-FROM hookup_messages
-WHERE hookup_match_id = $4
+FROM after_hours_messages
+WHERE after_hours_match_id = $4
 ORDER BY created_at;
 
--- Mark hookup_match as converted
-UPDATE hookup_matches
+-- Mark after_hours_match as converted
+UPDATE after_hours_matches
 SET converted_to_match_id = $1
 WHERE id = $4;
 
@@ -443,24 +443,24 @@ COMMIT;
 
 ### Cleanup Job
 
-Scheduled job (cron or pg_cron) to clean expired hookup data:
+Scheduled job (cron or pg_cron) to clean expired After Hours data:
 
 ```sql
 -- Run every 15 minutes
 -- Grace period: 30 minutes after session expiry
 
-DELETE FROM hookup_messages hm
-USING hookup_matches hma, hookup_sessions hs
-WHERE hm.hookup_match_id = hma.id
+DELETE FROM after_hours_messages hm
+USING after_hours_matches hma, after_hours_sessions hs
+WHERE hm.after_hours_match_id = hma.id
   AND hma.session_id = hs.id
   AND hs.expires_at < NOW() - INTERVAL '30 minutes'
   AND hma.converted_to_match_id IS NULL;  -- Don't delete if saved
 
-DELETE FROM hookup_matches
+DELETE FROM after_hours_matches
 WHERE expires_at < NOW() - INTERVAL '30 minutes'
   AND converted_to_match_id IS NULL;
 
-UPDATE hookup_sessions
+UPDATE after_hours_sessions
 SET ended_at = expires_at
 WHERE expires_at < NOW()
   AND ended_at IS NULL;
@@ -499,8 +499,8 @@ WHERE expires_at < NOW()
 ### Frontend State Handling
 
 ```dart
-// HookupService state
-enum HookupState {
+// After HoursService state
+enum After HoursState {
   inactive,       // No session
   starting,       // POST to start session
   active,         // Session running, waiting for matches
@@ -510,11 +510,11 @@ enum HookupState {
   expired,        // Session ended
 }
 
-class HookupService extends ChangeNotifier {
-  HookupState _state = HookupState.inactive;
-  HookupSession? _currentSession;
-  List<HookupMatch> _pendingMatches = [];
-  HookupMatch? _currentMatch;
+class After HoursService extends ChangeNotifier {
+  After HoursState _state = After HoursState.inactive;
+  After HoursSession? _currentSession;
+  List<After HoursMatch> _pendingMatches = [];
+  After HoursMatch? _currentMatch;
   Timer? _expiryTimer;
 
   // Session countdown
@@ -527,9 +527,9 @@ class HookupService extends ChangeNotifier {
 ### Premium Gating (SubscriptionService)
 
 ```typescript
-// profile-service/src/middleware/hookup-auth.ts
+// profile-service/src/middleware/after-hours-auth.ts
 
-async function requireHookupAccess(req: Request, res: Response, next: NextFunction) {
+async function requireAfter HoursAccess(req: Request, res: Response, next: NextFunction) {
   const userId = req.user!.userId;
 
   // Check premium subscription
@@ -543,7 +543,7 @@ async function requireHookupAccess(req: Request, res: Response, next: NextFuncti
   if (subscription.rows.length === 0) {
     return res.status(403).json({
       success: false,
-      error: 'Premium subscription required for Hookup Mode',
+      error: 'Premium subscription required for After Hours Mode',
       upgrade: true
     });
   }
@@ -558,7 +558,7 @@ async function requireHookupAccess(req: Request, res: Response, next: NextFuncti
   if (verification.rows.length === 0) {
     return res.status(403).json({
       success: false,
-      error: 'Verification required for Hookup Mode',
+      error: 'Verification required for After Hours Mode',
       requiresVerification: true
     });
   }
@@ -569,7 +569,7 @@ async function requireHookupAccess(req: Request, res: Response, next: NextFuncti
 
 ### Block Inheritance
 
-Existing blocks table already enforced in discovery queries. Hookup matching query includes:
+Existing blocks table already enforced in discovery queries. After Hours matching query includes:
 
 ```sql
 AND hs.user_id NOT IN (
@@ -581,12 +581,12 @@ AND hs.user_id NOT IN (
 
 ### Location Fuzzing
 
-Extend existing `redactCoordinates` for hookup display:
+Extend existing `redactCoordinates` for After Hours display:
 
 ```typescript
 // utils/geo-redact.ts (extended)
 
-export function fuzzLocationForHookup(
+export function fuzzLocationForAfter Hours(
   latitude: number,
   longitude: number,
   fuzzRadiusKm: number = 0.5  // 500m randomization
@@ -613,15 +613,15 @@ export function fuzzLocationForHookup(
 Based on dependencies between components:
 
 ### Phase 1: Data Layer (Foundation)
-1. Database migrations for hookup tables
-2. Hookup profile model and validation
-3. Hookup preferences model
+1. Database migrations for After Hours tables
+2. After Hours profile model and validation
+3. After Hours preferences model
 
 **Why first:** Everything depends on data storage.
 
 ### Phase 2: Profile Service Extensions
-1. Hookup profile CRUD endpoints
-2. Hookup preferences endpoints
+1. After Hours profile CRUD endpoints
+2. After Hours preferences endpoints
 3. Session start/end endpoints
 4. Premium + verification middleware
 
@@ -635,9 +635,9 @@ Based on dependencies between components:
 **Why third:** Can test matching with mock sessions before real-time.
 
 ### Phase 4: Chat Service Extensions
-1. Hookup Socket.IO room management
+1. After Hours Socket.IO room management
 2. Ephemeral message storage
-3. hookup:* event handlers
+3. After Hours:* event handlers
 4. Session expiry notifications
 
 **Why fourth:** Depends on matching to generate connections.
@@ -646,13 +646,13 @@ Based on dependencies between components:
 1. Save vote storage
 2. Mutual save detection
 3. Message conversion to permanent
-4. Match creation from hookup
+4. Match creation from After Hours
 
 **Why fifth:** Depends on working chat flow.
 
 ### Phase 6: Frontend Integration
-1. HookupService (session state machine)
-2. Hookup profile screens
+1. After HoursService (session state machine)
+2. After Hours profile screens
 3. Preference settings
 4. Match card UI
 5. Ephemeral chat UI
@@ -668,7 +668,7 @@ Based on dependencies between components:
 
 ## Anti-Patterns to Avoid
 
-### 1. Storing Exact Coordinates in Hookup Profiles
+### 1. Storing Exact Coordinates in After Hours Profiles
 
 **What:** Persisting precise GPS coordinates visible to other users.
 
@@ -686,14 +686,14 @@ Based on dependencies between components:
 
 ### 3. Shared Message Table with Type Column
 
-**What:** Using existing `messages` table with `type='hookup'` flag.
+**What:** Using existing `messages` table with `type='After Hours'` flag.
 
 **Why bad:**
 - Cleanup queries affect production message table
 - No clear ownership boundary
-- Risk of accidentally exposing hookup messages
+- Risk of accidentally exposing After Hours messages
 
-**Instead:** Separate `hookup_messages` table with clear lifecycle.
+**Instead:** Separate `after_hours_messages` table with clear lifecycle.
 
 ### 4. Client-Side Session Expiry Enforcement
 
@@ -705,7 +705,7 @@ Based on dependencies between components:
 
 ### 5. Polling for Matches
 
-**What:** Frontend polling `/hookup/matches` every N seconds.
+**What:** Frontend polling `/After Hours/matches` every N seconds.
 
 **Why bad:** Inefficient, latency in match delivery, battery drain.
 
