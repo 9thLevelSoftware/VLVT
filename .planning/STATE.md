@@ -8,16 +8,16 @@
 ## Position
 
 - Phase: 03 of 07 (Matching Engine)
-- Wave: 1
-- Plans: 03-01 (complete), 03-02 (pending), 03-03 (pending)
+- Wave: 2
+- Plans: 03-01 (complete), 03-02 (complete), 03-03 (pending), 03-04 (pending)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
-Phase 3: [###-------] 1/3 plans complete
-Overall:  [####------] 7/13 total plans complete (~54%)
+Phase 3: [######----] 2/4 plans complete
+Overall:  [#####-----] 8/16 total plans complete (~50%)
 ```
 
 ## Accumulated Decisions
@@ -49,6 +49,11 @@ Overall:  [####------] 7/13 total plans complete (~54%)
 - [03-01] LEAST/GREATEST wrapper for acos to prevent domain errors from float precision
 - [03-01] Delete decline records at threshold rather than reset counter
 - [03-01] Double-check for existing matches inside transaction
+- [03-02] Redis pub/sub for match events (NOT Socket.IO in profile-service)
+- [03-02] Separate Redis client for pub/sub publishing (BullMQ uses its own connection)
+- [03-02] 15-second delay on session start matching (gives user time to see UI)
+- [03-02] 5-minute auto-decline timer included in match payloads
+- [03-02] Non-blocking scheduler init (server continues if Redis unavailable)
 
 ## Current Context
 
@@ -59,16 +64,22 @@ Plan 03-01 complete (Core Matching Engine):
 - matching-engine.ts implements findMatchCandidate, createAfterHoursMatch, getActiveUserCountNearby
 - Haversine formula with LEAST/GREATEST wrapper for domain safety
 - SELECT FOR UPDATE SKIP LOCKED for concurrent matching safety
-- UPSERT pattern for decline counter tracking
+
+Plan 03-02 complete (Match Scheduling):
+- matching-scheduler.ts with BullMQ periodic job (30s cycle)
+- Event-driven matching trigger on session start (15s delay)
+- Redis pub/sub event publishing to 'after_hours:events' channel
+- Match events ready for chat-service subscription in Phase 4
 
 Key files:
 - `backend/migrations/023_add_matching_engine_columns.sql` (decline/match tracking)
 - `backend/profile-service/src/services/matching-engine.ts` (core query logic)
+- `backend/profile-service/src/services/matching-scheduler.ts` (scheduling + pub/sub)
 
-Next: 03-02 (Match Delivery & Socket Integration)
+Next: 03-03 (Decline/Accept Endpoints) and 03-04 (Testing)
 
 ## Session Continuity
 
-- Last session: 2026-01-22T23:45Z
-- Stopped at: Completed 03-01-PLAN.md
+- Last session: 2026-01-22
+- Stopped at: Completed 03-02-PLAN.md
 - Resume file: None
