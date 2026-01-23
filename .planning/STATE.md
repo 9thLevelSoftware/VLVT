@@ -3,14 +3,14 @@
 **Project:** After Hours Mode
 **Milestone:** v1.0
 **Current Phase:** 6 - Frontend Integration
-**Status:** In progress
+**Status:** Phase complete
 
 ## Position
 
 - Phase: 06 of 07 (Frontend Integration)
 - Wave: 3
-- Plans: 5/6 complete
-- Last activity: 2026-01-23 - Completed 06-05-PLAN.md (Ephemeral Chat UI)
+- Plans: 6/6 complete
+- Last activity: 2026-01-23 - Completed 06-06-PLAN.md (Gap Closure)
 
 ## Progress
 
@@ -20,8 +20,8 @@ Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
-Phase 6: [########--] 5/6 plans complete
-Overall:  [#########-] 22/23 plans complete
+Phase 6: [##########] 6/6 plans complete
+Overall:  [##########] 23/23 plans complete
 ```
 
 ## Accumulated Decisions
@@ -105,10 +105,13 @@ Overall:  [#########-] 22/23 plans complete
 - [06-05] Session timer in app bar for always-visible critical info
 - [06-05] Save button above message input for high visibility
 - [06-05] Mutual save dialog barrierDismissible: false for intentional navigation
+- [06-06] acceptMatch remains socket-based (joinAfterHoursChat) - not HTTP
+- [06-06] Foreground service started after successful API call, not before
+- [06-06] Removed deprecated isSticky and iconData for flutter_foreground_task 9.2.0 compatibility
 
 ## Current Context
 
-**Phase 6 IN PROGRESS - Frontend Integration**
+**Phase 6 COMPLETE - Frontend Integration**
 
 Plan 06-01 complete (Core Service & Navigation):
 - AfterHoursState enum with 7 states (inactive, activating, searching, matched, chatting, expiring, expired)
@@ -152,18 +155,21 @@ Plan 06-05 complete (Ephemeral Chat UI):
 - Chat navigation integrated from AfterHoursTabScreen
 - flutter_foreground_task added for background location support
 
-Key files for 06-05:
-- `frontend/lib/screens/after_hours_chat_screen.dart` (chat UI, 721 lines)
-- `frontend/pubspec.yaml` (flutter_foreground_task dependency)
-- `frontend/android/app/src/main/AndroidManifest.xml` (foreground service config)
+Plan 06-06 complete (Gap Closure):
+- AfterHoursService makes real HTTP calls (startSession, endSession, declineMatch, refreshSessionStatus)
+- AfterHoursProfileService registered in provider tree
+- FlutterForegroundTask integration for background location on Android 14+
 
-**Next: Plan 06-06 - Integration Testing**
+Key files for 06-06:
+- `frontend/lib/services/after_hours_service.dart` (API calls + foreground task)
+- `frontend/lib/providers/provider_tree.dart` (AfterHoursProfileService registration)
 
-Remaining Phase 6 plans:
-- 06-06: Integration testing
+**Next: Phase 07 - Testing & Deployment**
+
+All frontend integration complete. Ready for final testing and deployment phase.
 
 ## Session Continuity
 
 - Last session: 2026-01-23
-- Stopped at: Completed 06-05-PLAN.md
+- Stopped at: Completed 06-06-PLAN.md
 - Resume file: None
