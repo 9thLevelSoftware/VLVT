@@ -250,28 +250,31 @@ Plans:
 
 **Rationale:** Backend must be complete for meaningful frontend testing. This phase brings it all together for users.
 
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — AfterHoursService state machine and tab navigation
-- [ ] 06-02-PLAN.md — After Hours profile and preferences screens
-- [ ] 06-03-PLAN.md — Session activation flow and timer widgets
-- [ ] 06-04-PLAN.md — Match card overlay with swipe gestures
-- [ ] 06-05-PLAN.md — Ephemeral chat screen and background location
+- [x] 06-01-PLAN.md — AfterHoursService state machine and tab navigation
+- [x] 06-02-PLAN.md — After Hours profile and preferences screens
+- [x] 06-03-PLAN.md — Session activation flow and timer widgets
+- [x] 06-04-PLAN.md — Match card overlay with swipe gestures
+- [x] 06-05-PLAN.md — Ephemeral chat screen and background location
+- [ ] 06-06-PLAN.md — Gap closure: API integration, provider registration, foreground task
 
 ### Requirements Addressed
 - All user-facing interactions from PROJECT.md Active requirements
 
 ### Deliverables
-- [ ] `AfterHoursService` (session state machine: inactive -> active -> matched -> chatting)
-- [ ] After Hours profile creation screens
-- [ ] After Hours preferences settings screen
-- [ ] Session activation flow with countdown timer
-- [ ] Match card UI (photo, description, Chat/Decline buttons)
-- [ ] Ephemeral chat UI (similar to existing chat, with session timer)
-- [ ] Save button interaction and confirmation
-- [ ] Session expiry handling (graceful transition back to main app)
-- [ ] Background location handling (flutter_foreground_task)
+- [x] `AfterHoursService` (session state machine: inactive -> active -> matched -> chatting)
+- [x] After Hours profile creation screens
+- [x] After Hours preferences settings screen
+- [x] Session activation flow with countdown timer
+- [x] Match card UI (photo, description, Chat/Decline buttons)
+- [x] Ephemeral chat UI (similar to existing chat, with session timer)
+- [x] Save button interaction and confirmation
+- [x] Session expiry handling (graceful transition back to main app)
+- [ ] Real API calls in AfterHoursService (gap closure)
+- [ ] AfterHoursProfileService provider registration (gap closure)
+- [ ] Background location handling (flutter_foreground_task) (gap closure)
 
 ### Technical Notes
 - State machine: `AfterHoursState { inactive, activating, searching, matched, chatting, expiring, expired }`
