@@ -8,9 +8,9 @@
 ## Position
 
 - Phase: 05 of 07 (Save Mechanism & Conversion)
-- Wave: 1
-- Plans: 05-01 (complete)
-- Last activity: 2026-01-22 - Completed 05-01-PLAN.md
+- Wave: 2
+- Plans: 05-01 (complete), 05-02 (complete)
+- Last activity: 2026-01-23 - Completed 05-02-PLAN.md
 
 ## Progress
 
@@ -19,8 +19,8 @@ Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
-Phase 5: [###-------] 1/3 plans complete
-Overall:  [########--] 15/17 plans complete
+Phase 5: [######----] 2/3 plans complete
+Overall:  [#########-] 16/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -83,6 +83,9 @@ Overall:  [########--] 15/17 plans complete
 - [05-01] Batch message copy with generated IDs preserves chronological order
 - [05-01] Router accepts optional Socket.IO instance for notification emission
 - [05-01] Idempotent save votes: re-saving returns success without duplicate notifications
+- [05-02] Stateless SaveMatchButton - parent manages state transitions
+- [05-02] SaveResult class for typed HTTP response handling
+- [05-02] partnerSavedFirst state uses primary color for urgency
 
 ## Current Context
 
@@ -97,17 +100,23 @@ Plan 05-01 complete (Backend Save Vote Endpoint):
 - FCM notifications: sendAfterHoursPartnerSavedNotification, sendAfterHoursMutualSaveNotification
 - Messages copied from after_hours_messages to messages table on mutual save
 
+Plan 05-02 complete (Flutter Save UI):
+- socket_service.dart: onPartnerSaved and onMatchSaved streams
+- after_hours_chat_service.dart: SaveResult class and saveMatch method
+- save_match_button.dart: SaveMatchButton widget with 5-state machine
+
 Key files:
 - `backend/migrations/024_add_matches_source_column.sql` (source column)
 - `backend/chat-service/src/services/match-conversion-service.ts` (atomic conversion)
 - `backend/chat-service/src/routes/after-hours-chat.ts` (save endpoint)
-- `backend/chat-service/src/socket/after-hours-handler.ts` (emit helpers)
-- `backend/chat-service/src/services/fcm-service.ts` (After Hours notifications)
+- `frontend/lib/services/socket_service.dart` (save event streams)
+- `frontend/lib/services/after_hours_chat_service.dart` (saveMatch method)
+- `frontend/lib/widgets/save_match_button.dart` (save button widget)
 
-Next: Plan 05-02 (Flutter Save UI) or Plan 05-03 (Cleanup Scheduling)
+Next: Plan 05-03 (Cleanup Scheduling)
 
 ## Session Continuity
 
-- Last session: 2026-01-22
-- Stopped at: Completed 05-01-PLAN.md
+- Last session: 2026-01-23
+- Stopped at: Completed 05-02-PLAN.md
 - Resume file: None
