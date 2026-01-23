@@ -147,6 +147,10 @@ export async function initializeMatchingScheduler(pool: Pool): Promise<void> {
           await runMatchingForUser(pool, job.data.userId, job.data.sessionId);
           break;
 
+        case 'auto-decline-match':
+          await handleAutoDeclineMatch(pool, job.data.matchId);
+          break;
+
         default:
           logger.warn('Unknown matching job type', { jobName: job.name });
       }
@@ -373,6 +377,78 @@ async function runMatchingForUser(
 }
 
 // ============================================
+// AUTO-DECLINE HANDLING
+// ============================================
+
+/**
+ * Handle auto-decline when match timer expires
+ * Marks match as declined by 'system' and triggers matching for both users
+ * NOTE: Uses Redis pub/sub to notify clients (chat-service subscribes and delivers via Socket.IO)
+ */
+async function handleAutoDeclineMatch(
+  pool: Pool,
+  matchId: string
+): Promise<void> {
+  logger.info('Processing auto-decline for match', { matchId });
+
+  // Get match details (only if not already declined)
+  const matchResult = await pool.query(
+    `SELECT id, user_id_1, user_id_2, session_id
+     FROM after_hours_matches
+     WHERE id = $1 AND declined_by IS NULL`,
+    [matchId]
+  );
+
+  if (matchResult.rows.length === 0) {
+    logger.info('Match already declined or not found, skipping auto-decline', { matchId });
+    return;
+  }
+
+  const match = matchResult.rows[0];
+
+  // Mark as auto-declined by system
+  await pool.query(
+    `UPDATE after_hours_matches
+     SET declined_by = 'system', declined_at = NOW()
+     WHERE id = $1`,
+    [matchId]
+  );
+
+  logger.info('Match auto-declined', {
+    matchId,
+    user1: match.user_id_1,
+    user2: match.user_id_2,
+  });
+
+  // Notify both users via Redis pub/sub (chat-service delivers via Socket.IO)
+  await publishMatchEvent('after_hours:match_expired', match.user_id_1, {
+    matchId,
+    reason: 'timeout',
+  });
+  await publishMatchEvent('after_hours:match_expired', match.user_id_2, {
+    matchId,
+    reason: 'timeout',
+  });
+
+  // Get both users' active sessions and trigger matching for each
+  const sessions = await pool.query(
+    `SELECT id, user_id FROM after_hours_sessions
+     WHERE user_id IN ($1, $2) AND ended_at IS NULL`,
+    [match.user_id_1, match.user_id_2]
+  );
+
+  for (const session of sessions.rows) {
+    // Trigger matching immediately (no cooldown for auto-decline)
+    triggerMatchingForUser(session.user_id, session.id, 5000).catch((err) => {
+      logger.error('Failed to trigger matching after auto-decline', {
+        userId: session.user_id,
+        error: err.message,
+      });
+    });
+  }
+}
+
+// ============================================
 // MATCH EVENT PUBLISHING
 // ============================================
 
@@ -458,6 +534,9 @@ async function publishMatchToBothUsers(
     user1: initiatorId,
     user2: initiatorCandidate.userId,
   });
+
+  // Schedule auto-decline after 5 minutes
+  await scheduleAutoDecline(match.id);
 }
 
 /**
@@ -539,6 +618,59 @@ export async function triggerMatchingForUser(
     delayMs,
     jobId,
   });
+}
+
+// ============================================
+// AUTO-DECLINE SCHEDULING
+// ============================================
+
+/**
+ * Schedule auto-decline for a match after 5 minutes
+ * Called when match is created
+ */
+export async function scheduleAutoDecline(
+  matchId: string,
+  delayMs: number = 5 * 60 * 1000 // 5 minutes default
+): Promise<void> {
+  if (!matchingQueue) {
+    logger.warn('Cannot schedule auto-decline: matching scheduler not initialized');
+    return;
+  }
+
+  await matchingQueue.add(
+    'auto-decline-match',
+    { matchId },
+    {
+      delay: delayMs,
+      jobId: `auto-decline:${matchId}`,
+      removeOnComplete: true,
+      removeOnFail: 10,
+    }
+  );
+
+  logger.info('Scheduled auto-decline for match', {
+    matchId,
+    delayMs,
+    willDeclineAt: new Date(Date.now() + delayMs).toISOString(),
+  });
+}
+
+/**
+ * Cancel auto-decline when user manually declines or match is saved
+ */
+export async function cancelAutoDecline(matchId: string): Promise<void> {
+  if (!matchingQueue) {
+    logger.warn('Cannot cancel auto-decline: matching scheduler not initialized');
+    return;
+  }
+
+  const jobId = `auto-decline:${matchId}`;
+  const job = await matchingQueue.getJob(jobId);
+
+  if (job) {
+    await job.remove();
+    logger.info('Cancelled auto-decline job', { matchId, jobId });
+  }
 }
 
 // ============================================
