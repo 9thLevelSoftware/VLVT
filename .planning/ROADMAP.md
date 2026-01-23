@@ -205,6 +205,12 @@ Plans:
 
 **Rationale:** Allows genuine connections to persist beyond the session while defaulting to privacy.
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Backend save endpoint with atomic conversion and notifications
+- [ ] 05-02-PLAN.md — Flutter save button and service integration
+
 ### Requirements Addressed
 - Both users can tap "Save" to convert chat to regular match
 - Ephemeral chat disappears when session ends (unless saved)
