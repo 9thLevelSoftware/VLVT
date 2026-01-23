@@ -151,33 +151,36 @@ Plans:
 
 ---
 
-## Phase 4: Real-Time Chat
+## Phase 4: Real-Time Chat ✓
 
 **Goal:** Matched users can chat instantly with ephemeral messages
+
+**Status:** Complete
+**Completed:** 2026-01-22
 
 **Rationale:** Depends on matching to create connections. Chat is the core interaction once matched.
 
 **Plans:** 4 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Redis pub/sub subscriber and After Hours Socket.IO handlers
-- [ ] 04-02-PLAN.md — Ephemeral message handlers and HTTP history endpoint
-- [ ] 04-03-PLAN.md — 30-day message retention cleanup and session expiry notifications
-- [ ] 04-04-PLAN.md — Flutter socket events and chat service
+- [x] 04-01-PLAN.md — Redis pub/sub subscriber and After Hours Socket.IO handlers
+- [x] 04-02-PLAN.md — Ephemeral message handlers and HTTP history endpoint
+- [x] 04-03-PLAN.md — 30-day message retention cleanup and session expiry notifications
+- [x] 04-04-PLAN.md — Flutter socket events and chat service
 
 ### Requirements Addressed
 - User can tap "Chat" to connect instantly with ephemeral chat
 - Ephemeral chat disappears when session ends
 
 ### Deliverables
-- [ ] Socket.IO room management for After Hours matches
-- [ ] Ephemeral message storage (after_hours_messages table)
-- [ ] `after_hours:new_match` event handler
-- [ ] `after_hours:send_message` event handler
-- [ ] `after_hours:typing` event handler
-- [ ] Session expiry notification to connected users
-- [ ] Server-side message retention for safety (30 days post-session)
-- [ ] Message cleanup job for expired+unsaved sessions
+- [x] Socket.IO room management for After Hours matches
+- [x] Ephemeral message storage (after_hours_messages table)
+- [x] `after_hours:match` event handler (relayed from Redis pub/sub)
+- [x] `after_hours:send_message` event handler
+- [x] `after_hours:typing` event handler
+- [x] Session expiry notification to connected users
+- [x] Server-side message retention for safety (30 days post-session)
+- [x] Message cleanup job for expired+unsaved sessions
 
 ### Technical Notes
 - Room naming: `after_hours:match:{matchId}`
@@ -313,7 +316,7 @@ Plans:
 | 1 | Foundation & Safety ✓ | Schema, location fuzzing, middleware | None |
 | 2 | Profile & Session ✓ | Profile CRUD, preferences, session lifecycle | Phase 1 |
 | 3 | Matching Engine ✓ | Proximity matching, preference filtering | Phase 2 |
-| 4 | Real-Time Chat | Ephemeral chat, Socket.IO events | Phase 3 |
+| 4 | Real-Time Chat ✓ | Ephemeral chat, Socket.IO events | Phase 3 |
 | 5 | Save Mechanism | Mutual save, conversion to permanent | Phase 4 |
 | 6 | Frontend Integration | Complete Flutter UI | Phases 1-5 |
 | 7 | Safety Systems | Blocking, reporting, ban enforcement | Phase 6 |
