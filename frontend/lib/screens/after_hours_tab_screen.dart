@@ -11,6 +11,7 @@ import '../services/location_service.dart';
 import '../widgets/after_hours/session_timer.dart';
 import '../widgets/after_hours/searching_animation.dart';
 import '../widgets/after_hours/session_expiry_banner.dart';
+import '../widgets/after_hours/match_card_overlay.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
@@ -24,7 +25,7 @@ import 'after_hours_preferences_screen.dart';
 /// - [inactive]: Setup checklist and session start flow
 /// - [activating]: Loading indicator while starting session
 /// - [searching]: Animated searching UI with nearby count
-/// - [matched]: Match found placeholder (full UI in Plan 06-04)
+/// - [matched]: Match card overlay with swipe gestures
 /// - [chatting]: In chat placeholder (full UI in Plan 06-05)
 /// - [expiring]: Same as searching but with warning banner
 /// - [expired]: Session ended with restart option
@@ -41,8 +42,7 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
   bool _isStarting = false;
 
   /// Track if match card modal is displayed.
-  /// Used by Plan 06-04 to prevent duplicate modals.
-  // ignore: unused_field
+  /// Prevents duplicate modals when state change fires multiple times.
   bool _isMatchCardShowing = false;
 
   @override
@@ -50,10 +50,22 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadSetupData();
+
+    // Listen for match state to show overlay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AfterHoursService>().addListener(_onServiceStateChanged);
+    });
   }
 
   @override
   void dispose() {
+    // Remove listener safely - need to check if context is still valid
+    try {
+      context.read<AfterHoursService>().removeListener(_onServiceStateChanged);
+    } catch (e) {
+      // Service may be disposed already during hot reload
+      debugPrint('AfterHoursTabScreen: Could not remove listener: $e');
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -70,6 +82,83 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
   Future<void> _loadSetupData() async {
     final profileService = context.read<AfterHoursProfileService>();
     await profileService.loadAll();
+  }
+
+  /// Handle service state changes to show/hide match card overlay.
+  void _onServiceStateChanged() {
+    if (!mounted) return;
+
+    final service = context.read<AfterHoursService>();
+
+    // Show match card when state becomes matched
+    if (service.state == AfterHoursState.matched && service.currentMatch != null) {
+      // Use boolean flag to prevent duplicate modals
+      if (!_isMatchCardShowing) {
+        _showMatchCard(service.currentMatch!);
+      }
+    }
+
+    // Handle session expiry notification
+    if (service.state == AfterHoursState.expired) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your After Hours session has ended'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  /// Show the match card modal overlay.
+  void _showMatchCard(AfterHoursMatch match) {
+    // Set flag to prevent duplicate modals
+    setState(() => _isMatchCardShowing = true);
+
+    HapticFeedback.heavyImpact();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: false, // Require explicit accept/decline
+      enableDrag: false, // Disable default drag-to-dismiss
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => MatchCardOverlay(
+          match: match,
+          onAccept: () {
+            Navigator.pop(context);
+            setState(() => _isMatchCardShowing = false);
+            _acceptMatch(match);
+          },
+          onDecline: () {
+            Navigator.pop(context);
+            setState(() => _isMatchCardShowing = false);
+            _declineMatch(match);
+          },
+        ),
+      ),
+    ).whenComplete(() {
+      // Reset flag when modal closes (handles edge cases like back button)
+      if (mounted) {
+        setState(() => _isMatchCardShowing = false);
+      }
+    });
+  }
+
+  /// Accept the current match and transition to chatting.
+  Future<void> _acceptMatch(AfterHoursMatch match) async {
+    final service = context.read<AfterHoursService>();
+    await service.acceptMatch();
+    // Navigation to chat will be handled in Plan 06-05
+  }
+
+  /// Decline the current match and return to searching.
+  Future<void> _declineMatch(AfterHoursMatch match) async {
+    final service = context.read<AfterHoursService>();
+    await service.declineMatch();
   }
 
   /// Start an After Hours session.
@@ -151,7 +240,7 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       await context.read<AfterHoursService>().endSession();
     }
   }
@@ -420,15 +509,11 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
         );
 
       case AfterHoursState.matched:
-        // Match card will be shown as overlay in Plan 06-04
+        // Match card shown as modal overlay
+        // Keep showing searching animation behind the modal
         return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.favorite, size: 64, color: VlvtColors.gold),
-              const SizedBox(height: 16),
-              Text('Match found!', style: VlvtTextStyles.h2),
-            ],
+          child: SearchingAnimation(
+            nearbyCount: afterHoursService.nearbyCount,
           ),
         );
 
