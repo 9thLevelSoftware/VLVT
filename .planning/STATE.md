@@ -2,20 +2,21 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 1 - Foundation & Safety
-**Status:** phase complete
+**Current Phase:** 2 - Profile & Session Management
+**Status:** in progress
 
 ## Position
 
-- Phase: 01 of 05 (Foundation & Safety)
-- Wave: 1 (complete)
-- Plans: 01-01 (complete), 01-02 (complete), 01-03 (complete)
+- Phase: 02 of 05 (Profile & Session Management)
+- Wave: 1
+- Plans: 02-01 (complete)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
-Overall:  [##--------] 1/5 phases complete
+Phase 2: [###-------] 1/3 plans complete (estimated)
+Overall:  [###-------] 4/15 plans complete (estimated)
 ```
 
 ## Accumulated Decisions
@@ -32,24 +33,29 @@ Overall:  [##--------] 1/5 phases complete
 - [01-03] Three sequential database queries for clarity over single JOIN
 - [01-03] Fail-closed error handling: 500 response, never call next() on DB error
 - [01-03] Error codes: PREMIUM_REQUIRED, VERIFICATION_REQUIRED, CONSENT_REQUIRED, AUTH_ERROR
+- [02-01] Empty string for photo_url on creation satisfies NOT NULL constraint
+- [02-01] Two-step profile creation: create profile, then upload photo separately
+- [02-01] After Hours photos use R2 prefix: after-hours-photos/{userId}/{photoId}
+- [02-01] Name/age inherited from main profile via JOIN (not duplicated)
 
 ## Current Context
 
-**Phase 1 Foundation & Safety COMPLETE.**
+**Phase 2 Plan 01 COMPLETE - After Hours Profile CRUD**
 
-All three foundation plans executed successfully:
+Completed deliverables:
+- POST/GET/PATCH /api/after-hours/profile endpoints
+- POST /api/after-hours/profile/photo for single photo upload
+- Validation middleware for profile data
+- All routes protected by createAfterHoursAuthMiddleware
 
-- **01-01 (database migration):** 6 After Hours tables and GDPR consent columns created
-- **01-02 (location fuzzing):** Privacy-preserving coordinate obfuscation utility ready
-- **01-03 (authorization middleware):** Fail-closed middleware gates premium, verification, consent
+Key files created:
+- `backend/profile-service/src/routes/after-hours.ts`
+- `backend/profile-service/src/middleware/after-hours-validation.ts`
 
-Phase 1 deliverables ready for Phase 2 (Session Management API):
-- `after_hours_sessions` table for storing sessions
-- `fuzzLocationForAfterHours()` for coordinate obfuscation
-- `createAfterHoursAuthMiddleware()` for route protection
+Ready for 02-02 (Session Activation API).
 
 ## Session Continuity
 
-- Last session: 2026-01-22T23:23Z
-- Stopped at: Completed 01-03-PLAN.md (Phase 1 complete)
+- Last session: 2026-01-23T01:20Z
+- Stopped at: Completed 02-01-PLAN.md
 - Resume file: None
