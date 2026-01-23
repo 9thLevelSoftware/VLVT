@@ -3,13 +3,13 @@
 **Project:** After Hours Mode
 **Milestone:** v1.0
 **Current Phase:** 4 - Real-Time Chat
-**Status:** In progress
+**Status:** Phase complete
 
 ## Position
 
 - Phase: 04 of 07 (Real-Time Chat)
 - Wave: 2
-- Plans: 04-01 (complete), 04-02 (complete), 04-03 (pending), 04-04 (complete)
+- Plans: 04-01 (complete), 04-02 (complete), 04-03 (complete), 04-04 (complete)
 
 ## Progress
 
@@ -17,8 +17,8 @@
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
-Phase 4: [#######---] 3/4 plans complete
-Overall:  [#######---] 13/17 plans complete
+Phase 4: [##########] 4/4 plans complete
+Overall:  [########--] 14/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -71,13 +71,17 @@ Overall:  [#######---] 13/17 plans complete
 - [04-02] Cursor pagination with 'before' timestamp parameter
 - [04-02] 50 message limit per request for performance
 - [04-02] MATCH_EXPIRED error code for expired/declined matches
+- [04-03] BullMQ for message cleanup scheduling (consistent with existing patterns)
+- [04-03] 30-day message retention for safety/moderation compliance
+- [04-03] 2-minute warning before session expiry notification
+- [04-03] Non-blocking cleanup job initialization
 - [04-04] 8 separate stream controllers for After Hours events (consistent with existing patterns)
 - [04-04] 3-attempt retry with 1s, 2s, 4s exponential backoff for message sending
 - [04-04] Separate HTTP service for message history vs socket for real-time
 
 ## Current Context
 
-**Phase 4 IN PROGRESS - Real-Time Chat**
+**Phase 4 COMPLETE - Real-Time Chat**
 
 Plan 04-01 complete (Redis Subscriber & Socket.IO Handlers):
 - after-hours-handler.ts with Redis pub/sub subscriber
@@ -94,6 +98,13 @@ Plan 04-02 complete (Message Handlers & HTTP History):
 - Validates match ownership and active status before allowing messages
 - HTTP endpoint supports cursor pagination with 'before' parameter
 
+Plan 04-03 complete (Message Retention & Session Expiry Notifications):
+- Created message-cleanup-job.ts with BullMQ scheduled cleanup (3 AM UTC daily)
+- 30-day retention for unsaved After Hours messages (safety requirement)
+- Session expiry warning 2 minutes before expiry via Redis pub/sub
+- Session expired notification when session ends
+- Events relayed to Socket.IO clients via after-hours-handler.ts
+
 Plan 04-04 complete (Flutter Socket Extension & Chat Service):
 - Extended socket_service.dart with 8 After Hours event stream controllers
 - Added listeners for all after_hours:* Socket.IO events
@@ -103,15 +114,16 @@ Plan 04-04 complete (Flutter Socket Extension & Chat Service):
 
 Key files:
 - `backend/chat-service/src/socket/after-hours-handler.ts` (Redis subscriber + handlers)
-- `backend/chat-service/src/socket/index.ts` (integration with rate limits)
+- `backend/chat-service/src/jobs/message-cleanup-job.ts` (30-day cleanup job)
+- `backend/profile-service/src/services/session-scheduler.ts` (expiry warnings)
 - `backend/chat-service/src/routes/after-hours-chat.ts` (HTTP history endpoint)
 - `frontend/lib/services/socket_service.dart` (After Hours event streams)
 - `frontend/lib/services/after_hours_chat_service.dart` (chat operations service)
 
-Next: Plan 04-03 - FCM Push Notifications
+Next: Phase 5 - UI Components
 
 ## Session Continuity
 
-- Last session: 2025-01-22
-- Stopped at: Completed 04-04-PLAN.md
+- Last session: 2026-01-23
+- Stopped at: Completed 04-03-PLAN.md
 - Resume file: None
