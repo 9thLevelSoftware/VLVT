@@ -9,8 +9,8 @@
 
 - Phase: 06 of 07 (Frontend Integration)
 - Wave: 2
-- Plans: 3/6 complete
-- Last activity: 2026-01-23 - Completed 06-03-PLAN.md (Session Activation Flow)
+- Plans: 4/6 complete
+- Last activity: 2026-01-23 - Completed 06-04-PLAN.md (Match Card Overlay)
 
 ## Progress
 
@@ -20,8 +20,8 @@ Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
-Phase 6: [###-------] 3/6 plans complete
-Overall:  [#########-] 20/23 plans complete
+Phase 6: [####------] 4/6 plans complete
+Overall:  [#########-] 21/23 plans complete
 ```
 
 ## Accumulated Decisions
@@ -98,6 +98,9 @@ Overall:  [#########-] 20/23 plans complete
 - [06-03] State-driven UI: switch statement maps all 7 AfterHoursState values to specific widgets
 - [06-03] Timer urgency: 120 seconds (2 min) threshold for visual warning state
 - [06-03] _isMatchCardShowing flag: boolean guard to prevent duplicate match card modals
+- [06-04] Boolean flag over ModalRoute.isCurrent for duplicate modal prevention
+- [06-04] SearchingAnimation shown behind modal when in matched state
+- [06-04] Auto-decline timer changes color from gold to crimson at 60s remaining
 
 ## Current Context
 
@@ -129,6 +132,14 @@ Plan 06-03 complete (Session Activation Flow):
 - Duration selector (15/30/60 min) when setup complete
 - State-driven content rendering for all 7 states
 
+Plan 06-04 complete (Match Card Overlay):
+- MatchCardOverlay widget with Tinder-style swipe gestures (477 lines)
+- Photo with gradient overlay for text readability
+- Swipe right = accept (CHAT indicator), swipe left = decline (PASS)
+- Chat/Decline button alternatives for tap-based interaction
+- Auto-decline countdown timer with color change at 60s
+- Modal integration via listener pattern, boolean flag prevents duplicates
+
 Key files for 06-01:
 - `frontend/lib/services/after_hours_service.dart` (state machine, 399 lines)
 - `frontend/lib/providers/provider_tree.dart` (AfterHoursService + AfterHoursChatService)
@@ -146,15 +157,18 @@ Key files for 06-03:
 - `frontend/lib/widgets/after_hours/session_expiry_banner.dart` (warning banner)
 - `frontend/lib/screens/after_hours_tab_screen.dart` (full session flow UI)
 
-**Next: Plan 06-04 - Match Card UI**
+Key files for 06-04:
+- `frontend/lib/widgets/after_hours/match_card_overlay.dart` (swipe modal)
+- `frontend/lib/screens/after_hours_tab_screen.dart` (modal integration)
+
+**Next: Plan 06-05 - Ephemeral Chat UI**
 
 Remaining Phase 6 plans:
-- 06-04: Match card UI
 - 06-05: Ephemeral chat UI
 - 06-06: Integration testing
 
 ## Session Continuity
 
 - Last session: 2026-01-23
-- Stopped at: Completed 06-03-PLAN.md
+- Stopped at: Completed 06-04-PLAN.md
 - Resume file: None
