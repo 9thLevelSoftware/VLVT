@@ -44,6 +44,8 @@ import {
   scheduleSessionExpiry,
   cancelSessionExpiry,
   extendSessionExpiry,
+  scheduleSessionExpiryWarning,
+  cancelSessionExpiryWarning,
 } from '../services/session-scheduler';
 import {
   validateImage,
@@ -727,6 +729,14 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
         });
       });
 
+      // Schedule expiry warning (2 minutes before expiry)
+      scheduleSessionExpiryWarning(userId, session.id, expiresAt).catch((err) => {
+        logger.error('Failed to schedule session expiry warning', {
+          sessionId: session.id,
+          error: err.message,
+        });
+      });
+
       // Trigger matching after 15-second delay (gives user time to see the session UI)
       triggerMatchingForUser(userId, session.id, 15000).catch((err) => {
         logger.error('Failed to trigger matching after session start', {
@@ -786,9 +796,16 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
 
       const sessionId = result.rows[0].id;
 
-      // Cancel the scheduled expiry job
+      // Cancel the scheduled expiry and warning jobs
       cancelSessionExpiry(sessionId).catch((err) => {
         logger.error('Failed to cancel session expiry', {
+          sessionId,
+          error: err.message,
+        });
+      });
+
+      cancelSessionExpiryWarning(sessionId).catch((err) => {
+        logger.error('Failed to cancel session expiry warning', {
           sessionId,
           error: err.message,
         });

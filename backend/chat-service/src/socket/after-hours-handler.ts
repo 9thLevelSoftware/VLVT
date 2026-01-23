@@ -94,6 +94,8 @@ const RELAY_EVENT_TYPES = [
   'after_hours:match',
   'after_hours:no_matches',
   'after_hours:match_expired',
+  'after_hours:session_expiring',
+  'after_hours:session_expired',
 ];
 
 // ============================================
