@@ -3,21 +3,21 @@
 **Project:** After Hours Mode
 **Milestone:** v1.0
 **Current Phase:** 3 - Matching Engine
-**Status:** in progress
+**Status:** Phase complete
 
 ## Position
 
 - Phase: 03 of 07 (Matching Engine)
-- Wave: 2
-- Plans: 03-01 (complete), 03-02 (complete), 03-03 (complete), 03-04 (pending)
+- Wave: 3
+- Plans: 03-01 (complete), 03-02 (complete), 03-03 (complete), 03-04 (complete)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
-Phase 3: [########--] 3/4 plans complete
-Overall:  [######----] 9/16 total plans complete (~56%)
+Phase 3: [##########] 4/4 plans complete
+Overall:  [######----] 10/16 total plans complete (~63%)
 ```
 
 ## Accumulated Decisions
@@ -57,10 +57,14 @@ Overall:  [######----] 9/16 total plans complete (~56%)
 - [03-03] parseFloat on all numeric DB values for type safety
 - [03-03] Math.max(0, count - 1) ensures non-negative nearby count after excluding self
 - [03-03] 30-second cooldown after decline before next match attempt
+- [03-04] 5-minute auto-decline timer default, configurable via delayMs parameter
+- [03-04] jobId format `auto-decline:{matchId}` enables reliable job cancellation
+- [03-04] Fire-and-forget cancellation pattern - errors logged but don't block response
+- [03-04] 5-second delay before re-matching after auto-decline (faster than manual 30s)
 
 ## Current Context
 
-**Phase 3 IN PROGRESS - Matching Engine**
+**Phase 3 COMPLETE - Matching Engine**
 
 Plan 03-01 complete (Core Matching Engine):
 - Migration 023 adds decline tracking columns and match status columns
@@ -80,17 +84,23 @@ Plan 03-03 complete (Decline & Status Endpoints):
 - GET /nearby/count returns active user count for social proof display
 - validateDecline middleware with UUID format validation
 
+Plan 03-04 complete (Auto-Decline Timer):
+- scheduleAutoDecline called when match created (5-minute delay)
+- handleAutoDeclineMatch marks match declined_by='system', notifies both users
+- cancelAutoDecline called on manual decline to prevent wasted jobs
+- Both users re-enter matching pool with 5-second delay after auto-decline
+
 Key files:
 - `backend/migrations/023_add_matching_engine_columns.sql` (decline/match tracking)
 - `backend/profile-service/src/services/matching-engine.ts` (core query logic)
-- `backend/profile-service/src/services/matching-scheduler.ts` (scheduling + pub/sub)
+- `backend/profile-service/src/services/matching-scheduler.ts` (scheduling + pub/sub + auto-decline)
 - `backend/profile-service/src/routes/after-hours.ts` (decline/status endpoints)
 - `backend/profile-service/src/middleware/after-hours-validation.ts` (validateDecline)
 
-Next: 03-04 (Testing) - final plan in Phase 3
+Next: Phase 4 - Chat Integration
 
 ## Session Continuity
 
-- Last session: 2026-01-23T02:36Z
-- Stopped at: Completed 03-03-PLAN.md
+- Last session: 2026-01-22T03:08Z
+- Stopped at: Completed 03-04-PLAN.md (Phase 3 complete)
 - Resume file: None
