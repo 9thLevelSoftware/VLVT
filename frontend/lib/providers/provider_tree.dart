@@ -15,6 +15,8 @@ import '../services/date_proposal_service.dart';
 import '../services/verification_service.dart';
 import '../services/message_queue_service.dart';
 import '../services/theme_service.dart';
+import '../services/after_hours_service.dart';
+import '../services/after_hours_chat_service.dart';
 
 /// Centralized provider configuration for VLVT
 /// Organizes providers into feature-based groups for better scoping
@@ -92,6 +94,29 @@ class ProviderTree {
         ),
       ];
 
+  /// After Hours feature providers
+  /// Used for After Hours mode session management and chat
+  static List<SingleChildWidget> afterHours() => [
+        ChangeNotifierProxyProvider2<AuthService, SocketService,
+            AfterHoursService>(
+          create: (context) => AfterHoursService(
+            context.read<AuthService>(),
+            context.read<SocketService>(),
+          ),
+          update: (context, auth, socket, previous) =>
+              previous ?? AfterHoursService(auth, socket),
+        ),
+        ChangeNotifierProxyProvider2<AuthService, SocketService,
+            AfterHoursChatService>(
+          create: (context) => AfterHoursChatService(
+            context.read<AuthService>(),
+            context.read<SocketService>(),
+          ),
+          update: (context, auth, socket, previous) =>
+              previous ?? AfterHoursChatService(auth, socket),
+        ),
+      ];
+
   /// Get all providers for the full app (backward compatible)
   /// This includes all feature providers at root level
   /// Use for full app initialization when feature scoping is not needed
@@ -102,6 +127,7 @@ class ProviderTree {
         ...chat(),
         ...safety(),
         ...dating(),
+        ...afterHours(),
       ];
 
   /// Authenticated user providers
@@ -112,6 +138,7 @@ class ProviderTree {
         ...chat(),
         ...safety(),
         ...dating(),
+        ...afterHours(),
       ];
 }
 
@@ -145,6 +172,14 @@ extension ProviderTreeExtension on Widget {
   Widget withDiscoveryProviders() {
     return MultiProvider(
       providers: ProviderTree.discovery(),
+      child: this,
+    );
+  }
+
+  /// Wrap with After Hours feature providers
+  Widget withAfterHoursProviders() {
+    return MultiProvider(
+      providers: ProviderTree.afterHours(),
       child: this,
     );
   }
