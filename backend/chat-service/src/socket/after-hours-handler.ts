@@ -626,6 +626,73 @@ export function setupAfterHoursHandlers(
 }
 
 // ============================================
+// SAVE NOTIFICATION HELPERS
+// ============================================
+
+/**
+ * Emit partner saved notification to a user.
+ * Called when one user saves but the other hasn't yet.
+ *
+ * @param io - Socket.IO server instance
+ * @param afterHoursMatchId - UUID of the After Hours match
+ * @param savingUserId - User who saved the match
+ * @param otherUserId - User to receive the notification
+ */
+export function emitPartnerSaved(
+  io: SocketServer,
+  afterHoursMatchId: string,
+  savingUserId: string,
+  otherUserId: string
+): void {
+  io.to(`user:${otherUserId}`).emit('after_hours:partner_saved', {
+    matchId: afterHoursMatchId,
+    savedBy: savingUserId,
+    timestamp: new Date().toISOString(),
+  });
+
+  logger.info('Emitted partner_saved notification', {
+    afterHoursMatchId,
+    savingUserId,
+    recipientUserId: otherUserId,
+  });
+}
+
+/**
+ * Emit match saved (mutual save) notification to both users.
+ * Called when both users have saved, converting to permanent match.
+ *
+ * @param io - Socket.IO server instance
+ * @param afterHoursMatchId - UUID of the After Hours match
+ * @param permanentMatchId - ID of the new permanent match
+ * @param userId1 - First user ID
+ * @param userId2 - Second user ID
+ */
+export function emitMatchSaved(
+  io: SocketServer,
+  afterHoursMatchId: string,
+  permanentMatchId: string,
+  userId1: string,
+  userId2: string
+): void {
+  const payload = {
+    afterHoursMatchId,
+    permanentMatchId,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Emit to both users
+  io.to(`user:${userId1}`).emit('after_hours:match_saved', payload);
+  io.to(`user:${userId2}`).emit('after_hours:match_saved', payload);
+
+  logger.info('Emitted match_saved notification to both users', {
+    afterHoursMatchId,
+    permanentMatchId,
+    userId1,
+    userId2,
+  });
+}
+
+// ============================================
 // CLEANUP
 // ============================================
 

@@ -330,3 +330,201 @@ export const unregisterFCMToken = async (
     throw error;
   }
 };
+
+// ============================================
+// AFTER HOURS NOTIFICATIONS
+// ============================================
+
+/**
+ * Send push notification when partner saves an After Hours match.
+ * Notifies user that their chat partner wants to keep the connection.
+ *
+ * @param pool - PostgreSQL connection pool
+ * @param recipientUserId - User to receive notification
+ * @param partnerName - Name of the partner who saved
+ * @param afterHoursMatchId - UUID of the After Hours match
+ */
+export const sendAfterHoursPartnerSavedNotification = async (
+  pool: Pool,
+  recipientUserId: string,
+  partnerName: string,
+  afterHoursMatchId: string
+): Promise<void> => {
+  if (!isFirebaseReady()) {
+    logger.debug('Firebase not initialized - skipping After Hours partner saved notification');
+    return;
+  }
+
+  try {
+    const tokens = await getUserTokens(pool, recipientUserId);
+
+    if (tokens.length === 0) {
+      logger.debug('No active FCM tokens for user', { userId: recipientUserId });
+      return;
+    }
+
+    const message: admin.messaging.MulticastMessage = {
+      tokens,
+      notification: {
+        title: 'Someone wants to save your chat!',
+        body: `${partnerName} wants to keep chatting after After Hours ends. Save them back to create a match!`
+      },
+      data: {
+        type: 'after_hours_partner_saved',
+        afterHoursMatchId,
+        partnerName,
+        click_action: 'FLUTTER_NOTIFICATION_CLICK'
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+            contentAvailable: true
+          }
+        }
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'after_hours',
+          priority: 'high'
+        }
+      }
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    logger.info('After Hours partner saved notification sent', {
+      recipientId: recipientUserId,
+      afterHoursMatchId,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      totalTokens: tokens.length
+    });
+
+    // Handle failed tokens
+    if (response.failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          const errorCode = resp.error?.code;
+
+          if (errorCode === 'messaging/invalid-registration-token' ||
+              errorCode === 'messaging/registration-token-not-registered') {
+            deactivateToken(pool, tokens[idx]);
+          }
+
+          logger.warn('Failed to send After Hours notification to token', {
+            tokenIndex: idx,
+            errorCode,
+            errorMessage: resp.error?.message
+          });
+        }
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to send After Hours partner saved notification', {
+      recipientUserId,
+      afterHoursMatchId,
+      error
+    });
+  }
+};
+
+/**
+ * Send push notification when mutual save creates a permanent match.
+ * Celebrates the conversion from ephemeral to permanent connection.
+ *
+ * @param pool - PostgreSQL connection pool
+ * @param recipientUserId - User to receive notification
+ * @param partnerName - Name of the partner
+ * @param permanentMatchId - ID of the new permanent match
+ */
+export const sendAfterHoursMutualSaveNotification = async (
+  pool: Pool,
+  recipientUserId: string,
+  partnerName: string,
+  permanentMatchId: string
+): Promise<void> => {
+  if (!isFirebaseReady()) {
+    logger.debug('Firebase not initialized - skipping After Hours mutual save notification');
+    return;
+  }
+
+  try {
+    const tokens = await getUserTokens(pool, recipientUserId);
+
+    if (tokens.length === 0) {
+      logger.debug('No active FCM tokens for user', { userId: recipientUserId });
+      return;
+    }
+
+    const message: admin.messaging.MulticastMessage = {
+      tokens,
+      notification: {
+        title: 'Your After Hours chat is saved!',
+        body: `You and ${partnerName} both saved each other. You can now chat anytime!`
+      },
+      data: {
+        type: 'after_hours_match_saved',
+        permanentMatchId,
+        partnerName,
+        click_action: 'FLUTTER_NOTIFICATION_CLICK'
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+            contentAvailable: true
+          }
+        }
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'matches',
+          priority: 'high'
+        }
+      }
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    logger.info('After Hours mutual save notification sent', {
+      recipientId: recipientUserId,
+      permanentMatchId,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      totalTokens: tokens.length
+    });
+
+    // Handle failed tokens
+    if (response.failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          const errorCode = resp.error?.code;
+
+          if (errorCode === 'messaging/invalid-registration-token' ||
+              errorCode === 'messaging/registration-token-not-registered') {
+            deactivateToken(pool, tokens[idx]);
+          }
+
+          logger.warn('Failed to send After Hours notification to token', {
+            tokenIndex: idx,
+            errorCode,
+            errorMessage: resp.error?.message
+          });
+        }
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to send After Hours mutual save notification', {
+      recipientUserId,
+      permanentMatchId,
+      error
+    });
+  }
+};

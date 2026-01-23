@@ -2,26 +2,34 @@
  * After Hours Chat REST API Routes
  *
  * Provides HTTP endpoints for After Hours chat functionality.
- * Primary use case: Message history retrieval when app reopens mid-session.
  *
  * Endpoints:
  * - GET /after-hours/messages/:matchId - Retrieve message history for an After Hours match
+ * - POST /after-hours/matches/:matchId/save - Vote to save an After Hours match as permanent
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { Pool } from 'pg';
+import { Server as SocketServer } from 'socket.io';
 import logger from '../utils/logger';
+import { recordSaveVote } from '../services/match-conversion-service';
+import { emitPartnerSaved, emitMatchSaved } from '../socket/after-hours-handler';
+import {
+  sendAfterHoursPartnerSavedNotification,
+  sendAfterHoursMutualSaveNotification,
+} from '../services/fcm-service';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Creates the After Hours chat router with database connection.
+ * Creates the After Hours chat router with database and Socket.IO connections.
  *
  * @param pool - PostgreSQL connection pool
+ * @param io - Socket.IO server instance (optional, for real-time save notifications)
  * @returns Express Router with After Hours chat endpoints
  */
-export const createAfterHoursChatRouter = (pool: Pool): Router => {
+export const createAfterHoursChatRouter = (pool: Pool, io?: SocketServer): Router => {
   const router = Router();
 
   /**
@@ -142,6 +150,136 @@ export const createAfterHoursChatRouter = (pool: Pool): Router => {
         res.status(500).json({
           success: false,
           error: 'Failed to retrieve message history',
+        });
+      }
+    }
+  );
+
+  /**
+   * POST /after-hours/matches/:matchId/save
+   *
+   * Vote to save an After Hours match as permanent.
+   * When both users save, the match is converted to a permanent match
+   * and all messages are copied to the permanent messages table.
+   *
+   * Returns:
+   * - success: boolean
+   * - mutualSave: boolean - true if both users have now saved
+   * - permanentMatchId: string | null - ID of permanent match if mutual save occurred
+   */
+  router.post(
+    '/after-hours/matches/:matchId/save',
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { matchId } = req.params;
+        const userId = req.user!.userId;
+
+        // Validate matchId is UUID format
+        if (!matchId || !UUID_REGEX.test(matchId)) {
+          logger.warn('Invalid matchId format for save vote', { userId, matchId });
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid match ID format',
+          });
+        }
+
+        // Record the save vote (atomic operation with conversion if mutual)
+        const result = await recordSaveVote(pool, matchId, userId);
+
+        if (!result.success) {
+          // Handle specific errors
+          if (result.error === 'Match not found') {
+            return res.status(404).json({
+              success: false,
+              error: 'Match not found',
+            });
+          }
+          if (result.error === 'Unauthorized') {
+            return res.status(403).json({
+              success: false,
+              error: 'Forbidden: You are not part of this match',
+            });
+          }
+          return res.status(500).json({
+            success: false,
+            error: result.error || 'Failed to save match',
+          });
+        }
+
+        // If already voted, just return success without re-sending notifications
+        if (result.alreadyVoted) {
+          logger.debug('User already voted to save', { matchId, userId, mutualSave: result.mutualSave });
+          return res.json({
+            success: true,
+            mutualSave: result.mutualSave,
+            permanentMatchId: result.permanentMatchId || null,
+          });
+        }
+
+        // Get match details for notifications
+        const matchResult = await pool.query(
+          `SELECT user_id_1, user_id_2 FROM after_hours_matches WHERE id = $1`,
+          [matchId]
+        );
+
+        if (matchResult.rows.length > 0) {
+          const match = matchResult.rows[0];
+          const otherUserId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+          // Get names for push notifications
+          const namesResult = await pool.query(
+            `SELECT user_id, name FROM profiles WHERE user_id IN ($1, $2)`,
+            [userId, otherUserId]
+          );
+          const namesMap = new Map(namesResult.rows.map((r) => [r.user_id, r.name]));
+          const savingUserName = namesMap.get(userId) || 'Someone';
+          const otherUserName = namesMap.get(otherUserId) || 'Someone';
+
+          if (result.mutualSave && result.permanentMatchId) {
+            // MUTUAL SAVE - notify both users
+            if (io) {
+              emitMatchSaved(io, matchId, result.permanentMatchId, match.user_id_1, match.user_id_2);
+            }
+            // Send push notifications to both users
+            sendAfterHoursMutualSaveNotification(pool, userId, otherUserName, result.permanentMatchId);
+            sendAfterHoursMutualSaveNotification(pool, otherUserId, savingUserName, result.permanentMatchId);
+
+            logger.info('After Hours match saved as permanent', {
+              afterHoursMatchId: matchId,
+              permanentMatchId: result.permanentMatchId,
+              userId1: match.user_id_1,
+              userId2: match.user_id_2,
+            });
+          } else {
+            // First save - notify partner
+            if (io) {
+              emitPartnerSaved(io, matchId, userId, otherUserId);
+            }
+            // Send push notification to partner
+            sendAfterHoursPartnerSavedNotification(pool, otherUserId, savingUserName, matchId);
+
+            logger.info('After Hours save vote recorded, waiting for partner', {
+              afterHoursMatchId: matchId,
+              savingUserId: userId,
+              partnerUserId: otherUserId,
+            });
+          }
+        }
+
+        res.json({
+          success: true,
+          mutualSave: result.mutualSave,
+          permanentMatchId: result.permanentMatchId || null,
+        });
+      } catch (error) {
+        logger.error('Failed to save After Hours match', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          matchId: req.params.matchId,
+          userId: req.user?.userId,
+        });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to save match',
         });
       }
     }
