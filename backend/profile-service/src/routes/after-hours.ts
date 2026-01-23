@@ -53,7 +53,7 @@ import {
 import { resolvePhotoUrl, uploadToR2, getPresignedUrl } from '../utils/r2-client';
 import logger from '../utils/logger';
 import sharp from 'sharp';
-import { triggerMatchingForUser } from '../services/matching-scheduler';
+import { triggerMatchingForUser, cancelAutoDecline } from '../services/matching-scheduler';
 import { getActiveUserCountNearby } from '../services/matching-engine';
 
 /**
@@ -988,6 +988,11 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
          WHERE id = $2`,
         [userId, matchId]
       );
+
+      // Cancel the auto-decline job since user manually declined
+      cancelAutoDecline(matchId).catch((err) => {
+        logger.error('Failed to cancel auto-decline', { matchId, error: err.message });
+      });
 
       logger.info('Match declined', { userId, matchId, declinedUserId });
 
