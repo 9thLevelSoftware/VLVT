@@ -325,14 +325,302 @@ export function setupAfterHoursHandlers(
     }
   };
 
+  /**
+   * Handle sending a message in After Hours chat.
+   * Messages are stored in after_hours_messages table (ephemeral storage).
+   * Rate limited: 30 messages per minute
+   */
+  const handleAfterHoursSendMessage = async (
+    data: AfterHoursSendMessageData,
+    callback?: Function
+  ): Promise<void> => {
+    try {
+      const { matchId, text, tempId } = data;
+
+      // Validate input: matchId required
+      if (!matchId || !UUID_REGEX.test(matchId)) {
+        logger.warn('Invalid matchId for after_hours:send_message', { userId, matchId });
+        return callback?.({ success: false, error: 'Invalid match ID' });
+      }
+
+      // Validate input: text required and non-empty
+      if (!text || text.trim().length === 0) {
+        logger.warn('Empty message text', { userId, matchId });
+        return callback?.({ success: false, error: 'Message text required' });
+      }
+
+      // Validate input: max 2000 chars
+      if (text.length > 2000) {
+        logger.warn('Message too long', { userId, matchId, length: text.length });
+        return callback?.({ success: false, error: 'Message too long (max 2000 characters)' });
+      }
+
+      // Query after_hours_matches to verify user and check active status
+      const matchCheck = await pool.query(
+        `SELECT user_id_1, user_id_2, expires_at, declined_by
+         FROM after_hours_matches
+         WHERE id = $1`,
+        [matchId]
+      );
+
+      if (matchCheck.rows.length === 0) {
+        logger.warn('Match not found for after_hours:send_message', { userId, matchId });
+        return callback?.({ success: false, error: 'Match not found' });
+      }
+
+      const match = matchCheck.rows[0];
+
+      // Authorization check: user must be part of match
+      if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
+        logger.warn('Socket authorization failure', {
+          event: 'after_hours:send_message',
+          userId,
+          matchId,
+          reason: 'User not part of match',
+          ip: socket.handshake.address,
+        });
+        return callback?.({ success: false, error: 'Unauthorized' });
+      }
+
+      // Check match is active: declined_by IS NULL AND expires_at > NOW()
+      if (match.declined_by) {
+        logger.info('Message blocked - match declined', { userId, matchId, declinedBy: match.declined_by });
+        return callback?.({
+          success: false,
+          error: 'Match has expired',
+          code: 'MATCH_EXPIRED',
+        });
+      }
+
+      if (new Date(match.expires_at) < new Date()) {
+        logger.info('Message blocked - match expired', { userId, matchId, expiresAt: match.expires_at });
+        return callback?.({
+          success: false,
+          error: 'Match has expired',
+          code: 'MATCH_EXPIRED',
+        });
+      }
+
+      // Insert message into after_hours_messages (UUID auto-generated)
+      const messageResult = await pool.query(
+        `INSERT INTO after_hours_messages (match_id, sender_id, text)
+         VALUES ($1, $2, $3)
+         RETURNING id, match_id, sender_id, text, created_at`,
+        [matchId, userId, text.trim()]
+      );
+
+      const message = messageResult.rows[0];
+
+      // Calculate recipientId (other user in match)
+      const recipientId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+      const messageResponse: AfterHoursMessageResponse = {
+        id: message.id,
+        matchId: message.match_id,
+        senderId: message.sender_id,
+        text: message.text,
+        timestamp: message.created_at,
+        tempId,
+      };
+
+      // Acknowledge to sender immediately after insert succeeds
+      callback?.({ success: true, message: messageResponse });
+
+      // Emit to recipient via user room
+      io.to(`user:${recipientId}`).emit('after_hours:new_message', messageResponse);
+
+      // Also emit to match room for multi-device support
+      io.to(`after_hours:match:${matchId}`).emit('after_hours:new_message', messageResponse);
+
+      logger.info('After Hours message sent', {
+        messageId: message.id,
+        matchId,
+        senderId: userId,
+        recipientId,
+      });
+    } catch (error) {
+      logger.error('Error sending After Hours message', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId,
+        matchId: data.matchId,
+      });
+      callback?.({ success: false, error: 'Failed to send message' });
+    }
+  };
+
+  /**
+   * Handle typing indicator for After Hours chat.
+   * Ephemeral - no database storage (typing is ephemeral within ephemeral chat).
+   * Rate limited: 10 per 10 seconds
+   */
+  const handleAfterHoursTyping = async (
+    data: AfterHoursTypingData,
+    callback?: Function
+  ): Promise<void> => {
+    try {
+      const { matchId, isTyping } = data;
+
+      // Validate matchId
+      if (!matchId || !UUID_REGEX.test(matchId)) {
+        logger.warn('Invalid matchId for after_hours:typing', { userId, matchId });
+        return callback?.({ success: false, error: 'Invalid match ID' });
+      }
+
+      // Verify user is part of match
+      const matchCheck = await pool.query(
+        `SELECT user_id_1, user_id_2
+         FROM after_hours_matches
+         WHERE id = $1`,
+        [matchId]
+      );
+
+      if (matchCheck.rows.length === 0) {
+        return callback?.({ success: false, error: 'Match not found' });
+      }
+
+      const match = matchCheck.rows[0];
+
+      if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
+        logger.warn('Socket authorization failure', {
+          event: 'after_hours:typing',
+          userId,
+          matchId,
+          reason: 'User not part of match',
+          ip: socket.handshake.address,
+        });
+        return callback?.({ success: false, error: 'Unauthorized' });
+      }
+
+      // Calculate recipientId
+      const recipientId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+      // Emit to recipient (no database storage - typing is ephemeral)
+      io.to(`user:${recipientId}`).emit('after_hours:user_typing', {
+        matchId,
+        userId,
+        isTyping,
+      });
+
+      callback?.({ success: true });
+    } catch (error) {
+      logger.error('Error handling After Hours typing indicator', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId,
+        matchId: data.matchId,
+      });
+      callback?.({ success: false, error: 'Failed to update typing status' });
+    }
+  };
+
+  /**
+   * Handle marking messages as read in After Hours chat.
+   * Ephemeral - emit read receipt without storing (ephemeral messages don't need persistent read state).
+   * Rate limited: 60 per minute
+   */
+  const handleAfterHoursMarkRead = async (
+    data: AfterHoursMarkReadData,
+    callback?: Function
+  ): Promise<void> => {
+    try {
+      const { matchId, messageIds } = data;
+
+      // Validate matchId
+      if (!matchId || !UUID_REGEX.test(matchId)) {
+        logger.warn('Invalid matchId for after_hours:mark_read', { userId, matchId });
+        return callback?.({ success: false, error: 'Invalid match ID' });
+      }
+
+      // Verify user is part of match
+      const matchCheck = await pool.query(
+        `SELECT user_id_1, user_id_2
+         FROM after_hours_matches
+         WHERE id = $1`,
+        [matchId]
+      );
+
+      if (matchCheck.rows.length === 0) {
+        logger.warn('Match not found for after_hours:mark_read', { userId, matchId });
+        return callback?.({ success: false, error: 'Match not found' });
+      }
+
+      const match = matchCheck.rows[0];
+
+      if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
+        logger.warn('Socket authorization failure', {
+          event: 'after_hours:mark_read',
+          userId,
+          matchId,
+          reason: 'User not part of match',
+          ip: socket.handshake.address,
+        });
+        return callback?.({ success: false, error: 'Unauthorized' });
+      }
+
+      // Calculate senderId (other user who sent the messages)
+      const senderId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+      const now = new Date();
+
+      // Emit read receipt to sender without storing (ephemeral messages don't need persistent read state)
+      io.to(`user:${senderId}`).emit('after_hours:messages_read', {
+        matchId,
+        messageIds: messageIds || [],
+        readBy: userId,
+        readAt: now,
+      });
+
+      logger.debug('After Hours messages marked as read', {
+        matchId,
+        readBy: userId,
+        messageCount: messageIds?.length || 'all',
+      });
+
+      callback?.({ success: true, readAt: now });
+    } catch (error) {
+      logger.error('Error marking After Hours messages as read', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userId,
+        matchId: data.matchId,
+      });
+      callback?.({ success: false, error: 'Failed to mark messages as read' });
+    }
+  };
+
   // Register event handlers
-  // Note: Rate limiting for After Hours events is configured in socket/index.ts
-  // Currently only join/leave are registered; send_message/typing/mark_read
-  // will be added in subsequent plans when After Hours messaging is implemented
+  // Room management handlers (no rate limiting needed)
   socket.on('after_hours:join_chat', handleJoinChat);
   socket.on('after_hours:leave_chat', handleLeaveChat);
 
-  logger.debug('After Hours handlers registered', { socketId: socket.id, userId });
+  // Message handlers with rate limiting
+  if (rateLimiter) {
+    socket.on(
+      'after_hours:send_message',
+      rateLimiter.wrapHandler('after_hours:send_message', handleAfterHoursSendMessage)
+    );
+    socket.on(
+      'after_hours:typing',
+      rateLimiter.wrapHandler('after_hours:typing', handleAfterHoursTyping)
+    );
+    socket.on(
+      'after_hours:mark_read',
+      rateLimiter.wrapHandler('after_hours:mark_read', handleAfterHoursMarkRead)
+    );
+
+    logger.debug('After Hours handlers registered with rate limiting', {
+      socketId: socket.id,
+      userId,
+    });
+  } else {
+    // Fallback without rate limiting (e.g., for tests)
+    socket.on('after_hours:send_message', handleAfterHoursSendMessage);
+    socket.on('after_hours:typing', handleAfterHoursTyping);
+    socket.on('after_hours:mark_read', handleAfterHoursMarkRead);
+
+    logger.debug('After Hours handlers registered without rate limiting', {
+      socketId: socket.id,
+      userId,
+    });
+  }
 }
 
 // ============================================
