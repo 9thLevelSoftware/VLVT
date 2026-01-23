@@ -27,6 +27,7 @@ import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './m
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
 import { createAfterHoursChatRouter } from './routes/after-hours-chat';
+import { initializeMessageCleanupJob, closeMessageCleanupJob } from './jobs/message-cleanup-job';
 import {
   createCsrfMiddleware,
   createCsrfTokenHandler,
@@ -1553,6 +1554,36 @@ if (process.env.NODE_ENV !== 'test') {
       environment: process.env.NODE_ENV || 'development'
     });
   });
+
+  // Initialize message cleanup job (non-blocking, fire-and-forget)
+  initializeMessageCleanupJob(pool).catch((err) => {
+    logger.error('Failed to initialize message cleanup job', { error: err.message });
+  });
+
+  // Graceful shutdown handlers
+  const gracefulShutdown = async (signal: string) => {
+    logger.info(`Received ${signal}, starting graceful shutdown...`);
+
+    // Close message cleanup job
+    await closeMessageCleanupJob().catch((err) => {
+      logger.error('Error closing message cleanup job', { error: err.message });
+    });
+
+    // Close HTTP server
+    httpServer.close(() => {
+      logger.info('HTTP server closed');
+      process.exit(0);
+    });
+
+    // Force close after 10 seconds
+    setTimeout(() => {
+      logger.warn('Forcefully shutting down after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
 
 // Export for testing
