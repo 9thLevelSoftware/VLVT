@@ -250,6 +250,15 @@ Plans:
 
 **Rationale:** Backend must be complete for meaningful frontend testing. This phase brings it all together for users.
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — AfterHoursService state machine and tab navigation
+- [ ] 06-02-PLAN.md — After Hours profile and preferences screens
+- [ ] 06-03-PLAN.md — Session activation flow and timer widgets
+- [ ] 06-04-PLAN.md — Match card overlay with swipe gestures
+- [ ] 06-05-PLAN.md — Ephemeral chat screen and background location
+
 ### Requirements Addressed
 - All user-facing interactions from PROJECT.md Active requirements
 
@@ -265,9 +274,9 @@ Plans:
 - [ ] Background location handling (flutter_foreground_task)
 
 ### Technical Notes
-- State machine: `AfterHoursState { inactive, activating, active, matched, chatting, expired }`
+- State machine: `AfterHoursState { inactive, activating, searching, matched, chatting, expiring, expired }`
 - Profile screens: reuse existing photo picker, adapt form for After Hours fields
-- Match card: Card widget with CachedNetworkImage, two action buttons
+- Match card: Modal overlay with swipe gestures (Tinder-style)
 - Chat UI: fork existing ChatScreen, add session timer and save button
 - Background location: required for Android 14+ foreground service compliance
 
