@@ -105,17 +105,20 @@ Plans:
 
 ---
 
-## Phase 3: Matching Engine
+## Phase 3: Matching Engine ✓
 
 **Goal:** System automatically matches active users by proximity and preferences
+
+**Status:** Complete
+**Completed:** 2026-01-22
 
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Schema additions and core matching query logic
-- [ ] 03-02-PLAN.md — BullMQ matching scheduler (periodic + event-driven)
-- [ ] 03-03-PLAN.md — Decline, current match, and nearby count endpoints
-- [ ] 03-04-PLAN.md — Auto-decline timer and match expiry handling
+- [x] 03-01-PLAN.md — Schema additions and core matching query logic
+- [x] 03-02-PLAN.md — BullMQ matching scheduler (periodic + event-driven)
+- [x] 03-03-PLAN.md — Decline, current match, and nearby count endpoints
+- [x] 03-04-PLAN.md — Auto-decline timer and match expiry handling
 
 **Rationale:** Core differentiator of After Hours Mode. Users don't swipe; they receive match assignments from the system. Depends on sessions existing.
 
@@ -125,12 +128,12 @@ Plans:
 - Declined users reappear in future sessions (fresh each session)
 
 ### Deliverables
-- [ ] Proximity matching query (PostgreSQL Haversine, existing pattern)
-- [ ] Preference filter logic (gender seeking, distance range)
-- [ ] Match creation endpoint (called by matching job)
-- [ ] Match notification trigger (webhook to chat-service)
-- [ ] Decline endpoint (session-scoped, not permanent)
-- [ ] Decline reset on session start
+- [x] Proximity matching query (PostgreSQL Haversine, existing pattern)
+- [x] Preference filter logic (gender seeking, distance range)
+- [x] Match creation endpoint (called by matching job)
+- [x] Match notification trigger (webhook to chat-service)
+- [x] Decline endpoint (session-scoped, not permanent)
+- [x] Decline reset on session start
 
 ### Technical Notes
 - Matching query: existing Haversine pattern in profile-service
@@ -301,7 +304,7 @@ Plans:
 |-------|------|--------------|--------------|
 | 1 | Foundation & Safety ✓ | Schema, location fuzzing, middleware | None |
 | 2 | Profile & Session ✓ | Profile CRUD, preferences, session lifecycle | Phase 1 |
-| 3 | Matching Engine | Proximity matching, preference filtering | Phase 2 |
+| 3 | Matching Engine ✓ | Proximity matching, preference filtering | Phase 2 |
 | 4 | Real-Time Chat | Ephemeral chat, Socket.IO events | Phase 3 |
 | 5 | Save Mechanism | Mutual save, conversion to permanent | Phase 4 |
 | 6 | Frontend Integration | Complete Flutter UI | Phases 1-5 |
