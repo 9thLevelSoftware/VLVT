@@ -66,6 +66,13 @@ Plans:
 
 **Rationale:** Cannot match users without profiles and sessions existing. This phase establishes the user-facing entry point to After Hours Mode.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — After Hours profile CRUD with photo upload
+- [ ] 02-02-PLAN.md — After Hours preferences CRUD with smart defaults
+- [ ] 02-03-PLAN.md — Session lifecycle with BullMQ expiry
+
 ### Requirements Addressed
 - User can create separate After Hours profile (dedicated photo + description)
 - User can set After Hours preferences (gender seeking, kinks/interests, distance range)
@@ -293,7 +300,7 @@ Plans:
 
 ## Open Questions (To Resolve During Planning)
 
-1. **Session extension**: Should premium users be able to extend sessions?
+1. ~~**Session extension**: Should premium users be able to extend sessions?~~ **RESOLVED:** Yes, unlimited extensions (see 02-CONTEXT.md)
 2. **Empty queue behavior**: What happens when no compatible users are active?
 3. **iOS background location**: Accept limitations or implement push workaround?
 4. **Interests/tags**: Include basic version or defer to v2?
