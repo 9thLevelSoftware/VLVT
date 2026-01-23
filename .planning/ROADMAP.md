@@ -205,24 +205,25 @@ Plans:
 
 **Rationale:** Allows genuine connections to persist beyond the session while defaulting to privacy.
 
-**Plans:** 2 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Backend save endpoint with atomic conversion and notifications
-- [ ] 05-02-PLAN.md — Flutter save button and service integration
+- [x] 05-01-PLAN.md — Backend save endpoint with atomic conversion and notifications
+- [x] 05-02-PLAN.md — Flutter save button and service integration
+- [ ] 05-03-PLAN.md — Gap closure: Wire Socket.IO to After Hours router
 
 ### Requirements Addressed
 - Both users can tap "Save" to convert chat to regular match
 - Ephemeral chat disappears when session ends (unless saved)
 
 ### Deliverables
-- [ ] Save vote endpoint (`POST /api/after-hours/matches/{id}/save`)
-- [ ] Save vote storage (both users must vote)
-- [ ] Mutual save detection logic
-- [ ] Message copy from ephemeral to permanent table
-- [ ] Regular match creation in existing `matches` table
-- [ ] Notification to both users on successful save
-- [ ] UI state update via Socket.IO
+- [x] Save vote endpoint (`POST /api/after-hours/matches/{id}/save`)
+- [x] Save vote storage (both users must vote)
+- [x] Mutual save detection logic
+- [x] Message copy from ephemeral to permanent table
+- [x] Regular match creation in existing `matches` table
+- [x] Notification to both users on successful save
+- [ ] UI state update via Socket.IO (gap closure needed)
 
 ### Technical Notes
 - Save votes: `after_hours_matches.user1_save_vote`, `user2_save_vote` (boolean)
