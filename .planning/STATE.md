@@ -8,9 +8,9 @@
 ## Position
 
 - Phase: 06 of 07 (Frontend Integration)
-- Wave: 2
-- Plans: 4/6 complete
-- Last activity: 2026-01-23 - Completed 06-04-PLAN.md (Match Card Overlay)
+- Wave: 3
+- Plans: 5/6 complete
+- Last activity: 2026-01-23 - Completed 06-05-PLAN.md (Ephemeral Chat UI)
 
 ## Progress
 
@@ -20,8 +20,8 @@ Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
-Phase 6: [####------] 4/6 plans complete
-Overall:  [#########-] 21/23 plans complete
+Phase 6: [########--] 5/6 plans complete
+Overall:  [#########-] 22/23 plans complete
 ```
 
 ## Accumulated Decisions
@@ -101,6 +101,10 @@ Overall:  [#########-] 21/23 plans complete
 - [06-04] Boolean flag over ModalRoute.isCurrent for duplicate modal prevention
 - [06-04] SearchingAnimation shown behind modal when in matched state
 - [06-04] Auto-decline timer changes color from gold to crimson at 60s remaining
+- [06-05] Fork chat_screen.dart patterns for consistent UX
+- [06-05] Session timer in app bar for always-visible critical info
+- [06-05] Save button above message input for high visibility
+- [06-05] Mutual save dialog barrierDismissible: false for intentional navigation
 
 ## Current Context
 
@@ -140,35 +144,26 @@ Plan 06-04 complete (Match Card Overlay):
 - Auto-decline countdown timer with color change at 60s
 - Modal integration via listener pattern, boolean flag prevents duplicates
 
-Key files for 06-01:
-- `frontend/lib/services/after_hours_service.dart` (state machine, 399 lines)
-- `frontend/lib/providers/provider_tree.dart` (AfterHoursService + AfterHoursChatService)
-- `frontend/lib/screens/main_screen.dart` (5-tab navigation for premium)
-- `frontend/lib/main.dart` (notification tap handler updated)
+Plan 06-05 complete (Ephemeral Chat UI):
+- AfterHoursChatScreen with real-time messaging (721 lines)
+- Session timer in app bar with expiry handling
+- SaveMatchButton above message input
+- Partner saved/mutual save dialogs with haptic feedback
+- Chat navigation integrated from AfterHoursTabScreen
+- flutter_foreground_task added for background location support
 
-Key files for 06-02:
-- `frontend/lib/services/after_hours_profile_service.dart` (API client)
-- `frontend/lib/screens/after_hours_profile_screen.dart` (profile UI)
-- `frontend/lib/screens/after_hours_preferences_screen.dart` (preferences UI)
+Key files for 06-05:
+- `frontend/lib/screens/after_hours_chat_screen.dart` (chat UI, 721 lines)
+- `frontend/pubspec.yaml` (flutter_foreground_task dependency)
+- `frontend/android/app/src/main/AndroidManifest.xml` (foreground service config)
 
-Key files for 06-03:
-- `frontend/lib/widgets/after_hours/session_timer.dart` (countdown timer)
-- `frontend/lib/widgets/after_hours/searching_animation.dart` (radar animation)
-- `frontend/lib/widgets/after_hours/session_expiry_banner.dart` (warning banner)
-- `frontend/lib/screens/after_hours_tab_screen.dart` (full session flow UI)
-
-Key files for 06-04:
-- `frontend/lib/widgets/after_hours/match_card_overlay.dart` (swipe modal)
-- `frontend/lib/screens/after_hours_tab_screen.dart` (modal integration)
-
-**Next: Plan 06-05 - Ephemeral Chat UI**
+**Next: Plan 06-06 - Integration Testing**
 
 Remaining Phase 6 plans:
-- 06-05: Ephemeral chat UI
 - 06-06: Integration testing
 
 ## Session Continuity
 
 - Last session: 2026-01-23
-- Stopped at: Completed 06-04-PLAN.md
+- Stopped at: Completed 06-05-PLAN.md
 - Resume file: None
