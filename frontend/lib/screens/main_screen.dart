@@ -16,6 +16,7 @@ import 'chats_screen.dart';
 import 'profile_screen.dart';
 import 'profile_setup_screen.dart';
 import 'search_screen.dart';
+import 'after_hours_tab_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final int initialTab;
@@ -124,6 +125,7 @@ class MainScreenState extends State<MainScreen> {
         if (hasPremium) {
           screens = const [
             DiscoveryScreen(),
+            AfterHoursTabScreen(),
             MatchesScreen(),
             ChatsScreen(),
             ProfileScreen(),
@@ -132,6 +134,10 @@ class MainScreenState extends State<MainScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.explore),
               label: 'Discovery',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.nightlife),
+              label: 'After Hours',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.favorite),

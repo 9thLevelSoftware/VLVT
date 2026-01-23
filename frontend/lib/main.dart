@@ -95,7 +95,7 @@ void _handleNotificationTap(Map<String, dynamic> data) {
     // Navigate to matches screen
     // Determine correct tab based on subscription status
     // Free users: 0=Search, 1=Profile
-    // Premium users: 0=Discovery, 1=Matches, 2=Chats, 3=Profile
+    // Premium users: 0=Discovery, 1=After Hours, 2=Matches, 3=Chats, 4=Profile
     final subscriptionService = Provider.of<SubscriptionService>(
       navigatorState.context,
       listen: false,
@@ -105,8 +105,8 @@ void _handleNotificationTap(Map<String, dynamic> data) {
     navigatorState.pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (context) {
-          // For match notifications, navigate to matches tab (1 for premium, 0 for free)
-          final targetTab = hasPremiumAccess ? 1 : 0;
+          // For match notifications, navigate to matches tab (2 for premium, 0 for free)
+          final targetTab = hasPremiumAccess ? 2 : 0;
           return MainScreen(initialTab: targetTab);
         },
       ),
