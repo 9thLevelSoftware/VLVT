@@ -34,6 +34,7 @@ import {
   validatePreferencesUpdate,
   validateSessionStart,
   validateSessionExtend,
+  validateDecline,
 } from '../middleware/after-hours-validation';
 import { fuzzLocationForAfterHours } from '../utils/location-fuzzer';
 import {
@@ -49,6 +50,26 @@ import {
 import { resolvePhotoUrl, uploadToR2, getPresignedUrl } from '../utils/r2-client';
 import logger from '../utils/logger';
 import sharp from 'sharp';
+import { triggerMatchingForUser } from '../services/matching-scheduler';
+import { getActiveUserCountNearby } from '../services/matching-engine';
+
+/**
+ * Calculate Haversine distance between two points in km
+ */
+function calculateHaversineDistance(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number
+): number {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 /**
  * Factory function to create After Hours router with injected dependencies
@@ -698,6 +719,14 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
       // Schedule expiry job (fire-and-forget, session persists regardless)
       scheduleSessionExpiry(session.id, userId, durationMinutes * 60 * 1000).catch((err) => {
         logger.error('Failed to schedule session expiry', {
+          sessionId: session.id,
+          error: err.message,
+        });
+      });
+
+      // Trigger matching after 15-second delay (gives user time to see the session UI)
+      triggerMatchingForUser(userId, session.id, 15000).catch((err) => {
+        logger.error('Failed to trigger matching after session start', {
           sessionId: session.id,
           error: err.message,
         });

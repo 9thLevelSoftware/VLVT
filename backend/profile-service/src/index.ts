@@ -43,6 +43,10 @@ import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognit
 import { initializeFirebase, sendMatchNotification } from './services/fcm-service';
 import { initializeSessionWorker, closeSessionScheduler } from './services/session-scheduler';
 import {
+  initializeMatchingScheduler,
+  closeMatchingScheduler,
+} from './services/matching-scheduler';
+import {
   createCsrfMiddleware,
   createCsrfTokenHandler,
   addVersionToHealth,
@@ -1659,12 +1663,14 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 // Graceful shutdown handlers
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  await closeMatchingScheduler();
   await closeSessionScheduler();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  await closeMatchingScheduler();
   await closeSessionScheduler();
   process.exit(0);
 });
@@ -1687,6 +1693,14 @@ if (process.env.NODE_ENV !== 'test') {
         // Continue startup - sessions will still work but won't auto-expire
         // For stricter behavior, uncomment: process.exit(1);
       }
+
+      // Initialize matching scheduler (uses Redis pub/sub for event delivery)
+      // Note: Match events are published to Redis channel 'after_hours:events'
+      // chat-service subscribes to this channel and delivers to clients via Socket.IO
+      initializeMatchingScheduler(pool).catch((err) => {
+        logger.error('Failed to initialize matching scheduler', { error: err.message });
+        logger.warn('Matching will not work automatically. Start Redis and restart.');
+      });
 
       app.listen(PORT, () => {
         logger.info(`Profile service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
