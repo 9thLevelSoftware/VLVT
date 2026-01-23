@@ -199,9 +199,12 @@ Plans:
 
 ---
 
-## Phase 5: Save Mechanism & Conversion
+## Phase 5: Save Mechanism & Conversion ✓
 
 **Goal:** Both users can "Save" to convert ephemeral connection to permanent match
+
+**Status:** Complete
+**Completed:** 2026-01-23
 
 **Rationale:** Allows genuine connections to persist beyond the session while defaulting to privacy.
 
@@ -210,7 +213,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — Backend save endpoint with atomic conversion and notifications
 - [x] 05-02-PLAN.md — Flutter save button and service integration
-- [ ] 05-03-PLAN.md — Gap closure: Wire Socket.IO to After Hours router
+- [x] 05-03-PLAN.md — Gap closure: Wire Socket.IO to After Hours router
 
 ### Requirements Addressed
 - Both users can tap "Save" to convert chat to regular match
@@ -223,7 +226,7 @@ Plans:
 - [x] Message copy from ephemeral to permanent table
 - [x] Regular match creation in existing `matches` table
 - [x] Notification to both users on successful save
-- [ ] UI state update via Socket.IO (gap closure needed)
+- [x] UI state update via Socket.IO (gap closure complete)
 
 ### Technical Notes
 - Save votes: `after_hours_matches.user1_save_vote`, `user2_save_vote` (boolean)
@@ -324,7 +327,7 @@ Plans:
 | 2 | Profile & Session ✓ | Profile CRUD, preferences, session lifecycle | Phase 1 |
 | 3 | Matching Engine ✓ | Proximity matching, preference filtering | Phase 2 |
 | 4 | Real-Time Chat ✓ | Ephemeral chat, Socket.IO events | Phase 3 |
-| 5 | Save Mechanism | Mutual save, conversion to permanent | Phase 4 |
+| 5 | Save Mechanism ✓ | Mutual save, conversion to permanent | Phase 4 |
 | 6 | Frontend Integration | Complete Flutter UI | Phases 1-5 |
 | 7 | Safety Systems | Blocking, reporting, ban enforcement | Phase 6 |
 

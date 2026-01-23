@@ -2,15 +2,15 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 5 - Save Mechanism & Conversion
-**Status:** Phase complete
+**Current Phase:** 6 - Frontend Integration
+**Status:** Ready for planning
 
 ## Position
 
-- Phase: 05 of 07 (Save Mechanism & Conversion)
-- Wave: 2
-- Plans: 05-01 (complete), 05-02 (complete), 05-03 (complete)
-- Last activity: 2026-01-23 - Completed 05-03-PLAN.md
+- Phase: 06 of 07 (Frontend Integration)
+- Wave: —
+- Plans: Not yet planned
+- Last activity: 2026-01-23 - Completed Phase 05 (Save Mechanism & Conversion)
 
 ## Progress
 
@@ -120,7 +120,15 @@ Key files:
 - `frontend/lib/services/after_hours_chat_service.dart` (saveMatch method)
 - `frontend/lib/widgets/save_match_button.dart` (save button widget)
 
-Next: Phase 06 (Session Lifecycle) or Phase 07 (Testing)
+**Ready for Phase 6: Frontend Integration**
+
+Backend complete (Phases 1-5). Phase 6 brings it all together with:
+- AfterHoursService state machine
+- Profile/preferences screens
+- Session activation flow
+- Match card UI
+- Ephemeral chat UI
+- Background location handling
 
 ## Session Continuity
 
