@@ -8,8 +8,8 @@
 ## Position
 
 - Phase: 04 of 07 (Real-Time Chat)
-- Wave: 1
-- Plans: 04-01 (complete), 04-02 (complete), 04-03 (pending), 04-04 (pending)
+- Wave: 2
+- Plans: 04-01 (complete), 04-02 (complete), 04-03 (pending), 04-04 (complete)
 
 ## Progress
 
@@ -17,8 +17,8 @@
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
-Phase 4: [####------] 2/4 plans complete
-Overall:  [######----] 12/17 plans complete
+Phase 4: [#######---] 3/4 plans complete
+Overall:  [#######---] 13/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -71,6 +71,9 @@ Overall:  [######----] 12/17 plans complete
 - [04-02] Cursor pagination with 'before' timestamp parameter
 - [04-02] 50 message limit per request for performance
 - [04-02] MATCH_EXPIRED error code for expired/declined matches
+- [04-04] 8 separate stream controllers for After Hours events (consistent with existing patterns)
+- [04-04] 3-attempt retry with 1s, 2s, 4s exponential backoff for message sending
+- [04-04] Separate HTTP service for message history vs socket for real-time
 
 ## Current Context
 
@@ -91,15 +94,24 @@ Plan 04-02 complete (Message Handlers & HTTP History):
 - Validates match ownership and active status before allowing messages
 - HTTP endpoint supports cursor pagination with 'before' parameter
 
+Plan 04-04 complete (Flutter Socket Extension & Chat Service):
+- Extended socket_service.dart with 8 After Hours event stream controllers
+- Added listeners for all after_hours:* Socket.IO events
+- Added emitter methods: sendAfterHoursMessage, typing, mark_read, join/leave
+- Created after_hours_chat_service.dart with getMessageHistory and sendMessageWithRetry
+- Auto-retry with exponential backoff (1s, 2s, 4s) for message sending
+
 Key files:
 - `backend/chat-service/src/socket/after-hours-handler.ts` (Redis subscriber + handlers)
 - `backend/chat-service/src/socket/index.ts` (integration with rate limits)
 - `backend/chat-service/src/routes/after-hours-chat.ts` (HTTP history endpoint)
+- `frontend/lib/services/socket_service.dart` (After Hours event streams)
+- `frontend/lib/services/after_hours_chat_service.dart` (chat operations service)
 
 Next: Plan 04-03 - FCM Push Notifications
 
 ## Session Continuity
 
-- Last session: 2025-01-23T03:54Z
-- Stopped at: Completed 04-02-PLAN.md
+- Last session: 2025-01-22
+- Stopped at: Completed 04-04-PLAN.md
 - Resume file: None
