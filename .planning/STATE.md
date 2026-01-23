@@ -9,7 +9,7 @@
 
 - Phase: 04 of 07 (Real-Time Chat)
 - Wave: 1
-- Plans: 04-01 (complete), 04-02 (pending), 04-03 (pending), 04-04 (pending)
+- Plans: 04-01 (complete), 04-02 (complete), 04-03 (pending), 04-04 (pending)
 
 ## Progress
 
@@ -17,8 +17,8 @@
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
-Phase 4: [##--------] 1/4 plans complete
-Overall:  [#####-----] 11/17 plans complete
+Phase 4: [####------] 2/4 plans complete
+Overall:  [######----] 12/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -67,6 +67,10 @@ Overall:  [#####-----] 11/17 plans complete
 - [04-01] Same rate limits for After Hours events as regular chat
 - [04-01] Ephemeral typing/read receipts (no DB storage for After Hours)
 - [04-01] Room naming: after_hours:match:{matchId} for multi-device support
+- [04-02] Return messages even if match expired - allows history viewing
+- [04-02] Cursor pagination with 'before' timestamp parameter
+- [04-02] 50 message limit per request for performance
+- [04-02] MATCH_EXPIRED error code for expired/declined matches
 
 ## Current Context
 
@@ -80,14 +84,22 @@ Plan 04-01 complete (Redis Subscriber & Socket.IO Handlers):
 - Message, typing, and mark_read handlers for ephemeral After Hours chat
 - Rate limiting configured for all After Hours events
 
+Plan 04-02 complete (Message Handlers & HTTP History):
+- Extended after-hours-handler.ts with send_message, typing, mark_read handlers
+- Created GET /after-hours/messages/:matchId endpoint for message history
+- Messages stored in after_hours_messages table
+- Validates match ownership and active status before allowing messages
+- HTTP endpoint supports cursor pagination with 'before' parameter
+
 Key files:
 - `backend/chat-service/src/socket/after-hours-handler.ts` (Redis subscriber + handlers)
 - `backend/chat-service/src/socket/index.ts` (integration with rate limits)
+- `backend/chat-service/src/routes/after-hours-chat.ts` (HTTP history endpoint)
 
-Next: Plan 04-02 - FCM Push Notifications
+Next: Plan 04-03 - FCM Push Notifications
 
 ## Session Continuity
 
-- Last session: 2025-01-22T22:40Z
-- Stopped at: Completed 04-01-PLAN.md
+- Last session: 2025-01-23T03:54Z
+- Stopped at: Completed 04-02-PLAN.md
 - Resume file: None
