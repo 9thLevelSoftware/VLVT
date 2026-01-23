@@ -2,14 +2,14 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 3 - Matching Engine
-**Status:** complete
+**Current Phase:** 4 - Real-Time Chat
+**Status:** In progress
 
 ## Position
 
-- Phase: 03 of 07 (Matching Engine)
-- Wave: 3
-- Plans: 03-01 (complete), 03-02 (complete), 03-03 (complete), 03-04 (complete)
+- Phase: 04 of 07 (Real-Time Chat)
+- Wave: 1
+- Plans: 04-01 (complete), 04-02 (pending), 04-03 (pending), 04-04 (pending)
 
 ## Progress
 
@@ -17,7 +17,8 @@
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
-Overall:  [####------] 3/7 phases complete
+Phase 4: [##--------] 1/4 plans complete
+Overall:  [#####-----] 11/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -61,46 +62,32 @@ Overall:  [####------] 3/7 phases complete
 - [03-04] jobId format `auto-decline:{matchId}` enables reliable job cancellation
 - [03-04] Fire-and-forget cancellation pattern - errors logged but don't block response
 - [03-04] 5-second delay before re-matching after auto-decline (faster than manual 30s)
+- [04-01] Non-blocking Redis subscriber init - server continues if Redis unavailable
+- [04-01] ioredis for Redis pub/sub (compatibility with profile-service BullMQ)
+- [04-01] Same rate limits for After Hours events as regular chat
+- [04-01] Ephemeral typing/read receipts (no DB storage for After Hours)
+- [04-01] Room naming: after_hours:match:{matchId} for multi-device support
 
 ## Current Context
 
-**Phase 3 COMPLETE - Matching Engine**
+**Phase 4 IN PROGRESS - Real-Time Chat**
 
-Plan 03-01 complete (Core Matching Engine):
-- Migration 023 adds decline tracking columns and match status columns
-- matching-engine.ts implements findMatchCandidate, createAfterHoursMatch, getActiveUserCountNearby
-- Haversine formula with LEAST/GREATEST wrapper for domain safety
-- SELECT FOR UPDATE SKIP LOCKED for concurrent matching safety
-
-Plan 03-02 complete (Match Scheduling):
-- matching-scheduler.ts with BullMQ periodic job (30s cycle)
-- Event-driven matching trigger on session start (15s delay)
-- Redis pub/sub event publishing to 'after_hours:events' channel
-- Match events ready for chat-service subscription in Phase 4
-
-Plan 03-03 complete (Decline & Status Endpoints):
-- POST /match/decline with 3-session memory UPSERT, triggers matching after 30s cooldown
-- GET /match/current returns match profile or "searching" status for app reopen
-- GET /nearby/count returns active user count for social proof display
-- validateDecline middleware with UUID format validation
-
-Plan 03-04 complete (Auto-Decline Timer):
-- scheduleAutoDecline called when match created (5-minute delay)
-- handleAutoDeclineMatch marks match declined_by='system', notifies both users
-- cancelAutoDecline called on manual decline to prevent wasted jobs
-- Both users re-enter matching pool with 5-second delay after auto-decline
+Plan 04-01 complete (Redis Subscriber & Socket.IO Handlers):
+- after-hours-handler.ts with Redis pub/sub subscriber
+- Subscribes to 'after_hours:events' channel from profile-service
+- Relays after_hours:match, after_hours:no_matches, after_hours:match_expired to Socket.IO
+- Join/leave handlers for After Hours match chat rooms
+- Message, typing, and mark_read handlers for ephemeral After Hours chat
+- Rate limiting configured for all After Hours events
 
 Key files:
-- `backend/migrations/023_add_matching_engine_columns.sql` (decline/match tracking)
-- `backend/profile-service/src/services/matching-engine.ts` (core query logic)
-- `backend/profile-service/src/services/matching-scheduler.ts` (scheduling + pub/sub + auto-decline)
-- `backend/profile-service/src/routes/after-hours.ts` (decline/status endpoints)
-- `backend/profile-service/src/middleware/after-hours-validation.ts` (validateDecline)
+- `backend/chat-service/src/socket/after-hours-handler.ts` (Redis subscriber + handlers)
+- `backend/chat-service/src/socket/index.ts` (integration with rate limits)
 
-Next: Phase 4 - Chat Integration
+Next: Plan 04-02 - FCM Push Notifications
 
 ## Session Continuity
 
-- Last session: 2026-01-22T03:08Z
-- Stopped at: Completed 03-04-PLAN.md (Phase 3 complete)
+- Last session: 2025-01-22T22:40Z
+- Stopped at: Completed 04-01-PLAN.md
 - Resume file: None
