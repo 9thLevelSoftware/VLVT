@@ -2,14 +2,15 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 4 - Real-Time Chat
-**Status:** Phase complete
+**Current Phase:** 5 - Save Mechanism & Conversion
+**Status:** In progress
 
 ## Position
 
-- Phase: 04 of 07 (Real-Time Chat)
-- Wave: 2
-- Plans: 04-01 (complete), 04-02 (complete), 04-03 (complete), 04-04 (complete)
+- Phase: 05 of 07 (Save Mechanism & Conversion)
+- Wave: 1
+- Plans: 05-01 (complete)
+- Last activity: 2026-01-22 - Completed 05-01-PLAN.md
 
 ## Progress
 
@@ -18,7 +19,8 @@ Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
-Overall:  [########--] 14/17 plans complete
+Phase 5: [###-------] 1/3 plans complete
+Overall:  [########--] 15/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -78,52 +80,34 @@ Overall:  [########--] 14/17 plans complete
 - [04-04] 8 separate stream controllers for After Hours events (consistent with existing patterns)
 - [04-04] 3-attempt retry with 1s, 2s, 4s exponential backoff for message sending
 - [04-04] Separate HTTP service for message history vs socket for real-time
+- [05-01] Batch message copy with generated IDs preserves chronological order
+- [05-01] Router accepts optional Socket.IO instance for notification emission
+- [05-01] Idempotent save votes: re-saving returns success without duplicate notifications
 
 ## Current Context
 
-**Phase 4 COMPLETE - Real-Time Chat**
+**Phase 5 IN PROGRESS - Save Mechanism & Conversion**
 
-Plan 04-01 complete (Redis Subscriber & Socket.IO Handlers):
-- after-hours-handler.ts with Redis pub/sub subscriber
-- Subscribes to 'after_hours:events' channel from profile-service
-- Relays after_hours:match, after_hours:no_matches, after_hours:match_expired to Socket.IO
-- Join/leave handlers for After Hours match chat rooms
-- Message, typing, and mark_read handlers for ephemeral After Hours chat
-- Rate limiting configured for all After Hours events
-
-Plan 04-02 complete (Message Handlers & HTTP History):
-- Extended after-hours-handler.ts with send_message, typing, mark_read handlers
-- Created GET /after-hours/messages/:matchId endpoint for message history
-- Messages stored in after_hours_messages table
-- Validates match ownership and active status before allowing messages
-- HTTP endpoint supports cursor pagination with 'before' parameter
-
-Plan 04-03 complete (Message Retention & Session Expiry Notifications):
-- Created message-cleanup-job.ts with BullMQ scheduled cleanup (3 AM UTC daily)
-- 30-day retention for unsaved After Hours messages (safety requirement)
-- Session expiry warning 2 minutes before expiry via Redis pub/sub
-- Session expired notification when session ends
-- Events relayed to Socket.IO clients via after-hours-handler.ts
-
-Plan 04-04 complete (Flutter Socket Extension & Chat Service):
-- Extended socket_service.dart with 8 After Hours event stream controllers
-- Added listeners for all after_hours:* Socket.IO events
-- Added emitter methods: sendAfterHoursMessage, typing, mark_read, join/leave
-- Created after_hours_chat_service.dart with getMessageHistory and sendMessageWithRetry
-- Auto-retry with exponential backoff (1s, 2s, 4s) for message sending
+Plan 05-01 complete (Backend Save Vote Endpoint):
+- Migration 024: source column on matches table for tracking origin (swipe vs after_hours)
+- match-conversion-service.ts with recordSaveVote() using SELECT...FOR UPDATE
+- Atomic transaction: vote recording + conversion to permanent match
+- POST /after-hours/matches/:matchId/save endpoint
+- Socket.IO events: after_hours:partner_saved, after_hours:match_saved
+- FCM notifications: sendAfterHoursPartnerSavedNotification, sendAfterHoursMutualSaveNotification
+- Messages copied from after_hours_messages to messages table on mutual save
 
 Key files:
-- `backend/chat-service/src/socket/after-hours-handler.ts` (Redis subscriber + handlers)
-- `backend/chat-service/src/jobs/message-cleanup-job.ts` (30-day cleanup job)
-- `backend/profile-service/src/services/session-scheduler.ts` (expiry warnings)
-- `backend/chat-service/src/routes/after-hours-chat.ts` (HTTP history endpoint)
-- `frontend/lib/services/socket_service.dart` (After Hours event streams)
-- `frontend/lib/services/after_hours_chat_service.dart` (chat operations service)
+- `backend/migrations/024_add_matches_source_column.sql` (source column)
+- `backend/chat-service/src/services/match-conversion-service.ts` (atomic conversion)
+- `backend/chat-service/src/routes/after-hours-chat.ts` (save endpoint)
+- `backend/chat-service/src/socket/after-hours-handler.ts` (emit helpers)
+- `backend/chat-service/src/services/fcm-service.ts` (After Hours notifications)
 
-Next: Phase 5 - Save Mechanism & Conversion
+Next: Plan 05-02 (Flutter Save UI) or Plan 05-03 (Cleanup Scheduling)
 
 ## Session Continuity
 
 - Last session: 2026-01-22
-- Stopped at: Completed Phase 4 (Real-Time Chat)
+- Stopped at: Completed 05-01-PLAN.md
 - Resume file: None
