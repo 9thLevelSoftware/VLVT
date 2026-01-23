@@ -3,14 +3,14 @@
 **Project:** After Hours Mode
 **Milestone:** v1.0
 **Current Phase:** 5 - Save Mechanism & Conversion
-**Status:** In progress
+**Status:** Phase complete
 
 ## Position
 
 - Phase: 05 of 07 (Save Mechanism & Conversion)
 - Wave: 2
-- Plans: 05-01 (complete), 05-02 (complete)
-- Last activity: 2026-01-23 - Completed 05-02-PLAN.md
+- Plans: 05-01 (complete), 05-02 (complete), 05-03 (complete)
+- Last activity: 2026-01-23 - Completed 05-03-PLAN.md
 
 ## Progress
 
@@ -19,8 +19,8 @@ Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
-Phase 5: [######----] 2/3 plans complete
-Overall:  [#########-] 16/17 plans complete
+Phase 5: [##########] 3/3 plans complete
+Overall:  [##########] 17/17 plans complete
 ```
 
 ## Accumulated Decisions
@@ -86,10 +86,11 @@ Overall:  [#########-] 16/17 plans complete
 - [05-02] Stateless SaveMatchButton - parent manages state transitions
 - [05-02] SaveResult class for typed HTTP response handling
 - [05-02] partnerSavedFirst state uses primary color for urgency
+- [05-03] Router registration moved after io initialization to ensure io is defined
 
 ## Current Context
 
-**Phase 5 IN PROGRESS - Save Mechanism & Conversion**
+**Phase 5 COMPLETE - Save Mechanism & Conversion**
 
 Plan 05-01 complete (Backend Save Vote Endpoint):
 - Migration 024: source column on matches table for tracking origin (swipe vs after_hours)
@@ -105,18 +106,24 @@ Plan 05-02 complete (Flutter Save UI):
 - after_hours_chat_service.dart: SaveResult class and saveMatch method
 - save_match_button.dart: SaveMatchButton widget with 5-state machine
 
+Plan 05-03 complete (Gap Closure - Socket.IO Wiring):
+- After Hours router registration moved after Socket.IO initialization
+- io parameter passed to createAfterHoursChatRouter(pool, io)
+- Real-time save notifications now emit via Socket.IO
+
 Key files:
 - `backend/migrations/024_add_matches_source_column.sql` (source column)
 - `backend/chat-service/src/services/match-conversion-service.ts` (atomic conversion)
 - `backend/chat-service/src/routes/after-hours-chat.ts` (save endpoint)
+- `backend/chat-service/src/index.ts` (Socket.IO wiring)
 - `frontend/lib/services/socket_service.dart` (save event streams)
 - `frontend/lib/services/after_hours_chat_service.dart` (saveMatch method)
 - `frontend/lib/widgets/save_match_button.dart` (save button widget)
 
-Next: Plan 05-03 (Cleanup Scheduling)
+Next: Phase 06 (Session Lifecycle) or Phase 07 (Testing)
 
 ## Session Continuity
 
 - Last session: 2026-01-23
-- Stopped at: Completed 05-02-PLAN.md
+- Stopped at: Completed 05-03-PLAN.md
 - Resume file: None
