@@ -18,6 +18,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'after_hours_profile_screen.dart';
 import 'after_hours_preferences_screen.dart';
+import 'after_hours_chat_screen.dart';
 
 /// Main tab screen for After Hours mode.
 ///
@@ -152,7 +153,15 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
   Future<void> _acceptMatch(AfterHoursMatch match) async {
     final service = context.read<AfterHoursService>();
     await service.acceptMatch();
-    // Navigation to chat will be handled in Plan 06-05
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AfterHoursChatScreen(match: match),
+        ),
+      );
+    }
   }
 
   /// Decline the current match and return to searching.
@@ -518,9 +527,41 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
         );
 
       case AfterHoursState.chatting:
-        // Will navigate to chat screen in Plan 06-05
+        // User is in chat (this screen visible when navigating back)
+        final match = afterHoursService.currentMatch;
+        if (match != null) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.chat_bubble,
+                  size: 64,
+                  color: VlvtColors.gold,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'In chat with ${match.name}',
+                  style: VlvtTextStyles.bodyMedium,
+                ),
+                const SizedBox(height: 24),
+                VlvtButton.primary(
+                  label: 'Return to Chat',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AfterHoursChatScreen(match: match),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        }
         return Center(
-          child: Text('In chat...', style: VlvtTextStyles.bodyMedium),
+          child: SearchingAnimation(nearbyCount: afterHoursService.nearbyCount),
         );
 
       case AfterHoursState.expiring:
