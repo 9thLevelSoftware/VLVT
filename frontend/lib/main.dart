@@ -12,6 +12,7 @@ import 'services/subscription_service.dart';
 import 'services/theme_service.dart';
 import 'services/deep_link_service.dart';
 import 'services/message_queue_service.dart';
+import 'services/after_hours_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/chat_screen.dart';
@@ -59,6 +60,9 @@ void main() async {
   // Initialize Theme Service
   final themeService = ThemeService();
   await themeService.initialize();
+
+  // Initialize After Hours foreground task (Android background location)
+  await AfterHoursService.initForegroundTask();
 
   runApp(MyApp(themeService: themeService));
 }
