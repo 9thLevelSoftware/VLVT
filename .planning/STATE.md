@@ -10,7 +10,7 @@
 - Phase: 06 of 07 (Frontend Integration)
 - Wave: 1
 - Plans: 2/6 complete
-- Last activity: 2026-01-23 - Completed 06-02-PLAN.md (Profile & Preferences)
+- Last activity: 2026-01-23 - Re-executed 06-01-PLAN.md (Core Service & Navigation)
 
 ## Progress
 
@@ -88,6 +88,10 @@ Overall:  [#########-] 19/23 plans complete
 - [05-02] SaveResult class for typed HTTP response handling
 - [05-02] partnerSavedFirst state uses primary color for urgency
 - [05-03] Router registration moved after io initialization to ensure io is defined
+- [06-01] 7-state enum for session lifecycle (inactive, activating, searching, matched, chatting, expiring, expired)
+- [06-01] 8 separate StreamSubscription for each socket event type
+- [06-01] ChangeNotifierProxyProvider2 for services needing both AuthService and SocketService
+- [06-01] After Hours tab positioned between Discovery and Matches for premium users
 - [06-02] Extended BaseApiService with authenticatedPatch for partial updates
 - [06-02] Circular 200x200 photo display for After Hours profile
 - [06-02] Gender selection chips with animated transitions over radio buttons
@@ -96,12 +100,13 @@ Overall:  [#########-] 19/23 plans complete
 
 **Phase 6 IN PROGRESS - Frontend Integration**
 
-Plan 06-01 complete (AfterHoursService State Machine):
-- State enum: idle, loading, searching, matched, chatting, error
-- Full session lifecycle: checkEligibility, startSession, endSession
-- Socket event handlers for matches, messages, session events
-- Timer management for session expiry and match decline
-- Error handling with user-friendly messages
+Plan 06-01 complete (Core Service & Navigation):
+- AfterHoursState enum with 7 states (inactive, activating, searching, matched, chatting, expiring, expired)
+- AfterHoursService state machine with socket event subscriptions
+- All 8 After Hours socket event streams handled
+- AfterHoursMatch model for match data parsing
+- After Hours tab added to main navigation for premium users (5 tabs total)
+- Provider tree updated with AfterHoursService and AfterHoursChatService
 
 Plan 06-02 complete (Profile & Preferences):
 - AfterHoursProfileService API client (487 lines)
@@ -112,11 +117,17 @@ Plan 06-02 complete (Profile & Preferences):
 - AfterHoursPreferencesScreen with sliders and selection chips
 - Provider registration in afterHours() group
 
-Key files:
+Key files for 06-01:
+- `frontend/lib/services/after_hours_service.dart` (state machine, 399 lines)
+- `frontend/lib/screens/after_hours_tab_screen.dart` (placeholder tab)
+- `frontend/lib/providers/provider_tree.dart` (AfterHoursService + AfterHoursChatService)
+- `frontend/lib/screens/main_screen.dart` (5-tab navigation for premium)
+- `frontend/lib/main.dart` (notification tap handler updated)
+
+Key files for 06-02:
 - `frontend/lib/services/after_hours_profile_service.dart` (API client)
 - `frontend/lib/screens/after_hours_profile_screen.dart` (profile UI)
 - `frontend/lib/screens/after_hours_preferences_screen.dart` (preferences UI)
-- `frontend/lib/providers/provider_tree.dart` (updated)
 
 **Next: Plan 06-03 - Session Activation Flow**
 
