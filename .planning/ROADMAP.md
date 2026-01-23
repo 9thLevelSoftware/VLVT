@@ -301,29 +301,38 @@ Plans:
 
 **Rationale:** Final layer before launch. Addresses remaining safety requirements and operational concerns.
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Backend block and report endpoints for After Hours
+- [ ] 07-02-PLAN.md — Device fingerprinting and photo perceptual hashing
+- [ ] 07-03-PLAN.md — Session cleanup jobs (BullMQ)
+- [ ] 07-04-PLAN.md — Frontend quick report flow with auto-exit
+- [ ] 07-05-PLAN.md — Analytics events for After Hours funnel
+
 ### Requirements Addressed
 - Blocks from main app carry over to After Hours mode
 - User can block within After Hours mode (permanent)
 - Quick report/exit mechanism for bad matches
 
 ### Deliverables
-- [ ] Block synchronization (main app blocks apply to After Hours)
+- [ ] Block synchronization (main app blocks apply to After Hours) - already implemented in matching-engine.ts
 - [ ] After Hours block endpoint (creates permanent block)
+- [ ] After Hours report endpoint with auto-block
 - [ ] Device fingerprinting for ban enforcement
 - [ ] Photo hashing against ban database
 - [ ] Quick report flow (one-tap report + exit)
-- [ ] Moderation queue for After Hours reports
-- [ ] Cleanup jobs (expired sessions, orphaned data)
+- [ ] Session cleanup jobs (expired sessions, orphaned data)
 - [ ] Analytics events for After Hours funnel
-- [ ] Edge case handling and error states
 
 ### Technical Notes
-- Block sync: query existing `blocks` table in matching exclusion logic
+- Block sync: already implemented - `blocks` table queried in matching-engine.ts
 - New block: insert into `blocks` table, same as main app
-- Device fingerprint: store IDFA/GAID + device ID at session start
-- Photo hash: perceptual hash on After Hours profile photo, compare against banned hashes
-- Report flow: `POST /api/after-hours/matches/{id}/report` with reason enum
+- Device fingerprint: store IDFV/Android ID + device model at session start
+- Photo hash: perceptual hash via sharp-phash, compare against banned_photo_hashes table
+- Report flow: `POST /api/after-hours/matches/{id}/report` with reason enum, auto-blocks
 - Analytics: `after_hours_session_started`, `after_hours_match_received`, `after_hours_chat_started`, `after_hours_match_saved`
+- Cleanup: BullMQ job at 4 AM UTC (1 hour after message cleanup)
 
 ### Dependencies
 - Phase 6 (frontend must exist for full integration testing)
