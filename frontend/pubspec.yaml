@@ -79,6 +79,9 @@ dependencies:
   path_provider: ^2.1.5
   webview_flutter: ^4.13.0
   crypto: ^3.0.7
+
+  # After Hours - background location for session
+  flutter_foreground_task: ^9.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
