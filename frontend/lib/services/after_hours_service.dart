@@ -4,7 +4,11 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import '../config/app_config.dart';
 import 'auth_service.dart';
 import 'socket_service.dart';
 
@@ -85,6 +89,16 @@ class AfterHoursMatch {
 class AfterHoursService extends ChangeNotifier {
   final AuthService _authService;
   final SocketService _socketService;
+
+  /// Build a versioned profile service URL for After Hours endpoints
+  String _url(String path) => AppConfig.profileUrl(path);
+
+  /// Get authorization headers
+  Map<String, String> get _authHeaders => {
+        'Content-Type': 'application/json',
+        if (_authService.token != null)
+          'Authorization': 'Bearer ${_authService.token}',
+      };
 
   // State properties
   AfterHoursState _state = AfterHoursState.inactive;
@@ -250,18 +264,35 @@ class AfterHoursService extends ChangeNotifier {
         return false;
       }
 
-      // TODO: Call profile-service API to start session
-      // POST /api/after-hours/sessions
-      // Body: { durationMinutes, lat, lng }
-      // Response: { sessionId, expiresAt }
+      // Make API call to start session
+      final response = await http.post(
+        Uri.parse(_url('/after-hours/session/start')),
+        headers: _authHeaders,
+        body: json.encode({
+          'duration': durationMinutes,
+          'latitude': lat,
+          'longitude': lng,
+        }),
+      );
 
-      // For now, simulate session start
-      debugPrint('AfterHoursService: Starting session (API call not yet implemented)');
-      _sessionId = 'temp-session-id';
-      _expiresAt = DateTime.now().add(Duration(minutes: durationMinutes));
-      _setState(AfterHoursState.searching);
+      if (response.statusCode == 201) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['session'] != null) {
+          _sessionId = data['session']['id'] as String;
+          _expiresAt = DateTime.parse(data['session']['expiresAt'] as String);
+          _setState(AfterHoursState.searching);
 
-      return true;
+          // Start foreground service for background location
+          await _startForegroundService();
+
+          return true;
+        }
+      }
+
+      debugPrint('AfterHoursService: Failed to start session: ${response.statusCode}');
+      debugPrint('Response: ${response.body}');
+      _setState(AfterHoursState.inactive);
+      return false;
     } catch (e) {
       debugPrint('AfterHoursService: Error starting session: $e');
       _setState(AfterHoursState.inactive);
@@ -283,13 +314,19 @@ class AfterHoursService extends ChangeNotifier {
         return false;
       }
 
-      // TODO: Call profile-service API to end session
-      // DELETE /api/after-hours/sessions/:sessionId
-      // or POST /api/after-hours/sessions/:sessionId/end
+      // Make API call to end session
+      final response = await http.post(
+        Uri.parse(_url('/after-hours/session/end')),
+        headers: _authHeaders,
+      );
 
-      debugPrint('AfterHoursService: Ending session (API call not yet implemented)');
-      resetToInactive();
-      return true;
+      if (response.statusCode == 200) {
+        resetToInactive();
+        return true;
+      }
+
+      debugPrint('AfterHoursService: Failed to end session: ${response.statusCode}');
+      return false;
     } catch (e) {
       debugPrint('AfterHoursService: Error ending session: $e');
       return false;
@@ -297,6 +334,9 @@ class AfterHoursService extends ChangeNotifier {
   }
 
   /// Accept the current match and transition to chatting
+  ///
+  /// Match acceptance is socket-based (joinAfterHoursChat), not HTTP.
+  /// The socket event notifies the backend and partner simultaneously.
   Future<bool> acceptMatch() async {
     if (_currentMatch == null) {
       debugPrint('AfterHoursService: No current match to accept');
@@ -304,10 +344,7 @@ class AfterHoursService extends ChangeNotifier {
     }
 
     try {
-      // TODO: Call chat-service API to accept match
-      // POST /api/after-hours/matches/:matchId/accept
-
-      // Join the chat room
+      // Join the chat room (socket-based, not HTTP)
       _socketService.joinAfterHoursChat(_currentMatch!.id);
 
       debugPrint('AfterHoursService: Accepted match ${_currentMatch!.id}');
@@ -326,6 +363,8 @@ class AfterHoursService extends ChangeNotifier {
       return false;
     }
 
+    final matchId = _currentMatch!.id;
+
     try {
       final token = await _authService.getToken();
       if (token == null) {
@@ -333,10 +372,19 @@ class AfterHoursService extends ChangeNotifier {
         return false;
       }
 
-      // TODO: Call chat-service API to decline match
-      // POST /api/after-hours/matches/:matchId/decline
+      // Make API call to decline match
+      final response = await http.post(
+        Uri.parse(_url('/after-hours/match/decline')),
+        headers: _authHeaders,
+        body: json.encode({'matchId': matchId}),
+      );
 
-      debugPrint('AfterHoursService: Declined match ${_currentMatch!.id}');
+      if (response.statusCode != 200) {
+        debugPrint('AfterHoursService: Failed to decline match: ${response.statusCode}');
+        // Continue with local state change even if API fails
+      }
+
+      debugPrint('AfterHoursService: Declined match $matchId');
       _currentMatch = null;
       _partnerSaved = false;
       _setState(AfterHoursState.searching);
@@ -356,17 +404,31 @@ class AfterHoursService extends ChangeNotifier {
         return;
       }
 
-      // TODO: Call profile-service API to get current session status
-      // GET /api/after-hours/sessions/current
-      // Response: { sessionId, expiresAt, state, currentMatch? }
+      // Make API call to get current session status
+      final response = await http.get(
+        Uri.parse(_url('/after-hours/session')),
+        headers: _authHeaders,
+      );
 
-      debugPrint('AfterHoursService: Refreshing session status (API call not yet implemented)');
-
-      // If we had a session but it expired while app was backgrounded,
-      // reset to inactive
-      if (_expiresAt != null && DateTime.now().isAfter(_expiresAt!)) {
-        debugPrint('AfterHoursService: Session expired while backgrounded');
-        resetToInactive();
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          if (data['active'] == true && data['session'] != null) {
+            _sessionId = data['session']['id'] as String;
+            _expiresAt = DateTime.parse(data['session']['expiresAt'] as String);
+            // Check if session is expiring (less than 2 minutes left)
+            if (remainingSeconds <= 120 && remainingSeconds > 0) {
+              _setState(AfterHoursState.expiring);
+            } else if (remainingSeconds > 0) {
+              _setState(AfterHoursState.searching);
+            } else {
+              resetToInactive();
+            }
+          } else {
+            // No active session
+            resetToInactive();
+          }
+        }
       }
     } catch (e) {
       debugPrint('AfterHoursService: Error refreshing session: $e');
@@ -376,6 +438,9 @@ class AfterHoursService extends ChangeNotifier {
   /// Reset state to inactive, clear all session data
   void resetToInactive() {
     debugPrint('AfterHoursService: Resetting to inactive');
+
+    // Stop foreground service
+    _stopForegroundService();
 
     // Leave chat room if in one
     if (_currentMatch != null) {
@@ -388,6 +453,55 @@ class AfterHoursService extends ChangeNotifier {
     _currentMatch = null;
     _nearbyCount = 0;
     _partnerSaved = false;
+  }
+
+  // ===== FOREGROUND TASK METHODS =====
+
+  /// Initialize foreground task for background location support
+  static Future<void> initForegroundTask() async {
+    FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
+        channelId: 'after_hours_session',
+        channelName: 'After Hours Session',
+        channelDescription: 'Keeps your After Hours session active',
+        channelImportance: NotificationChannelImportance.LOW,
+        priority: NotificationPriority.LOW,
+        visibility: NotificationVisibility.VISIBILITY_PUBLIC,
+      ),
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: false,
+        playSound: false,
+      ),
+      foregroundTaskOptions: ForegroundTaskOptions(
+        eventAction: ForegroundTaskEventAction.repeat(5000),
+        autoRunOnBoot: false,
+        autoRunOnMyPackageReplaced: false,
+        allowWakeLock: true,
+        allowWifiLock: false,
+      ),
+    );
+  }
+
+  /// Start foreground service when session begins
+  Future<void> _startForegroundService() async {
+    final isRunning = await FlutterForegroundTask.isRunningService;
+    if (isRunning) return;
+
+    await FlutterForegroundTask.startService(
+      notificationTitle: 'After Hours Active',
+      notificationText: 'Your session is running',
+      callback: null, // No background callback needed, just keeping app alive
+    );
+    debugPrint('AfterHoursService: Foreground service started');
+  }
+
+  /// Stop foreground service when session ends
+  Future<void> _stopForegroundService() async {
+    final isRunning = await FlutterForegroundTask.isRunningService;
+    if (!isRunning) return;
+
+    await FlutterForegroundTask.stopService();
+    debugPrint('AfterHoursService: Foreground service stopped');
   }
 
   @override
