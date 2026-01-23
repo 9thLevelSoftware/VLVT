@@ -48,12 +48,32 @@ class SocketService extends ChangeNotifier {
   final _statusController = StreamController<UserStatus>.broadcast();
   final _connectionController = StreamController<bool>.broadcast();
 
+  // After Hours event stream controllers
+  final _afterHoursMatchController = StreamController<Map<String, dynamic>>.broadcast();
+  final _afterHoursMessageController = StreamController<Message>.broadcast();
+  final _afterHoursTypingController = StreamController<Map<String, dynamic>>.broadcast();
+  final _afterHoursReadController = StreamController<Map<String, dynamic>>.broadcast();
+  final _sessionExpiringController = StreamController<Map<String, dynamic>>.broadcast();
+  final _sessionExpiredController = StreamController<Map<String, dynamic>>.broadcast();
+  final _noMatchesController = StreamController<Map<String, dynamic>>.broadcast();
+  final _matchExpiredController = StreamController<Map<String, dynamic>>.broadcast();
+
   // Getters for streams
   Stream<Message> get onNewMessage => _messageController.stream;
   Stream<Map<String, dynamic>> get onMessagesRead => _messageReadController.stream;
   Stream<Map<String, dynamic>> get onUserTyping => _typingController.stream;
   Stream<UserStatus> get onUserStatusChanged => _statusController.stream;
   Stream<bool> get onConnectionChanged => _connectionController.stream;
+
+  // After Hours streams
+  Stream<Map<String, dynamic>> get onAfterHoursMatch => _afterHoursMatchController.stream;
+  Stream<Message> get onAfterHoursMessage => _afterHoursMessageController.stream;
+  Stream<Map<String, dynamic>> get onAfterHoursTyping => _afterHoursTypingController.stream;
+  Stream<Map<String, dynamic>> get onAfterHoursMessagesRead => _afterHoursReadController.stream;
+  Stream<Map<String, dynamic>> get onSessionExpiring => _sessionExpiringController.stream;
+  Stream<Map<String, dynamic>> get onSessionExpired => _sessionExpiredController.stream;
+  Stream<Map<String, dynamic>> get onNoMatches => _noMatchesController.stream;
+  Stream<Map<String, dynamic>> get onMatchExpired => _matchExpiredController.stream;
 
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
@@ -212,6 +232,92 @@ class SocketService extends ChangeNotifier {
         debugPrint('Socket: Error parsing status: $e');
       }
     });
+
+    // After Hours: New match found
+    _socket!.on('after_hours:match', (data) {
+      debugPrint('Socket: After Hours match received');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _afterHoursMatchController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing After Hours match: $e');
+      }
+    });
+
+    // After Hours: New message in chat
+    _socket!.on('after_hours:new_message', (data) {
+      debugPrint('Socket: After Hours message received');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        final message = Message.fromJson(data);
+        _afterHoursMessageController.add(message);
+      } catch (e) {
+        debugPrint('Socket: Error parsing After Hours message: $e');
+      }
+    });
+
+    // After Hours: Typing indicator
+    _socket!.on('after_hours:user_typing', (data) {
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _afterHoursTypingController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing After Hours typing: $e');
+      }
+    });
+
+    // After Hours: Messages read
+    _socket!.on('after_hours:messages_read', (data) {
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _afterHoursReadController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing After Hours read receipt: $e');
+      }
+    });
+
+    // After Hours: Session expiring warning (2 min)
+    _socket!.on('after_hours:session_expiring', (data) {
+      debugPrint('Socket: Session expiring warning');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _sessionExpiringController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing session expiring: $e');
+      }
+    });
+
+    // After Hours: Session expired
+    _socket!.on('after_hours:session_expired', (data) {
+      debugPrint('Socket: Session expired');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _sessionExpiredController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing session expired: $e');
+      }
+    });
+
+    // After Hours: No matches available
+    _socket!.on('after_hours:no_matches', (data) {
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _noMatchesController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing no matches: $e');
+      }
+    });
+
+    // After Hours: Match expired (auto-decline)
+    _socket!.on('after_hours:match_expired', (data) {
+      debugPrint('Socket: Match expired');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _matchExpiredController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing match expired: $e');
+      }
+    });
   }
 
   /// Send a message
@@ -368,6 +474,114 @@ class SocketService extends ChangeNotifier {
     return completer.future;
   }
 
+  // ============================================
+  // After Hours Methods
+  // ============================================
+
+  /// Send an After Hours message
+  Future<Message?> sendAfterHoursMessage({
+    required String matchId,
+    required String text,
+    String? tempId,
+  }) async {
+    if (!_isConnected || _socket == null) {
+      debugPrint('Socket: Cannot send After Hours message - not connected');
+      return null;
+    }
+
+    final completer = Completer<Message?>();
+    bool hasCompleted = false;
+
+    Timer(const Duration(seconds: 10), () {
+      if (!hasCompleted) {
+        hasCompleted = true;
+        completer.complete(null);
+      }
+    });
+
+    _socket!.emitWithAck('after_hours:send_message', {
+      'matchId': matchId,
+      'text': text,
+      'tempId': tempId,
+    }, ack: (response) {
+      if (hasCompleted) return;
+      hasCompleted = true;
+      try {
+        if (response is! Map<String, dynamic>) {
+          completer.complete(null);
+          return;
+        }
+        if (response['success'] == true) {
+          final messageData = response['message'];
+          if (messageData is! Map<String, dynamic>) {
+            completer.complete(null);
+            return;
+          }
+          completer.complete(Message.fromJson(messageData));
+        } else {
+          debugPrint('Socket: After Hours send failed: ${response['error']}');
+          completer.complete(null);
+        }
+      } catch (e) {
+        completer.complete(null);
+      }
+    });
+
+    return completer.future;
+  }
+
+  /// Send After Hours typing indicator
+  Future<void> sendAfterHoursTypingIndicator({
+    required String matchId,
+    required bool isTyping,
+  }) async {
+    if (!_isConnected || _socket == null) return;
+
+    _socket!.emit('after_hours:typing', {
+      'matchId': matchId,
+      'isTyping': isTyping,
+    });
+  }
+
+  /// Mark After Hours messages as read
+  Future<bool> markAfterHoursMessagesRead({
+    required String matchId,
+    List<String>? messageIds,
+  }) async {
+    if (!_isConnected || _socket == null) return false;
+
+    final completer = Completer<bool>();
+
+    _socket!.emitWithAck('after_hours:mark_read', {
+      'matchId': matchId,
+      if (messageIds != null) 'messageIds': messageIds,
+    }, ack: (response) {
+      try {
+        if (response is! Map<String, dynamic>) {
+          completer.complete(false);
+          return;
+        }
+        completer.complete(response['success'] == true);
+      } catch (e) {
+        completer.complete(false);
+      }
+    });
+
+    return completer.future;
+  }
+
+  /// Join After Hours chat room
+  void joinAfterHoursChat(String matchId) {
+    if (!_isConnected || _socket == null) return;
+    _socket!.emit('after_hours:join_chat', {'matchId': matchId});
+  }
+
+  /// Leave After Hours chat room
+  void leaveAfterHoursChat(String matchId) {
+    if (!_isConnected || _socket == null) return;
+    _socket!.emit('after_hours:leave_chat', {'matchId': matchId});
+  }
+
   /// Disconnect from Socket.IO server
   void disconnect() {
     debugPrint('Socket: Disconnecting');
@@ -394,6 +608,15 @@ class SocketService extends ChangeNotifier {
     _typingController.close();
     _statusController.close();
     _connectionController.close();
+    // After Hours controllers
+    _afterHoursMatchController.close();
+    _afterHoursMessageController.close();
+    _afterHoursTypingController.close();
+    _afterHoursReadController.close();
+    _sessionExpiringController.close();
+    _sessionExpiredController.close();
+    _noMatchesController.close();
+    _matchExpiredController.close();
     super.dispose();
   }
 }
