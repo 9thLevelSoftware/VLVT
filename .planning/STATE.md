@@ -9,15 +9,15 @@
 
 - Phase: 03 of 07 (Matching Engine)
 - Wave: 2
-- Plans: 03-01 (complete), 03-02 (complete), 03-03 (pending), 03-04 (pending)
+- Plans: 03-01 (complete), 03-02 (complete), 03-03 (complete), 03-04 (pending)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
-Phase 3: [######----] 2/4 plans complete
-Overall:  [#####-----] 8/16 total plans complete (~50%)
+Phase 3: [########--] 3/4 plans complete
+Overall:  [######----] 9/16 total plans complete (~56%)
 ```
 
 ## Accumulated Decisions
@@ -54,6 +54,9 @@ Overall:  [#####-----] 8/16 total plans complete (~50%)
 - [03-02] 15-second delay on session start matching (gives user time to see UI)
 - [03-02] 5-minute auto-decline timer included in match payloads
 - [03-02] Non-blocking scheduler init (server continues if Redis unavailable)
+- [03-03] parseFloat on all numeric DB values for type safety
+- [03-03] Math.max(0, count - 1) ensures non-negative nearby count after excluding self
+- [03-03] 30-second cooldown after decline before next match attempt
 
 ## Current Context
 
@@ -71,15 +74,23 @@ Plan 03-02 complete (Match Scheduling):
 - Redis pub/sub event publishing to 'after_hours:events' channel
 - Match events ready for chat-service subscription in Phase 4
 
+Plan 03-03 complete (Decline & Status Endpoints):
+- POST /match/decline with 3-session memory UPSERT, triggers matching after 30s cooldown
+- GET /match/current returns match profile or "searching" status for app reopen
+- GET /nearby/count returns active user count for social proof display
+- validateDecline middleware with UUID format validation
+
 Key files:
 - `backend/migrations/023_add_matching_engine_columns.sql` (decline/match tracking)
 - `backend/profile-service/src/services/matching-engine.ts` (core query logic)
 - `backend/profile-service/src/services/matching-scheduler.ts` (scheduling + pub/sub)
+- `backend/profile-service/src/routes/after-hours.ts` (decline/status endpoints)
+- `backend/profile-service/src/middleware/after-hours-validation.ts` (validateDecline)
 
-Next: 03-03 (Decline/Accept Endpoints) and 03-04 (Testing)
+Next: 03-04 (Testing) - final plan in Phase 3
 
 ## Session Continuity
 
-- Last session: 2026-01-22
-- Stopped at: Completed 03-02-PLAN.md
+- Last session: 2026-01-23T02:36Z
+- Stopped at: Completed 03-03-PLAN.md
 - Resume file: None
