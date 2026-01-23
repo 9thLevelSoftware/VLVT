@@ -244,9 +244,12 @@ Plans:
 
 ---
 
-## Phase 6: Frontend Integration
+## Phase 6: Frontend Integration ✓
 
 **Goal:** Complete Flutter UI for After Hours Mode
+
+**Status:** Complete
+**Completed:** 2026-01-23
 
 **Rationale:** Backend must be complete for meaningful frontend testing. This phase brings it all together for users.
 
@@ -258,7 +261,7 @@ Plans:
 - [x] 06-03-PLAN.md — Session activation flow and timer widgets
 - [x] 06-04-PLAN.md — Match card overlay with swipe gestures
 - [x] 06-05-PLAN.md — Ephemeral chat screen and background location
-- [ ] 06-06-PLAN.md — Gap closure: API integration, provider registration, foreground task
+- [x] 06-06-PLAN.md — Gap closure: API integration, provider registration, foreground task
 
 ### Requirements Addressed
 - All user-facing interactions from PROJECT.md Active requirements
@@ -272,9 +275,9 @@ Plans:
 - [x] Ephemeral chat UI (similar to existing chat, with session timer)
 - [x] Save button interaction and confirmation
 - [x] Session expiry handling (graceful transition back to main app)
-- [ ] Real API calls in AfterHoursService (gap closure)
-- [ ] AfterHoursProfileService provider registration (gap closure)
-- [ ] Background location handling (flutter_foreground_task) (gap closure)
+- [x] Real API calls in AfterHoursService
+- [x] AfterHoursProfileService provider registration
+- [x] Background location handling (flutter_foreground_task)
 
 ### Technical Notes
 - State machine: `AfterHoursState { inactive, activating, searching, matched, chatting, expiring, expired }`
@@ -340,7 +343,7 @@ Plans:
 | 3 | Matching Engine ✓ | Proximity matching, preference filtering | Phase 2 |
 | 4 | Real-Time Chat ✓ | Ephemeral chat, Socket.IO events | Phase 3 |
 | 5 | Save Mechanism ✓ | Mutual save, conversion to permanent | Phase 4 |
-| 6 | Frontend Integration | Complete Flutter UI | Phases 1-5 |
+| 6 | Frontend Integration ✓ | Complete Flutter UI | Phases 1-5 |
 | 7 | Safety Systems | Blocking, reporting, ban enforcement | Phase 6 |
 
 ---
