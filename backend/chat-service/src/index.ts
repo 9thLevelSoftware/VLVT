@@ -1049,12 +1049,6 @@ app.post('/fcm/unregister', authMiddleware, generalLimiter, async (req: Request,
   }
 });
 
-// ===== AFTER HOURS CHAT ENDPOINTS =====
-
-// Register After Hours chat routes with auth middleware
-// Full path: GET /after-hours/messages/:matchId
-app.use(authMiddleware, generalLimiter, createAfterHoursChatRouter(pool));
-
 // ===== DATE PROPOSAL ENDPOINTS =====
 
 // Helper function to award date completion tickets
@@ -1545,6 +1539,10 @@ app.use((err: any, req: Request, res: Response, next: any) => {
 // Create HTTP server and initialize Socket.IO
 const httpServer = createServer(app);
 const io = initializeSocketIO(httpServer, pool);
+
+// ===== AFTER HOURS CHAT ENDPOINTS =====
+// Registered after io init to enable real-time save notifications
+app.use(authMiddleware, generalLimiter, createAfterHoursChatRouter(pool, io));
 
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
