@@ -8,9 +8,9 @@
 ## Position
 
 - Phase: 06 of 07 (Frontend Integration)
-- Wave: 1
-- Plans: 2/6 complete
-- Last activity: 2026-01-23 - Re-executed 06-01-PLAN.md (Core Service & Navigation)
+- Wave: 2
+- Plans: 3/6 complete
+- Last activity: 2026-01-23 - Completed 06-03-PLAN.md (Session Activation Flow)
 
 ## Progress
 
@@ -20,8 +20,8 @@ Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
-Phase 6: [##--------] 2/6 plans complete
-Overall:  [#########-] 19/23 plans complete
+Phase 6: [###-------] 3/6 plans complete
+Overall:  [#########-] 20/23 plans complete
 ```
 
 ## Accumulated Decisions
@@ -95,6 +95,9 @@ Overall:  [#########-] 19/23 plans complete
 - [06-02] Extended BaseApiService with authenticatedPatch for partial updates
 - [06-02] Circular 200x200 photo display for After Hours profile
 - [06-02] Gender selection chips with animated transitions over radio buttons
+- [06-03] State-driven UI: switch statement maps all 7 AfterHoursState values to specific widgets
+- [06-03] Timer urgency: 120 seconds (2 min) threshold for visual warning state
+- [06-03] _isMatchCardShowing flag: boolean guard to prevent duplicate match card modals
 
 ## Current Context
 
@@ -117,9 +120,17 @@ Plan 06-02 complete (Profile & Preferences):
 - AfterHoursPreferencesScreen with sliders and selection chips
 - Provider registration in afterHours() group
 
+Plan 06-03 complete (Session Activation Flow):
+- SessionTimer widget with gold/crimson urgency states (129 lines)
+- SearchingAnimation widget with pulsing radar rings (151 lines)
+- SessionExpiryBanner widget with countdown display (84 lines)
+- AfterHoursTabScreen with full session flow UI (507 lines)
+- Setup checklist shows profile and preferences completion status
+- Duration selector (15/30/60 min) when setup complete
+- State-driven content rendering for all 7 states
+
 Key files for 06-01:
 - `frontend/lib/services/after_hours_service.dart` (state machine, 399 lines)
-- `frontend/lib/screens/after_hours_tab_screen.dart` (placeholder tab)
 - `frontend/lib/providers/provider_tree.dart` (AfterHoursService + AfterHoursChatService)
 - `frontend/lib/screens/main_screen.dart` (5-tab navigation for premium)
 - `frontend/lib/main.dart` (notification tap handler updated)
@@ -129,10 +140,15 @@ Key files for 06-02:
 - `frontend/lib/screens/after_hours_profile_screen.dart` (profile UI)
 - `frontend/lib/screens/after_hours_preferences_screen.dart` (preferences UI)
 
-**Next: Plan 06-03 - Session Activation Flow**
+Key files for 06-03:
+- `frontend/lib/widgets/after_hours/session_timer.dart` (countdown timer)
+- `frontend/lib/widgets/after_hours/searching_animation.dart` (radar animation)
+- `frontend/lib/widgets/after_hours/session_expiry_banner.dart` (warning banner)
+- `frontend/lib/screens/after_hours_tab_screen.dart` (full session flow UI)
+
+**Next: Plan 06-04 - Match Card UI**
 
 Remaining Phase 6 plans:
-- 06-03: Session activation flow with location permission
 - 06-04: Match card UI
 - 06-05: Ephemeral chat UI
 - 06-06: Integration testing
@@ -140,5 +156,5 @@ Remaining Phase 6 plans:
 ## Session Continuity
 
 - Last session: 2026-01-23
-- Stopped at: Completed 06-02-PLAN.md
+- Stopped at: Completed 06-03-PLAN.md
 - Resume file: None
