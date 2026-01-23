@@ -3,14 +3,14 @@
 **Project:** After Hours Mode
 **Milestone:** v1.0
 **Current Phase:** 6 - Frontend Integration
-**Status:** Ready for planning
+**Status:** In progress
 
 ## Position
 
 - Phase: 06 of 07 (Frontend Integration)
-- Wave: —
-- Plans: Not yet planned
-- Last activity: 2026-01-23 - Completed Phase 05 (Save Mechanism & Conversion)
+- Wave: 1
+- Plans: 2/6 complete
+- Last activity: 2026-01-23 - Completed 06-02-PLAN.md (Profile & Preferences)
 
 ## Progress
 
@@ -20,7 +20,8 @@ Phase 2: [##########] 3/3 plans complete
 Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
-Overall:  [##########] 17/17 plans complete
+Phase 6: [##--------] 2/6 plans complete
+Overall:  [#########-] 19/23 plans complete
 ```
 
 ## Accumulated Decisions
@@ -87,51 +88,46 @@ Overall:  [##########] 17/17 plans complete
 - [05-02] SaveResult class for typed HTTP response handling
 - [05-02] partnerSavedFirst state uses primary color for urgency
 - [05-03] Router registration moved after io initialization to ensure io is defined
+- [06-02] Extended BaseApiService with authenticatedPatch for partial updates
+- [06-02] Circular 200x200 photo display for After Hours profile
+- [06-02] Gender selection chips with animated transitions over radio buttons
 
 ## Current Context
 
-**Phase 5 COMPLETE - Save Mechanism & Conversion**
+**Phase 6 IN PROGRESS - Frontend Integration**
 
-Plan 05-01 complete (Backend Save Vote Endpoint):
-- Migration 024: source column on matches table for tracking origin (swipe vs after_hours)
-- match-conversion-service.ts with recordSaveVote() using SELECT...FOR UPDATE
-- Atomic transaction: vote recording + conversion to permanent match
-- POST /after-hours/matches/:matchId/save endpoint
-- Socket.IO events: after_hours:partner_saved, after_hours:match_saved
-- FCM notifications: sendAfterHoursPartnerSavedNotification, sendAfterHoursMutualSaveNotification
-- Messages copied from after_hours_messages to messages table on mutual save
+Plan 06-01 complete (AfterHoursService State Machine):
+- State enum: idle, loading, searching, matched, chatting, error
+- Full session lifecycle: checkEligibility, startSession, endSession
+- Socket event handlers for matches, messages, session events
+- Timer management for session expiry and match decline
+- Error handling with user-friendly messages
 
-Plan 05-02 complete (Flutter Save UI):
-- socket_service.dart: onPartnerSaved and onMatchSaved streams
-- after_hours_chat_service.dart: SaveResult class and saveMatch method
-- save_match_button.dart: SaveMatchButton widget with 5-state machine
-
-Plan 05-03 complete (Gap Closure - Socket.IO Wiring):
-- After Hours router registration moved after Socket.IO initialization
-- io parameter passed to createAfterHoursChatRouter(pool, io)
-- Real-time save notifications now emit via Socket.IO
+Plan 06-02 complete (Profile & Preferences):
+- AfterHoursProfileService API client (487 lines)
+- AfterHoursProfile and AfterHoursPreferences models
+- Profile CRUD + photo upload (multipart)
+- Preferences CRUD with gender/age/distance
+- AfterHoursProfileScreen with photo picker and bio input
+- AfterHoursPreferencesScreen with sliders and selection chips
+- Provider registration in afterHours() group
 
 Key files:
-- `backend/migrations/024_add_matches_source_column.sql` (source column)
-- `backend/chat-service/src/services/match-conversion-service.ts` (atomic conversion)
-- `backend/chat-service/src/routes/after-hours-chat.ts` (save endpoint)
-- `backend/chat-service/src/index.ts` (Socket.IO wiring)
-- `frontend/lib/services/socket_service.dart` (save event streams)
-- `frontend/lib/services/after_hours_chat_service.dart` (saveMatch method)
-- `frontend/lib/widgets/save_match_button.dart` (save button widget)
+- `frontend/lib/services/after_hours_profile_service.dart` (API client)
+- `frontend/lib/screens/after_hours_profile_screen.dart` (profile UI)
+- `frontend/lib/screens/after_hours_preferences_screen.dart` (preferences UI)
+- `frontend/lib/providers/provider_tree.dart` (updated)
 
-**Ready for Phase 6: Frontend Integration**
+**Next: Plan 06-03 - Session Activation Flow**
 
-Backend complete (Phases 1-5). Phase 6 brings it all together with:
-- AfterHoursService state machine
-- Profile/preferences screens
-- Session activation flow
-- Match card UI
-- Ephemeral chat UI
-- Background location handling
+Remaining Phase 6 plans:
+- 06-03: Session activation flow with location permission
+- 06-04: Match card UI
+- 06-05: Ephemeral chat UI
+- 06-06: Integration testing
 
 ## Session Continuity
 
 - Last session: 2026-01-23
-- Stopped at: Completed 05-03-PLAN.md
+- Stopped at: Completed 06-02-PLAN.md
 - Resume file: None
