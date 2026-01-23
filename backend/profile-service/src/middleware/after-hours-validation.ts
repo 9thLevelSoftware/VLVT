@@ -211,3 +211,29 @@ export const validateSessionExtend = [
 
   handleValidationErrors
 ];
+
+/**
+ * Validate decline request
+ * Requires matchId (UUID) in body
+ */
+export function validateDecline(req: Request, res: Response, next: NextFunction) {
+  const { matchId } = req.body;
+
+  if (!matchId) {
+    return res.status(400).json({
+      success: false,
+      error: 'matchId is required',
+    });
+  }
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(matchId)) {
+    return res.status(400).json({
+      success: false,
+      error: 'matchId must be a valid UUID',
+    });
+  }
+
+  next();
+}
