@@ -19,6 +19,11 @@ export {
 } from './middleware/auth';
 
 export {
+  createAfterHoursAuthMiddleware,
+  type AfterHoursAuthOptions,
+} from './middleware/after-hours-auth';
+
+export {
   createRateLimiter,
   createUserRateLimiter,
   createUserKeyGenerator,
