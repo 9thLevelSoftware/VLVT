@@ -9,6 +9,7 @@ import { Pool } from 'pg';
 import logger from '../utils/logger';
 import { socketAuthMiddleware, SocketWithAuth } from './auth-middleware';
 import { setupMessageHandlers, updateUserStatus } from './message-handler';
+import { initializeAfterHoursRedisSubscriber, setupAfterHoursHandlers } from './after-hours-handler';
 import { createSocketRateLimiter, SocketRateLimiter } from '@vlvt/shared';
 
 /**
@@ -17,13 +18,19 @@ import { createSocketRateLimiter, SocketRateLimiter } from '@vlvt/shared';
  * - typing: 10 per 10 seconds (prevent typing indicator spam)
  * - mark_read: 60 per minute (batch reads are common)
  * - get_online_status: 30 per minute (prevents DB query flooding)
+ * - After Hours events: same limits as regular chat
  */
 const socketRateLimiter: SocketRateLimiter = createSocketRateLimiter({
   limits: {
+    // Regular chat limits
     send_message: { maxEvents: 30, windowMs: 60000 },
     typing: { maxEvents: 10, windowMs: 10000 },
     mark_read: { maxEvents: 60, windowMs: 60000 },
     get_online_status: { maxEvents: 30, windowMs: 60000 },
+    // After Hours limits (same as regular chat)
+    'after_hours:send_message': { maxEvents: 30, windowMs: 60000 },
+    'after_hours:typing': { maxEvents: 10, windowMs: 10000 },
+    'after_hours:mark_read': { maxEvents: 60, windowMs: 60000 },
   },
   logViolations: true,
   errorEventName: 'rate_limit_error',
@@ -61,6 +68,15 @@ export const initializeSocketIO = (httpServer: HttpServer, pool: Pool): SocketSe
 
   logger.info('Socket.IO server initialized', { corsOrigin });
 
+  // Initialize After Hours Redis subscriber (non-blocking)
+  // Server continues if Redis unavailable - match events won't be delivered in real-time
+  // but can still be fetched via REST API (GET /match/current)
+  initializeAfterHoursRedisSubscriber(io).catch((err) => {
+    logger.warn('Failed to initialize After Hours Redis subscriber', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  });
+
   // Apply authentication middleware
   io.use(socketAuthMiddleware);
 
@@ -88,6 +104,9 @@ export const initializeSocketIO = (httpServer: HttpServer, pool: Pool): SocketSe
 
     // Setup message event handlers with rate limiting
     setupMessageHandlers(io, socket, pool, socketRateLimiter);
+
+    // Setup After Hours event handlers with rate limiting
+    setupAfterHoursHandlers(io, socket, pool, socketRateLimiter);
 
     // Handle disconnection
     socket.on('disconnect', async (reason) => {
