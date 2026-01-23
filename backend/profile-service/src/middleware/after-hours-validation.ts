@@ -161,3 +161,53 @@ export const validatePreferencesUpdate = [
 
   handleValidationErrors
 ];
+
+/**
+ * Validation chain for After Hours session start
+ *
+ * Fields:
+ * - duration: required, must be 15, 30, or 60 minutes
+ * - latitude: required, -90 to 90
+ * - longitude: required, -180 to 180
+ */
+export const validateSessionStart = [
+  // Duration: Required, must be 15, 30, or 60
+  body('duration')
+    .notEmpty()
+    .withMessage('Duration is required')
+    .isIn([15, 30, 60])
+    .withMessage('Duration must be 15, 30, or 60 minutes'),
+
+  // Latitude: Required, valid range
+  body('latitude')
+    .notEmpty()
+    .withMessage('Latitude is required')
+    .isFloat({ min: -90, max: 90 })
+    .withMessage('Invalid latitude: must be between -90 and 90'),
+
+  // Longitude: Required, valid range
+  body('longitude')
+    .notEmpty()
+    .withMessage('Longitude is required')
+    .isFloat({ min: -180, max: 180 })
+    .withMessage('Invalid longitude: must be between -180 and 180'),
+
+  handleValidationErrors
+];
+
+/**
+ * Validation chain for After Hours session extension
+ *
+ * Fields:
+ * - additionalMinutes: required, must be 15, 30, or 60 minutes
+ */
+export const validateSessionExtend = [
+  // Additional minutes: Required, must be 15, 30, or 60
+  body('additionalMinutes')
+    .notEmpty()
+    .withMessage('Additional minutes required')
+    .isIn([15, 30, 60])
+    .withMessage('Can extend by 15, 30, or 60 minutes'),
+
+  handleValidationErrors
+];

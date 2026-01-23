@@ -1,7 +1,7 @@
 /**
  * After Hours Router
  *
- * Provides CRUD endpoints for After Hours profiles and preferences (separate from main profiles).
+ * Provides CRUD endpoints for After Hours profiles, preferences, and sessions (separate from main profiles).
  * All routes require:
  * - JWT authentication (via authMiddleware)
  * - Premium subscription + ID verification + GDPR consent (via createAfterHoursAuthMiddleware)
@@ -14,6 +14,10 @@
  * - POST /preferences - Create After Hours preferences (with smart defaults)
  * - GET /preferences - Get After Hours preferences
  * - PATCH /preferences - Update After Hours preferences
+ * - POST /session/start - Start a timed After Hours session
+ * - POST /session/end - End session early
+ * - POST /session/extend - Extend active session
+ * - GET /session - Get current session status
  */
 
 import { Router, Request, Response } from 'express';
@@ -28,7 +32,15 @@ import {
   validateAfterHoursProfileUpdate,
   validatePreferences,
   validatePreferencesUpdate,
+  validateSessionStart,
+  validateSessionExtend,
 } from '../middleware/after-hours-validation';
+import { fuzzLocationForAfterHours } from '../utils/location-fuzzer';
+import {
+  scheduleSessionExpiry,
+  cancelSessionExpiry,
+  extendSessionExpiry,
+} from '../services/session-scheduler';
 import {
   validateImage,
   validateImageMagicBytes,
@@ -612,6 +624,261 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
         success: false,
         error: 'Failed to update After Hours preferences',
       });
+    }
+  });
+
+  // ============================================
+  // SESSION LIFECYCLE ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /session/start - Start a timed After Hours session
+   *
+   * Creates a new session with the user's current location (fuzzed for privacy).
+   * Requires an existing After Hours profile and no currently active session.
+   * Session will auto-expire after the specified duration via BullMQ.
+   */
+  router.post('/session/start', validateSessionStart, async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const { duration, latitude, longitude } = req.body;
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Check user has After Hours profile (required before session)
+      const profileCheck = await client.query(
+        'SELECT user_id FROM after_hours_profiles WHERE user_id = $1',
+        [userId]
+      );
+      if (profileCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          error: 'After Hours profile required before starting session',
+          code: 'PROFILE_REQUIRED',
+        });
+      }
+
+      // Check for existing active session
+      const existingSession = await client.query(
+        `SELECT id FROM after_hours_sessions
+         WHERE user_id = $1 AND ended_at IS NULL`,
+        [userId]
+      );
+      if (existingSession.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          error: 'Active session already exists',
+          code: 'SESSION_ALREADY_ACTIVE',
+        });
+      }
+
+      // Fuzz location for privacy
+      const fuzzed = fuzzLocationForAfterHours(latitude, longitude);
+
+      // Calculate expiry time
+      const durationMinutes = duration;
+      const expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000);
+
+      // Create session
+      const result = await client.query(
+        `INSERT INTO after_hours_sessions
+         (user_id, expires_at, latitude, longitude, fuzzed_latitude, fuzzed_longitude)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, started_at, expires_at`,
+        [userId, expiresAt, latitude, longitude, fuzzed.latitude, fuzzed.longitude]
+      );
+
+      await client.query('COMMIT');
+
+      const session = result.rows[0];
+
+      // Schedule expiry job (fire-and-forget, session persists regardless)
+      scheduleSessionExpiry(session.id, userId, durationMinutes * 60 * 1000).catch((err) => {
+        logger.error('Failed to schedule session expiry', {
+          sessionId: session.id,
+          error: err.message,
+        });
+      });
+
+      logger.info('Session started', {
+        userId,
+        sessionId: session.id,
+        durationMinutes,
+        expiresAt: session.expires_at,
+      });
+
+      res.status(201).json({
+        success: true,
+        session: {
+          id: session.id,
+          startedAt: session.started_at,
+          expiresAt: session.expires_at,
+          durationMinutes,
+        },
+      });
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      logger.error('Failed to start session', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to start session' });
+    } finally {
+      client.release();
+    }
+  });
+
+  /**
+   * POST /session/end - End session early
+   *
+   * Terminates the user's active session and cancels the scheduled expiry job.
+   */
+  router.post('/session/end', async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    try {
+      const result = await pool.query(
+        `UPDATE after_hours_sessions
+         SET ended_at = CURRENT_TIMESTAMP
+         WHERE user_id = $1 AND ended_at IS NULL
+         RETURNING id`,
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'No active session found',
+        });
+      }
+
+      const sessionId = result.rows[0].id;
+
+      // Cancel the scheduled expiry job
+      cancelSessionExpiry(sessionId).catch((err) => {
+        logger.error('Failed to cancel session expiry', {
+          sessionId,
+          error: err.message,
+        });
+      });
+
+      logger.info('Session ended early', { userId, sessionId });
+
+      res.json({
+        success: true,
+        message: 'Session ended',
+      });
+    } catch (error: any) {
+      logger.error('Failed to end session', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to end session' });
+    }
+  });
+
+  /**
+   * POST /session/extend - Extend active session
+   *
+   * Extends the user's active session by the specified duration and reschedules expiry.
+   */
+  router.post('/session/extend', validateSessionExtend, async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const { additionalMinutes } = req.body;
+
+    try {
+      // Get current active session
+      const sessionResult = await pool.query(
+        `SELECT id, expires_at FROM after_hours_sessions
+         WHERE user_id = $1 AND ended_at IS NULL`,
+        [userId]
+      );
+
+      if (sessionResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'No active session to extend',
+        });
+      }
+
+      const session = sessionResult.rows[0];
+      const currentExpiry = new Date(session.expires_at);
+      const newExpiry = new Date(currentExpiry.getTime() + additionalMinutes * 60 * 1000);
+      const remainingMs = newExpiry.getTime() - Date.now();
+
+      // Update session expiry
+      await pool.query(
+        `UPDATE after_hours_sessions SET expires_at = $1 WHERE id = $2`,
+        [newExpiry, session.id]
+      );
+
+      // Reschedule the expiry job
+      extendSessionExpiry(session.id, userId, remainingMs).catch((err) => {
+        logger.error('Failed to extend session expiry', {
+          sessionId: session.id,
+          error: err.message,
+        });
+      });
+
+      logger.info('Session extended', {
+        userId,
+        sessionId: session.id,
+        additionalMinutes,
+        newExpiry,
+      });
+
+      res.json({
+        success: true,
+        session: {
+          id: session.id,
+          expiresAt: newExpiry,
+          extendedByMinutes: additionalMinutes,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Failed to extend session', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to extend session' });
+    }
+  });
+
+  /**
+   * GET /session - Get current session status
+   *
+   * Returns the user's current session status including remaining time.
+   */
+  router.get('/session', async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    try {
+      const result = await pool.query(
+        `SELECT id, started_at, expires_at,
+                EXTRACT(EPOCH FROM (expires_at - NOW())) AS remaining_seconds
+         FROM after_hours_sessions
+         WHERE user_id = $1 AND ended_at IS NULL`,
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.json({
+          success: true,
+          active: false,
+          session: null,
+        });
+      }
+
+      const session = result.rows[0];
+      const remainingSeconds = Math.max(0, Math.floor(session.remaining_seconds));
+
+      res.json({
+        success: true,
+        active: remainingSeconds > 0,
+        session: {
+          id: session.id,
+          startedAt: session.started_at,
+          expiresAt: session.expires_at,
+          remainingSeconds,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Failed to get session status', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to get session status' });
     }
   });
 

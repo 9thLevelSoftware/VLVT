@@ -41,6 +41,7 @@ import {
 import { resolvePhotoUrls, uploadToR2, getPresignedUrl, deleteUserPhotos } from './utils/r2-client';
 import { RekognitionClient, CompareFacesCommand } from '@aws-sdk/client-rekognition';
 import { initializeFirebase, sendMatchNotification } from './services/fcm-service';
+import { initializeSessionWorker, closeSessionScheduler } from './services/session-scheduler';
 import {
   createCsrfMiddleware,
   createCsrfTokenHandler,
@@ -1655,11 +1656,38 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
+// Graceful shutdown handlers
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  await closeSessionScheduler();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  await closeSessionScheduler();
+  process.exit(0);
+});
+
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
-  // Initialize upload directory before starting server
+  // Initialize upload directory and session scheduler before starting server
   initializeUploadDirectory()
-    .then(() => {
+    .then(async () => {
+      // Initialize session scheduler (BullMQ)
+      // In production, consider making this fatal (process.exit(1)) if Redis is required
+      try {
+        await initializeSessionWorker(pool);
+        logger.info('Session scheduler initialized successfully');
+      } catch (err: any) {
+        logger.error('Failed to initialize session scheduler - sessions will NOT auto-expire', {
+          error: err.message,
+          hint: 'Ensure REDIS_URL is set and Redis is accessible',
+        });
+        // Continue startup - sessions will still work but won't auto-expire
+        // For stricter behavior, uncomment: process.exit(1);
+      }
+
       app.listen(PORT, () => {
         logger.info(`Profile service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
       });
