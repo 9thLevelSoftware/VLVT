@@ -109,6 +109,14 @@ Plans:
 
 **Goal:** System automatically matches active users by proximity and preferences
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Schema additions and core matching query logic
+- [ ] 03-02-PLAN.md — BullMQ matching scheduler (periodic + event-driven)
+- [ ] 03-03-PLAN.md — Decline, current match, and nearby count endpoints
+- [ ] 03-04-PLAN.md — Auto-decline timer and match expiry handling
+
 **Rationale:** Core differentiator of After Hours Mode. Users don't swipe; they receive match assignments from the system. Depends on sessions existing.
 
 ### Requirements Addressed
@@ -304,7 +312,7 @@ Plans:
 ## Open Questions (To Resolve During Planning)
 
 1. ~~**Session extension**: Should premium users be able to extend sessions?~~ **RESOLVED:** Yes, unlimited extensions (see 02-CONTEXT.md)
-2. **Empty queue behavior**: What happens when no compatible users are active?
+2. ~~**Empty queue behavior**: What happens when no compatible users are active?~~ **RESOLVED:** Emit `after_hours:no_matches` with active user count for social proof (see 03-CONTEXT.md)
 3. **iOS background location**: Accept limitations or implement push workaround?
 4. **Interests/tags**: Include basic version or defer to v2?
 5. **Video verification**: Add video liveness specifically for After Hours?
