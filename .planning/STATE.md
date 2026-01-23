@@ -2,21 +2,22 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 2 - Profile & Session Management
-**Status:** complete
+**Current Phase:** 3 - Matching Engine
+**Status:** in progress
 
 ## Position
 
-- Phase: 02 of 07 (Profile & Session Management)
-- Wave: 2
-- Plans: 02-01 (complete), 02-02 (complete), 02-03 (complete)
+- Phase: 03 of 07 (Matching Engine)
+- Wave: 1
+- Plans: 03-01 (complete), 03-02 (pending), 03-03 (pending)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
 Phase 2: [##########] 3/3 plans complete
-Overall:  [###-------] 2/7 phases complete
+Phase 3: [###-------] 1/3 plans complete
+Overall:  [####------] 7/13 total plans complete (~54%)
 ```
 
 ## Accumulated Decisions
@@ -45,30 +46,29 @@ Overall:  [###-------] 2/7 phases complete
 - [02-03] Fire-and-forget job scheduling - session persists regardless of job success
 - [02-03] Transaction for session start - atomic profile check + insert
 - [02-03] SQL-based remaining time calculation avoids client/server time drift
+- [03-01] LEAST/GREATEST wrapper for acos to prevent domain errors from float precision
+- [03-01] Delete decline records at threshold rather than reset counter
+- [03-01] Double-check for existing matches inside transaction
 
 ## Current Context
 
-**Phase 2 COMPLETE - Profile & Session Management**
+**Phase 3 IN PROGRESS - Matching Engine**
 
-All deliverables complete:
-- After Hours Profile CRUD (02-01)
-- After Hours Preferences CRUD (02-02)
-- Session Lifecycle API with BullMQ (02-03)
+Plan 03-01 complete (Core Matching Engine):
+- Migration 023 adds decline tracking columns and match status columns
+- matching-engine.ts implements findMatchCandidate, createAfterHoursMatch, getActiveUserCountNearby
+- Haversine formula with LEAST/GREATEST wrapper for domain safety
+- SELECT FOR UPDATE SKIP LOCKED for concurrent matching safety
+- UPSERT pattern for decline counter tracking
 
 Key files:
-- `backend/profile-service/src/routes/after-hours.ts` (all endpoints)
-- `backend/profile-service/src/middleware/after-hours-validation.ts` (all validators)
-- `backend/profile-service/src/services/session-scheduler.ts` (BullMQ scheduler)
-- `backend/migrations/021_add_after_hours_tables.sql` (foundation schema)
-- `backend/migrations/022_add_after_hours_preferences_columns.sql` (preferences columns)
+- `backend/migrations/023_add_matching_engine_columns.sql` (decline/match tracking)
+- `backend/profile-service/src/services/matching-engine.ts` (core query logic)
 
-Infrastructure requirements:
-- Redis for session auto-expiry (REDIS_URL env var)
-
-Ready for Phase 03 (Discovery Nearby).
+Next: 03-02 (Match Delivery & Socket Integration)
 
 ## Session Continuity
 
-- Last session: 2026-01-23T01:35Z
-- Stopped at: Phase 2 verified complete
+- Last session: 2026-01-22T23:45Z
+- Stopped at: Completed 03-01-PLAN.md
 - Resume file: None
