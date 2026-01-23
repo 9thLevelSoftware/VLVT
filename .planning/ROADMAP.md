@@ -60,18 +60,21 @@ Plans:
 
 ---
 
-## Phase 2: Profile & Session Management
+## Phase 2: Profile & Session Management ✓
 
 **Goal:** Users can create After Hours profiles, set preferences, and start/end sessions
+
+**Status:** Complete
+**Completed:** 2026-01-23
 
 **Rationale:** Cannot match users without profiles and sessions existing. This phase establishes the user-facing entry point to After Hours Mode.
 
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — After Hours profile CRUD with photo upload
-- [ ] 02-02-PLAN.md — After Hours preferences CRUD with smart defaults
-- [ ] 02-03-PLAN.md — Session lifecycle with BullMQ expiry
+- [x] 02-01-PLAN.md — After Hours profile CRUD with photo upload
+- [x] 02-02-PLAN.md — After Hours preferences CRUD with smart defaults
+- [x] 02-03-PLAN.md — Session lifecycle with BullMQ expiry
 
 ### Requirements Addressed
 - User can create separate After Hours profile (dedicated photo + description)
@@ -79,12 +82,12 @@ Plans:
 - User can activate After Hours mode session (fixed duration)
 
 ### Deliverables
-- [ ] After Hours profile CRUD endpoints (create, read, update)
-- [ ] Photo upload for After Hours profile (reuse existing Sharp pipeline)
-- [ ] Preferences endpoints (gender seeking, distance range)
-- [ ] Session start endpoint (creates session, validates eligibility)
-- [ ] Session end endpoint (manual early termination)
-- [ ] Session expiry job with BullMQ (automatic timeout)
+- [x] After Hours profile CRUD endpoints (create, read, update)
+- [x] Photo upload for After Hours profile (reuse existing Sharp pipeline)
+- [x] Preferences endpoints (gender seeking, distance range)
+- [x] Session start endpoint (creates session, validates eligibility)
+- [x] Session end endpoint (manual early termination)
+- [x] Session expiry job with BullMQ (automatic timeout)
 
 ### Technical Notes
 - Profile endpoint: `POST/GET/PATCH /api/after-hours/profile`
@@ -289,7 +292,7 @@ Plans:
 | Phase | Name | Deliverables | Dependencies |
 |-------|------|--------------|--------------|
 | 1 | Foundation & Safety ✓ | Schema, location fuzzing, middleware | None |
-| 2 | Profile & Session | Profile CRUD, preferences, session lifecycle | Phase 1 |
+| 2 | Profile & Session ✓ | Profile CRUD, preferences, session lifecycle | Phase 1 |
 | 3 | Matching Engine | Proximity matching, preference filtering | Phase 2 |
 | 4 | Real-Time Chat | Ephemeral chat, Socket.IO events | Phase 3 |
 | 5 | Save Mechanism | Mutual save, conversion to permanent | Phase 4 |
