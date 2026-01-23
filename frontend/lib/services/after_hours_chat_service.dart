@@ -12,6 +12,21 @@ import '../models/message.dart';
 import 'auth_service.dart';
 import 'socket_service.dart';
 
+/// Result of a save match attempt
+class SaveResult {
+  final bool success;
+  final bool mutualSave;
+  final String? permanentMatchId;
+  final String? error;
+
+  SaveResult({
+    required this.success,
+    this.mutualSave = false,
+    this.permanentMatchId,
+    this.error,
+  });
+}
+
 class AfterHoursChatService extends ChangeNotifier {
   final AuthService _authService;
   final SocketService _socketService;
@@ -138,4 +153,49 @@ class AfterHoursChatService extends ChangeNotifier {
 
   /// Check if currently connected
   bool get isConnected => _socketService.isConnected;
+
+  /// Save an After Hours match
+  /// Returns SaveResult with success, mutualSave flag, and optional permanentMatchId
+  Future<SaveResult> saveMatch({required String matchId}) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        debugPrint('AfterHoursChatService: No auth token for save');
+        return SaveResult(success: false, error: 'Not authenticated');
+      }
+
+      final uri = Uri.parse(
+        '${AppConfig.chatServiceUrl}/api/after-hours/matches/$matchId/save',
+      );
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return SaveResult(
+          success: data['success'] == true,
+          mutualSave: data['mutualSave'] == true,
+          permanentMatchId: data['permanentMatchId'] as String?,
+        );
+      }
+
+      if (response.statusCode == 404) {
+        return SaveResult(success: false, error: 'Match not found');
+      }
+      if (response.statusCode == 403) {
+        return SaveResult(success: false, error: 'Unauthorized');
+      }
+
+      return SaveResult(success: false, error: 'Failed to save match');
+    } catch (e) {
+      debugPrint('AfterHoursChatService: Error saving match: $e');
+      return SaveResult(success: false, error: e.toString());
+    }
+  }
 }
