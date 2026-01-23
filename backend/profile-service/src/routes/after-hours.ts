@@ -1,7 +1,7 @@
 /**
  * After Hours Router
  *
- * Provides CRUD endpoints for After Hours profiles, preferences, and sessions (separate from main profiles).
+ * Provides CRUD endpoints for After Hours profiles, preferences, sessions, and matching (separate from main profiles).
  * All routes require:
  * - JWT authentication (via authMiddleware)
  * - Premium subscription + ID verification + GDPR consent (via createAfterHoursAuthMiddleware)
@@ -18,6 +18,9 @@
  * - POST /session/end - End session early
  * - POST /session/extend - Extend active session
  * - GET /session - Get current session status
+ * - POST /match/decline - Decline current match (silent, 3-session memory)
+ * - GET /match/current - Get current match status (match or searching)
+ * - GET /nearby/count - Get active user count nearby (social proof)
  */
 
 import { Router, Request, Response } from 'express';
@@ -908,6 +911,249 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
     } catch (error: any) {
       logger.error('Failed to get session status', { error: error.message, userId });
       res.status(500).json({ success: false, error: 'Failed to get session status' });
+    }
+  });
+
+  // ============================================
+  // MATCHING ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /match/decline - Decline current match
+   *
+   * Silently declines the current match. The other user is NOT notified.
+   * Records decline with 3-session memory (declined user won't appear for 3 sessions).
+   * Triggers matching to find next candidate after 30-second cooldown.
+   */
+  router.post('/match/decline', validateDecline, async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+    const { matchId } = req.body;
+
+    try {
+      // Get current active session
+      const sessionResult = await pool.query(
+        `SELECT id FROM after_hours_sessions WHERE user_id = $1 AND ended_at IS NULL`,
+        [userId]
+      );
+
+      if (sessionResult.rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No active session',
+          code: 'NO_ACTIVE_SESSION',
+        });
+      }
+
+      const sessionId = sessionResult.rows[0].id;
+
+      // Get the match and verify user is part of it
+      const matchResult = await pool.query(
+        `SELECT id, user_id_1, user_id_2
+         FROM after_hours_matches
+         WHERE id = $1
+           AND (user_id_1 = $2 OR user_id_2 = $2)
+           AND declined_by IS NULL`,
+        [matchId, userId]
+      );
+
+      if (matchResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Match not found or already declined',
+        });
+      }
+
+      const match = matchResult.rows[0];
+      const declinedUserId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+      // Record decline with 3-session memory (UPSERT pattern)
+      await pool.query(
+        `INSERT INTO after_hours_declines
+         (user_id, declined_user_id, session_id, decline_count, first_declined_at, last_session_id)
+         VALUES ($1, $2, $3, 1, NOW(), $3)
+         ON CONFLICT (user_id, declined_user_id)
+         DO UPDATE SET
+           decline_count = CASE
+             WHEN after_hours_declines.decline_count >= 3 THEN 1  -- Reset after 3 (they can reappear)
+             ELSE after_hours_declines.decline_count + 1
+           END,
+           last_session_id = $3`,
+        [userId, declinedUserId, sessionId]
+      );
+
+      // Mark match as declined
+      await pool.query(
+        `UPDATE after_hours_matches
+         SET declined_by = $1, declined_at = NOW()
+         WHERE id = $2`,
+        [userId, matchId]
+      );
+
+      logger.info('Match declined', { userId, matchId, declinedUserId });
+
+      // Trigger matching after 30-second cooldown
+      triggerMatchingForUser(userId, sessionId, 30000).catch((err) => {
+        logger.error('Failed to trigger matching after decline', { error: err.message });
+      });
+
+      res.json({
+        success: true,
+        message: 'Match declined',
+      });
+    } catch (error: any) {
+      logger.error('Failed to decline match', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to decline match' });
+    }
+  });
+
+  /**
+   * GET /match/current - Get current match status
+   *
+   * Returns the user's current undeclined match (if any) or searching status.
+   * Used when app reopens to restore match card state.
+   */
+  router.get('/match/current', async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    try {
+      // Check for active session first
+      const sessionResult = await pool.query(
+        `SELECT id, fuzzed_latitude, fuzzed_longitude FROM after_hours_sessions
+         WHERE user_id = $1 AND ended_at IS NULL`,
+        [userId]
+      );
+
+      if (sessionResult.rows.length === 0) {
+        return res.json({
+          success: true,
+          active: false,
+          status: 'no_session',
+          match: null,
+        });
+      }
+
+      // Get current undeclined match
+      const matchResult = await pool.query(
+        `SELECT m.id, m.expires_at, m.created_at,
+                p.name, p.age, ahp.photo_url, ahp.description,
+                s.fuzzed_latitude, s.fuzzed_longitude,
+                m.user_id_1, m.user_id_2
+         FROM after_hours_matches m
+         JOIN after_hours_sessions s ON
+           (m.user_id_1 = $1 AND s.user_id = m.user_id_2 AND s.ended_at IS NULL) OR
+           (m.user_id_2 = $1 AND s.user_id = m.user_id_1 AND s.ended_at IS NULL)
+         JOIN profiles p ON p.user_id = s.user_id
+         JOIN after_hours_profiles ahp ON ahp.user_id = s.user_id
+         WHERE (m.user_id_1 = $1 OR m.user_id_2 = $1)
+           AND m.declined_by IS NULL
+           AND m.expires_at > NOW()
+         ORDER BY m.created_at DESC
+         LIMIT 1`,
+        [userId]
+      );
+
+      if (matchResult.rows.length === 0) {
+        return res.json({
+          success: true,
+          active: true,
+          status: 'searching',
+          match: null,
+        });
+      }
+
+      const match = matchResult.rows[0];
+
+      // Resolve photo URL using resolvePhotoUrl from ../utils/r2-client
+      let photoUrl: string | null = null;
+      if (match.photo_url && match.photo_url !== '') {
+        try {
+          photoUrl = await resolvePhotoUrl(match.photo_url);
+        } catch (err) {
+          logger.warn('Failed to resolve match photo URL', { matchId: match.id });
+        }
+      }
+
+      // Calculate distance from user's session to match's session
+      const userSession = sessionResult.rows[0];
+      const distanceKm = calculateHaversineDistance(
+        parseFloat(userSession.fuzzed_latitude),
+        parseFloat(userSession.fuzzed_longitude),
+        parseFloat(match.fuzzed_latitude),
+        parseFloat(match.fuzzed_longitude)
+      );
+
+      // Calculate auto-decline time (5 minutes from match creation, or match expiry, whichever is sooner)
+      const autoDeclineAt = new Date(Math.min(
+        new Date(match.created_at).getTime() + 5 * 60 * 1000,
+        new Date(match.expires_at).getTime()
+      ));
+
+      res.json({
+        success: true,
+        active: true,
+        status: 'matched',
+        match: {
+          id: match.id,
+          expiresAt: match.expires_at,
+          autoDeclineAt,
+          profile: {
+            name: match.name,
+            age: match.age,
+            photoUrl,
+            description: match.description,
+            distanceKm: Math.round(distanceKm * 10) / 10, // 1 decimal place
+          },
+        },
+      });
+    } catch (error: any) {
+      logger.error('Failed to get current match', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to get match status' });
+    }
+  });
+
+  /**
+   * GET /nearby/count - Get count of active users nearby
+   *
+   * Returns count of active After Hours sessions within user's max distance preference.
+   * Used for social proof ("12 people nearby in After Hours").
+   */
+  router.get('/nearby/count', async (req: Request, res: Response) => {
+    const userId = req.user!.userId;
+
+    try {
+      // Get user's session and preferences
+      const sessionResult = await pool.query(
+        `SELECT s.fuzzed_latitude, s.fuzzed_longitude, p.max_distance_km
+         FROM after_hours_sessions s
+         JOIN after_hours_preferences p ON p.user_id = s.user_id
+         WHERE s.user_id = $1 AND s.ended_at IS NULL`,
+        [userId]
+      );
+
+      if (sessionResult.rows.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No active session',
+          code: 'NO_ACTIVE_SESSION',
+        });
+      }
+
+      const { fuzzed_latitude, fuzzed_longitude, max_distance_km } = sessionResult.rows[0];
+
+      const count = await getActiveUserCountNearby(
+        pool,
+        { lat: parseFloat(fuzzed_latitude), lng: parseFloat(fuzzed_longitude) },
+        parseFloat(max_distance_km)
+      );
+
+      res.json({
+        success: true,
+        count: Math.max(0, count - 1), // Exclude self from count, ensure non-negative
+        maxDistanceKm: parseFloat(max_distance_km),
+      });
+    } catch (error: any) {
+      logger.error('Failed to get nearby count', { error: error.message, userId });
+      res.status(500).json({ success: false, error: 'Failed to get nearby count' });
     }
   });
 
