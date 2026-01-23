@@ -17,6 +17,7 @@ import '../services/message_queue_service.dart';
 import '../services/theme_service.dart';
 import '../services/after_hours_service.dart';
 import '../services/after_hours_chat_service.dart';
+import '../services/after_hours_profile_service.dart';
 
 /// Centralized provider configuration for VLVT
 /// Organizes providers into feature-based groups for better scoping
@@ -95,8 +96,14 @@ class ProviderTree {
       ];
 
   /// After Hours feature providers
-  /// Used for After Hours mode session management and chat
+  /// Used for After Hours mode session management, profile, and chat
   static List<SingleChildWidget> afterHours() => [
+        ChangeNotifierProxyProvider<AuthService, AfterHoursProfileService>(
+          create: (context) =>
+              AfterHoursProfileService(context.read<AuthService>()),
+          update: (context, auth, previous) =>
+              previous ?? AfterHoursProfileService(auth),
+        ),
         ChangeNotifierProxyProvider2<AuthService, SocketService,
             AfterHoursService>(
           create: (context) => AfterHoursService(
