@@ -1,7 +1,7 @@
 /**
- * After Hours Profile Router
+ * After Hours Router
  *
- * Provides CRUD endpoints for After Hours profiles (separate from main profiles).
+ * Provides CRUD endpoints for After Hours profiles and preferences (separate from main profiles).
  * All routes require:
  * - JWT authentication (via authMiddleware)
  * - Premium subscription + ID verification + GDPR consent (via createAfterHoursAuthMiddleware)
@@ -11,6 +11,9 @@
  * - GET /profile - Get own After Hours profile
  * - PATCH /profile - Update After Hours profile
  * - POST /profile/photo - Upload/replace After Hours photo
+ * - POST /preferences - Create After Hours preferences (with smart defaults)
+ * - GET /preferences - Get After Hours preferences
+ * - PATCH /preferences - Update After Hours preferences
  */
 
 import { Router, Request, Response } from 'express';
@@ -23,6 +26,8 @@ import { createAfterHoursAuthMiddleware } from '@vlvt/shared';
 import {
   validateAfterHoursProfile,
   validateAfterHoursProfileUpdate,
+  validatePreferences,
+  validatePreferencesUpdate,
 } from '../middleware/after-hours-validation';
 import {
   validateImage,
@@ -404,6 +409,211 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
       }
     }
   );
+
+  // ============================================
+  // PREFERENCES ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /preferences - Create After Hours preferences
+   *
+   * Creates preferences with smart defaults inherited from main profile.
+   * All fields are optional - defaults are applied for missing values.
+   */
+  router.post('/preferences', validatePreferences, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+      const { seekingGender, maxDistanceKm, minAge, maxAge, sexualOrientation } = req.body;
+
+      // Check if preferences already exist
+      const existing = await pool.query(
+        'SELECT user_id FROM after_hours_preferences WHERE user_id = $1',
+        [userId]
+      );
+
+      if (existing.rows.length > 0) {
+        return res.status(409).json({
+          success: false,
+          error: 'After Hours preferences already exist. Use PATCH to update.',
+        });
+      }
+
+      // Apply smart defaults from main profile if values not provided
+      let finalSeekingGender = seekingGender;
+      let finalMaxDistance = maxDistanceKm;
+      let finalMinAge = minAge;
+      let finalMaxAge = maxAge;
+      let finalOrientation = sexualOrientation;
+
+      // Only apply smart defaults on creation (not updates)
+      if (!seekingGender || !maxDistanceKm || !minAge || !maxAge) {
+        const mainProfileResult = await pool.query(
+          `SELECT gender, sexual_preference FROM profiles WHERE user_id = $1`,
+          [userId]
+        );
+
+        const mainProfile = mainProfileResult.rows[0];
+        if (mainProfile) {
+          // Infer seeking gender from sexual preference if not provided
+          if (!finalSeekingGender && mainProfile.sexual_preference) {
+            // Map sexual preference to seeking gender (rough heuristic)
+            finalSeekingGender = 'Any'; // Safe default
+          }
+          finalSeekingGender = finalSeekingGender || 'Any';
+        }
+      }
+
+      // Apply safe defaults for any remaining nulls
+      finalSeekingGender = finalSeekingGender || 'Any';
+      finalMaxDistance = finalMaxDistance || 10;
+      finalMinAge = finalMinAge || 18;
+      finalMaxAge = finalMaxAge || 99;
+
+      // Insert with defaults applied
+      const result = await pool.query(
+        `INSERT INTO after_hours_preferences
+         (user_id, seeking_gender, max_distance_km, min_age, max_age, sexual_orientation)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [userId, finalSeekingGender, finalMaxDistance, finalMinAge, finalMaxAge, finalOrientation]
+      );
+
+      const prefs = result.rows[0];
+
+      logger.info('After Hours preferences created', { userId });
+
+      res.status(201).json({
+        success: true,
+        preferences: {
+          seekingGender: prefs.seeking_gender,
+          maxDistanceKm: prefs.max_distance_km,
+          minAge: prefs.min_age,
+          maxAge: prefs.max_age,
+          sexualOrientation: prefs.sexual_orientation,
+        },
+      });
+    } catch (error: any) {
+      // Handle duplicate preferences error (unique constraint violation)
+      if (error.code === '23505') {
+        logger.warn('After Hours preferences already exist', { userId: req.user?.userId });
+        return res.status(409).json({
+          success: false,
+          error: 'After Hours preferences already exist. Use PATCH to update.',
+        });
+      }
+
+      logger.error('Failed to create After Hours preferences', {
+        error: error.message,
+        code: error.code,
+        userId: req.user?.userId,
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create After Hours preferences',
+      });
+    }
+  });
+
+  /**
+   * GET /preferences - Get After Hours preferences
+   *
+   * Returns the authenticated user's After Hours preferences.
+   */
+  router.get('/preferences', async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+
+      const result = await pool.query(
+        'SELECT * FROM after_hours_preferences WHERE user_id = $1',
+        [userId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'After Hours preferences not found',
+        });
+      }
+
+      const prefs = result.rows[0];
+
+      res.json({
+        success: true,
+        preferences: {
+          seekingGender: prefs.seeking_gender,
+          maxDistanceKm: prefs.max_distance_km,
+          minAge: prefs.min_age,
+          maxAge: prefs.max_age,
+          sexualOrientation: prefs.sexual_orientation,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Failed to get After Hours preferences', {
+        error: error.message,
+        userId: req.user?.userId,
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get After Hours preferences',
+      });
+    }
+  });
+
+  /**
+   * PATCH /preferences - Update After Hours preferences
+   *
+   * Updates preferences using COALESCE to preserve existing values for fields not provided.
+   */
+  router.patch('/preferences', validatePreferencesUpdate, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.userId;
+      const { seekingGender, maxDistanceKm, minAge, maxAge, sexualOrientation } = req.body;
+
+      const result = await pool.query(
+        `UPDATE after_hours_preferences SET
+           seeking_gender = COALESCE($2, seeking_gender),
+           max_distance_km = COALESCE($3, max_distance_km),
+           min_age = COALESCE($4, min_age),
+           max_age = COALESCE($5, max_age),
+           sexual_orientation = COALESCE($6, sexual_orientation),
+           updated_at = NOW()
+         WHERE user_id = $1
+         RETURNING *`,
+        [userId, seekingGender, maxDistanceKm, minAge, maxAge, sexualOrientation]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'After Hours preferences not found',
+        });
+      }
+
+      const prefs = result.rows[0];
+
+      logger.info('After Hours preferences updated', { userId });
+
+      res.json({
+        success: true,
+        preferences: {
+          seekingGender: prefs.seeking_gender,
+          maxDistanceKm: prefs.max_distance_km,
+          minAge: prefs.min_age,
+          maxAge: prefs.max_age,
+          sexualOrientation: prefs.sexual_orientation,
+        },
+      });
+    } catch (error: any) {
+      logger.error('Failed to update After Hours preferences', {
+        error: error.message,
+        userId: req.user?.userId,
+      });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update After Hours preferences',
+      });
+    }
+  });
 
   return router;
 }
