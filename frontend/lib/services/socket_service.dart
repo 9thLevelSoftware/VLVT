@@ -57,6 +57,9 @@ class SocketService extends ChangeNotifier {
   final _sessionExpiredController = StreamController<Map<String, dynamic>>.broadcast();
   final _noMatchesController = StreamController<Map<String, dynamic>>.broadcast();
   final _matchExpiredController = StreamController<Map<String, dynamic>>.broadcast();
+  // Save-related stream controllers
+  final _partnerSavedController = StreamController<Map<String, dynamic>>.broadcast();
+  final _matchSavedController = StreamController<Map<String, dynamic>>.broadcast();
 
   // Getters for streams
   Stream<Message> get onNewMessage => _messageController.stream;
@@ -74,6 +77,9 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get onSessionExpired => _sessionExpiredController.stream;
   Stream<Map<String, dynamic>> get onNoMatches => _noMatchesController.stream;
   Stream<Map<String, dynamic>> get onMatchExpired => _matchExpiredController.stream;
+  // Save-related streams
+  Stream<Map<String, dynamic>> get onPartnerSaved => _partnerSavedController.stream;
+  Stream<Map<String, dynamic>> get onMatchSaved => _matchSavedController.stream;
 
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
@@ -316,6 +322,28 @@ class SocketService extends ChangeNotifier {
         _matchExpiredController.add(data);
       } catch (e) {
         debugPrint('Socket: Error parsing match expired: $e');
+      }
+    });
+
+    // After Hours: Partner saved the match
+    _socket!.on('after_hours:partner_saved', (data) {
+      debugPrint('Socket: Partner saved match');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _partnerSavedController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing partner saved: $e');
+      }
+    });
+
+    // After Hours: Match saved (mutual)
+    _socket!.on('after_hours:match_saved', (data) {
+      debugPrint('Socket: Match saved (mutual)');
+      try {
+        if (data is! Map<String, dynamic>) return;
+        _matchSavedController.add(data);
+      } catch (e) {
+        debugPrint('Socket: Error parsing match saved: $e');
       }
     });
   }
@@ -617,6 +645,9 @@ class SocketService extends ChangeNotifier {
     _sessionExpiredController.close();
     _noMatchesController.close();
     _matchExpiredController.close();
+    // Save-related controllers
+    _partnerSavedController.close();
+    _matchSavedController.close();
     super.dispose();
   }
 }
