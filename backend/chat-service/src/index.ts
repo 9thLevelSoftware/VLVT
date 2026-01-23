@@ -26,6 +26,7 @@ import { generateMatchId, generateMessageId, generateBlockId, generateReportId }
 import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
+import { createAfterHoursChatRouter } from './routes/after-hours-chat';
 import {
   createCsrfMiddleware,
   createCsrfTokenHandler,
@@ -1046,6 +1047,12 @@ app.post('/fcm/unregister', authMiddleware, generalLimiter, async (req: Request,
     res.status(500).json({ success: false, error: 'Failed to unregister FCM token' });
   }
 });
+
+// ===== AFTER HOURS CHAT ENDPOINTS =====
+
+// Register After Hours chat routes with auth middleware
+// Full path: GET /after-hours/messages/:matchId
+app.use(authMiddleware, generalLimiter, createAfterHoursChatRouter(pool));
 
 // ===== DATE PROPOSAL ENDPOINTS =====
 
