@@ -8,15 +8,15 @@
 ## Position
 
 - Phase: 02 of 05 (Profile & Session Management)
-- Wave: 1
-- Plans: 02-01 (complete)
+- Wave: 2
+- Plans: 02-01 (complete), 02-02 (complete)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
-Phase 2: [###-------] 1/3 plans complete (estimated)
-Overall:  [###-------] 4/15 plans complete (estimated)
+Phase 2: [######----] 2/3 plans complete (estimated)
+Overall:  [####------] 5/15 plans complete (estimated)
 ```
 
 ## Accumulated Decisions
@@ -37,25 +37,30 @@ Overall:  [###-------] 4/15 plans complete (estimated)
 - [02-01] Two-step profile creation: create profile, then upload photo separately
 - [02-01] After Hours photos use R2 prefix: after-hours-photos/{userId}/{photoId}
 - [02-01] Name/age inherited from main profile via JOIN (not duplicated)
+- [02-02] Smart defaults from main profile on preferences creation
+- [02-02] All preference fields optional on creation - defaults applied server-side
+- [02-02] COALESCE preserves existing values during partial updates
+- [02-02] Age range validation: minAge must be <= maxAge when both provided
 
 ## Current Context
 
-**Phase 2 Plan 01 COMPLETE - After Hours Profile CRUD**
+**Phase 2 Plan 02 COMPLETE - After Hours Preferences CRUD**
 
 Completed deliverables:
-- POST/GET/PATCH /api/after-hours/profile endpoints
-- POST /api/after-hours/profile/photo for single photo upload
-- Validation middleware for profile data
-- All routes protected by createAfterHoursAuthMiddleware
+- POST/GET/PATCH /api/after-hours/preferences endpoints
+- validatePreferences and validatePreferencesUpdate middleware
+- Migration 022 adding min_age, max_age, sexual_orientation columns
+- Smart defaults logic inheriting from main profile
 
-Key files created:
-- `backend/profile-service/src/routes/after-hours.ts`
-- `backend/profile-service/src/middleware/after-hours-validation.ts`
+Key files modified:
+- `backend/profile-service/src/routes/after-hours.ts` (preferences endpoints added)
+- `backend/profile-service/src/middleware/after-hours-validation.ts` (preferences validators)
+- `backend/migrations/022_add_after_hours_preferences_columns.sql` (new migration)
 
-Ready for 02-02 (Session Activation API).
+Ready for 02-03 (Session Activation API).
 
 ## Session Continuity
 
-- Last session: 2026-01-23T01:20Z
-- Stopped at: Completed 02-01-PLAN.md
+- Last session: 2026-01-22T20:39Z
+- Stopped at: Completed 02-02-PLAN.md
 - Resume file: None
