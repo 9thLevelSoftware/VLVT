@@ -3,20 +3,20 @@
 **Project:** After Hours Mode
 **Milestone:** v1.0
 **Current Phase:** 2 - Profile & Session Management
-**Status:** in progress
+**Status:** complete
 
 ## Position
 
 - Phase: 02 of 05 (Profile & Session Management)
 - Wave: 2
-- Plans: 02-01 (complete), 02-02 (complete)
+- Plans: 02-01 (complete), 02-02 (complete), 02-03 (complete)
 
 ## Progress
 
 ```
 Phase 1: [##########] 3/3 plans complete
-Phase 2: [######----] 2/3 plans complete (estimated)
-Overall:  [####------] 5/15 plans complete (estimated)
+Phase 2: [##########] 3/3 plans complete
+Overall:  [######----] 6/15 plans complete (estimated)
 ```
 
 ## Accumulated Decisions
@@ -41,26 +41,34 @@ Overall:  [####------] 5/15 plans complete (estimated)
 - [02-02] All preference fields optional on creation - defaults applied server-side
 - [02-02] COALESCE preserves existing values during partial updates
 - [02-02] Age range validation: minAge must be <= maxAge when both provided
+- [02-03] Non-blocking Redis init - server continues if Redis unavailable
+- [02-03] Fire-and-forget job scheduling - session persists regardless of job success
+- [02-03] Transaction for session start - atomic profile check + insert
+- [02-03] SQL-based remaining time calculation avoids client/server time drift
 
 ## Current Context
 
-**Phase 2 Plan 02 COMPLETE - After Hours Preferences CRUD**
+**Phase 2 COMPLETE - Profile & Session Management**
 
-Completed deliverables:
-- POST/GET/PATCH /api/after-hours/preferences endpoints
-- validatePreferences and validatePreferencesUpdate middleware
-- Migration 022 adding min_age, max_age, sexual_orientation columns
-- Smart defaults logic inheriting from main profile
+All deliverables complete:
+- After Hours Profile CRUD (02-01)
+- After Hours Preferences CRUD (02-02)
+- Session Lifecycle API with BullMQ (02-03)
 
-Key files modified:
-- `backend/profile-service/src/routes/after-hours.ts` (preferences endpoints added)
-- `backend/profile-service/src/middleware/after-hours-validation.ts` (preferences validators)
-- `backend/migrations/022_add_after_hours_preferences_columns.sql` (new migration)
+Key files:
+- `backend/profile-service/src/routes/after-hours.ts` (all endpoints)
+- `backend/profile-service/src/middleware/after-hours-validation.ts` (all validators)
+- `backend/profile-service/src/services/session-scheduler.ts` (BullMQ scheduler)
+- `backend/migrations/021_add_after_hours_tables.sql` (foundation schema)
+- `backend/migrations/022_add_after_hours_preferences_columns.sql` (preferences columns)
 
-Ready for 02-03 (Session Activation API).
+Infrastructure requirements:
+- Redis for session auto-expiry (REDIS_URL env var)
+
+Ready for Phase 03 (Discovery Nearby).
 
 ## Session Continuity
 
-- Last session: 2026-01-22T20:39Z
-- Stopped at: Completed 02-02-PLAN.md
+- Last session: 2026-01-23T01:29Z
+- Stopped at: Completed 02-03-PLAN.md (Phase 2 complete)
 - Resume file: None
