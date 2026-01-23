@@ -48,6 +48,7 @@ import {
   API_VERSIONS,
   CURRENT_API_VERSION,
 } from '@vlvt/shared';
+import { createAfterHoursRouter } from './routes/after-hours';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -1632,6 +1633,11 @@ app.get('/swipes/sent', authMiddleware, generalLimiter, async (req: Request, res
     res.status(500).json({ success: false, error: 'Failed to get sent likes' });
   }
 });
+
+// After Hours routes
+const afterHoursRouter = createAfterHoursRouter(pool, upload);
+app.use('/api/after-hours', afterHoursRouter);
+logger.info('After Hours routes mounted at /api/after-hours');
 
 // Sentry error handler - must be after all routes but before generic error handler
 if (process.env.SENTRY_DSN) {
