@@ -157,6 +157,14 @@ Plans:
 
 **Rationale:** Depends on matching to create connections. Chat is the core interaction once matched.
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Redis pub/sub subscriber and After Hours Socket.IO handlers
+- [ ] 04-02-PLAN.md — Ephemeral message handlers and HTTP history endpoint
+- [ ] 04-03-PLAN.md — 30-day message retention cleanup and session expiry notifications
+- [ ] 04-04-PLAN.md — Flutter socket events and chat service
+
 ### Requirements Addressed
 - User can tap "Chat" to connect instantly with ephemeral chat
 - Ephemeral chat disappears when session ends
