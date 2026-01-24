@@ -9,7 +9,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import '../config/app_config.dart';
+import 'analytics_service.dart';
 import 'auth_service.dart';
+import 'device_fingerprint_service.dart';
 import 'socket_service.dart';
 
 /// After Hours session states
@@ -104,6 +106,7 @@ class AfterHoursService extends ChangeNotifier {
   AfterHoursState _state = AfterHoursState.inactive;
   String? _sessionId;
   DateTime? _expiresAt;
+  DateTime? _sessionStartedAt; // For analytics duration tracking
   AfterHoursMatch? _currentMatch;
   int _nearbyCount = 0;
   bool _partnerSaved = false;
@@ -164,6 +167,8 @@ class AfterHoursService extends ChangeNotifier {
         _currentMatch = AfterHoursMatch.fromJson(data);
         _partnerSaved = false; // Reset for new match
         _setState(AfterHoursState.matched);
+        // Fire-and-forget analytics
+        AnalyticsService.logAfterHoursMatchReceived(matchId: _currentMatch!.id);
       } catch (e) {
         debugPrint('AfterHoursService: Error parsing match: $e');
       }
@@ -185,6 +190,14 @@ class AfterHoursService extends ChangeNotifier {
     // Session expired
     _expiredSubscription = _socketService.onSessionExpired.listen((data) {
       debugPrint('AfterHoursService: Session expired');
+      // Fire-and-forget analytics with elapsed time
+      if (_sessionStartedAt != null) {
+        final elapsedMinutes = DateTime.now().difference(_sessionStartedAt!).inMinutes;
+        AnalyticsService.logAfterHoursSessionEnded(
+          durationMinutes: elapsedMinutes > 0 ? elapsedMinutes : 0,
+          endReason: 'expired',
+        );
+      }
       resetToInactive();
     });
 
@@ -214,6 +227,11 @@ class AfterHoursService extends ChangeNotifier {
     // Match saved (mutual)
     _matchSavedSubscription = _socketService.onMatchSaved.listen((data) {
       debugPrint('AfterHoursService: Match saved (mutual)');
+      // Fire-and-forget analytics
+      final matchId = data['matchId'] as String? ?? _currentMatch?.id ?? '';
+      if (matchId.isNotEmpty) {
+        AnalyticsService.logAfterHoursMatchSaved(matchId: matchId);
+      }
       // The match has been converted to a permanent match
       // UI should show a celebration/notification
       // Then transition back to searching or show permanent match
@@ -264,6 +282,9 @@ class AfterHoursService extends ChangeNotifier {
         return false;
       }
 
+      // Collect device fingerprint (non-blocking, best effort)
+      final fingerprint = await DeviceFingerprintService.collectFingerprint();
+
       // Make API call to start session
       final response = await http.post(
         Uri.parse(_url('/after-hours/session/start')),
@@ -272,6 +293,7 @@ class AfterHoursService extends ChangeNotifier {
           'duration': durationMinutes,
           'latitude': lat,
           'longitude': lng,
+          if (fingerprint.isNotEmpty) 'deviceFingerprint': fingerprint,
         }),
       );
 
@@ -280,10 +302,16 @@ class AfterHoursService extends ChangeNotifier {
         if (data['success'] == true && data['session'] != null) {
           _sessionId = data['session']['id'] as String;
           _expiresAt = DateTime.parse(data['session']['expiresAt'] as String);
+          _sessionStartedAt = DateTime.now(); // Track for analytics duration
           _setState(AfterHoursState.searching);
 
           // Start foreground service for background location
           await _startForegroundService();
+
+          // Fire-and-forget analytics
+          AnalyticsService.logAfterHoursSessionStarted(
+            durationMinutes: durationMinutes,
+          );
 
           return true;
         }
@@ -321,6 +349,14 @@ class AfterHoursService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
+        // Fire-and-forget analytics for manual session end
+        if (_sessionStartedAt != null) {
+          final elapsedMinutes = DateTime.now().difference(_sessionStartedAt!).inMinutes;
+          AnalyticsService.logAfterHoursSessionEnded(
+            durationMinutes: elapsedMinutes > 0 ? elapsedMinutes : 0,
+            endReason: 'manual',
+          );
+        }
         resetToInactive();
         return true;
       }
@@ -349,6 +385,10 @@ class AfterHoursService extends ChangeNotifier {
 
       debugPrint('AfterHoursService: Accepted match ${_currentMatch!.id}');
       _setState(AfterHoursState.chatting);
+
+      // Fire-and-forget analytics
+      AnalyticsService.logAfterHoursChatStarted(matchId: _currentMatch!.id);
+
       return true;
     } catch (e) {
       debugPrint('AfterHoursService: Error accepting match: $e');
@@ -385,6 +425,10 @@ class AfterHoursService extends ChangeNotifier {
       }
 
       debugPrint('AfterHoursService: Declined match $matchId');
+
+      // Fire-and-forget analytics
+      AnalyticsService.logAfterHoursMatchDeclined(matchId: matchId);
+
       _currentMatch = null;
       _partnerSaved = false;
       _setState(AfterHoursState.searching);
@@ -450,6 +494,7 @@ class AfterHoursService extends ChangeNotifier {
     _setState(AfterHoursState.inactive);
     _sessionId = null;
     _expiresAt = null;
+    _sessionStartedAt = null;
     _currentMatch = null;
     _nearbyCount = 0;
     _partnerSaved = false;
