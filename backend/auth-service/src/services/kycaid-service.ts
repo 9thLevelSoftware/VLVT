@@ -8,6 +8,78 @@
 import crypto from 'crypto';
 import logger from '../utils/logger';
 
+// ============================================================================
+// KYCAID PII Encryption Helpers
+// Uses PostgreSQL functions from migration 014_encrypt_kycaid_pii.sql
+// ============================================================================
+
+/**
+ * Get encryption key from environment
+ * Required in production, optional in development
+ */
+function getEncryptionKey(): string {
+  const key = process.env.KYCAID_ENCRYPTION_KEY;
+  if (!key) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('KYCAID_ENCRYPTION_KEY must be set in production');
+    }
+    // Allow dev without encryption key (logs warning)
+    console.warn('[SECURITY] KYCAID_ENCRYPTION_KEY not set - encryption disabled in development');
+    return '';
+  }
+  return key;
+}
+
+/**
+ * PII data structure for KYCAID verifications
+ * Contains sensitive personal information that must be encrypted at rest
+ */
+export interface KycaidPiiData {
+  first_name?: string;
+  last_name?: string;
+  date_of_birth?: string;
+  document_number?: string;
+  document_expiry?: string;
+}
+
+/**
+ * Prepare PII data for encrypted storage
+ * Returns SQL fragment for INSERT/UPDATE using encrypt_kycaid_pii function
+ *
+ * @param pii - Personal identifiable information to encrypt
+ * @returns Object with SQL fragment and params, or null if encryption disabled
+ */
+export function prepareEncryptedPii(pii: KycaidPiiData): { sql: string; params: [string, string] } | null {
+  const key = getEncryptionKey();
+  if (!key) {
+    // No encryption in dev without key
+    return null;
+  }
+  return {
+    sql: 'encrypt_kycaid_pii($1::jsonb, $2)',
+    params: [JSON.stringify(pii), key]
+  };
+}
+
+/**
+ * Get SQL for decrypting PII from database
+ * Used when retrieving encrypted KYCAID data
+ *
+ * @param encryptedColumn - Column name containing encrypted data
+ * @param paramIndex - Starting index for SQL parameters
+ * @returns Object with SQL fragment and key param
+ */
+export function prepareDecryptedPii(encryptedColumn: string, paramIndex: number): { sql: string; param: string } | null {
+  const key = getEncryptionKey();
+  if (!key) {
+    return null;
+  }
+  return {
+    sql: `decrypt_kycaid_pii(${encryptedColumn}, $${paramIndex})`,
+    param: key
+  };
+}
+
 // KYCAID API configuration
 const KYCAID_API_URL = process.env.KYCAID_API_URL || 'https://api.kycaid.com';
 const KYCAID_API_TOKEN = process.env.KYCAID_API_TOKEN;
@@ -281,6 +353,7 @@ export function parseCallbackData(body: unknown): KycaidCallbackData | null {
 
 /**
  * Extract user data from completed verification
+ * Includes piiForStorage for encrypted database storage
  */
 export function extractVerifiedUserData(callback: KycaidCallbackData): {
   firstName?: string;
@@ -294,6 +367,8 @@ export function extractVerifiedUserData(callback: KycaidCallbackData): {
   faceMatchVerified: boolean;
   livenessVerified: boolean;
   amlCleared: boolean;
+  /** PII data structured for encrypted storage via prepareEncryptedPii() */
+  piiForStorage: KycaidPiiData;
 } {
   const doc = callback.verifications?.document;
   const facial = callback.verifications?.facial;
@@ -312,5 +387,13 @@ export function extractVerifiedUserData(callback: KycaidCallbackData): {
     faceMatchVerified: facial?.status === 'approved' && facial?.match === true,
     livenessVerified: liveness?.status === 'approved' && liveness?.passed === true,
     amlCleared: !aml || (aml.status === 'approved' && aml.hits === 0),
+    // PII structured for encrypted storage
+    piiForStorage: {
+      first_name: doc?.first_name,
+      last_name: doc?.last_name,
+      date_of_birth: doc?.dob,
+      document_number: doc?.document_number,
+      document_expiry: doc?.expiry_date,
+    },
   };
 }
