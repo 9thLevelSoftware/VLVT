@@ -21,13 +21,13 @@ Requirements for beta launch. Each maps to roadmap phases.
 
 ### GDPR Compliance
 
-- [ ] **GDPR-01**: Privacy policy accessible in-app and linked from settings
-- [ ] **GDPR-02**: Granular consent collection with per-purpose opt-in
-- [ ] **GDPR-03**: Data export endpoint for Right to Access (Article 15)
-- [ ] **GDPR-04**: Account deletion endpoint for Right to Erasure (Article 17)
-- [ ] **GDPR-05**: Consent withdrawal mechanism available to users
-- [ ] **GDPR-06**: Data retention policies defined and documented
-- [ ] **GDPR-07**: Special category data handling documented (Article 9 - sexual orientation inference)
+- [x] **GDPR-01**: Privacy policy accessible in-app and linked from settings
+- [x] **GDPR-02**: Granular consent collection with per-purpose opt-in
+- [x] **GDPR-03**: Data export endpoint for Right to Access (Article 15)
+- [x] **GDPR-04**: Account deletion endpoint for Right to Erasure (Article 17)
+- [x] **GDPR-05**: Consent withdrawal mechanism available to users
+- [x] **GDPR-06**: Data retention policies defined and documented
+- [x] **GDPR-07**: Special category data handling documented (Article 9 - sexual orientation inference)
 
 ### Testing
 
@@ -126,13 +126,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-07 | Phase 1 | Pending |
 | SEC-08 | Phase 1 | Pending |
 | SEC-09 | Phase 1 | Pending |
-| GDPR-01 | Phase 2 | Pending |
-| GDPR-02 | Phase 2 | Pending |
-| GDPR-03 | Phase 2 | Pending |
-| GDPR-04 | Phase 2 | Pending |
-| GDPR-05 | Phase 2 | Pending |
-| GDPR-06 | Phase 2 | Pending |
-| GDPR-07 | Phase 2 | Pending |
+| GDPR-01 | Phase 2 | Complete |
+| GDPR-02 | Phase 2 | Complete |
+| GDPR-03 | Phase 2 | Complete |
+| GDPR-04 | Phase 2 | Complete |
+| GDPR-05 | Phase 2 | Complete |
+| GDPR-06 | Phase 2 | Complete |
+| GDPR-07 | Phase 2 | Complete |
 | TEST-01 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |
 | TEST-03 | Phase 3 | Pending |
@@ -167,4 +167,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-24 after initial definition*
+*Last updated: 2026-01-24 - Phase 2 (GDPR) complete*

@@ -13,7 +13,7 @@ VLVT transitions from MVP to production-ready state for staged beta launch. Seve
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Security Hardening** - Close exploitable vulnerabilities before deployment
-- [ ] **Phase 2: GDPR Compliance** - Establish legal compliance for EU users and special category data
+- [x] **Phase 2: GDPR Compliance** - Establish legal compliance for EU users and special category data
 - [ ] **Phase 3: Testing Infrastructure** - Enable safe code changes with regression protection
 - [ ] **Phase 4: Bug Fixes & UI Polish** - Fix UI bugs and polish user experience for beta quality
 - [ ] **Phase 5: Monitoring & Alerting** - Gain production visibility after hardening
@@ -56,12 +56,12 @@ Plans:
 **Plans**: 6 plans in 4 waves
 
 Plans:
-- [ ] 02-01-PLAN.md - Privacy policy links, data retention docs, Article 9 disclosure (GDPR-01, GDPR-06, GDPR-07)
-- [ ] 02-02-PLAN.md - Complete R2 photo deletion in account deletion (GDPR-04)
-- [ ] 02-03-PLAN.md - Consent database table and management APIs (GDPR-02, GDPR-05)
-- [ ] 02-04-PLAN.md - Consent management UI in frontend (GDPR-02, GDPR-05)
-- [ ] 02-05-PLAN.md - Data export API endpoint (GDPR-03)
-- [ ] 02-06-PLAN.md - Data export UI and verification checkpoint (GDPR-03)
+- [x] 02-01-PLAN.md - Privacy policy links, data retention docs, Article 9 disclosure (GDPR-01, GDPR-06, GDPR-07)
+- [x] 02-02-PLAN.md - Complete R2 photo deletion in account deletion (GDPR-04)
+- [x] 02-03-PLAN.md - Consent database table and management APIs (GDPR-02, GDPR-05)
+- [x] 02-04-PLAN.md - Consent management UI in frontend (GDPR-02, GDPR-05)
+- [x] 02-05-PLAN.md - Data export API endpoint (GDPR-03)
+- [x] 02-06-PLAN.md - Data export UI and verification checkpoint (GDPR-03)
 
 ### Phase 3: Testing Infrastructure
 **Goal**: Code changes can be made safely with automated regression detection
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Security Hardening | 7/7 | Complete | 2026-01-24 |
-| 2. GDPR Compliance | 0/6 | Planned | - |
+| 2. GDPR Compliance | 6/6 | Complete | 2026-01-24 |
 | 3. Testing Infrastructure | 0/TBD | Not started | - |
 | 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
 | 5. Monitoring & Alerting | 0/TBD | Not started | - |
@@ -155,5 +155,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-24 - Phase 2 planned (6 plans in 4 waves)*
+*Last updated: 2026-01-24 - Phase 2 complete (6/6 plans verified)*
 *Coverage: 38/38 v1 requirements mapped*
