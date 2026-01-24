@@ -10,25 +10,25 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 2 of 7 (GDPR Compliance)
-Plan: 4 of 6 in current phase
+Plan: 5 of 6 in current phase
 Status: In progress
-Last activity: 2026-01-24 - Completed 02-04-PLAN.md (Frontend Consent Management UI)
+Last activity: 2026-01-24 - Completed 02-05-PLAN.md (Data Export API)
 
-Progress: [█████=====] 30% (Phase 1 complete, Phase 2 in progress - 4/6 plans)
+Progress: [██████====] 32% (Phase 1 complete, Phase 2 in progress - 5/6 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39 (29 original + 6 gap closure + 4 GDPR)
+- Total plans completed: 40 (29 original + 6 gap closure + 5 GDPR)
 - Average duration: ~12 min
-- Total execution time: ~8.2 hours
+- Total execution time: ~8.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Completed | Status |
 |-------|-------|-----------|--------|
 | 01-security-hardening | 7 | 7 | Complete (verified) |
-| 02-GDPR-compliance | 6 | 4 | In progress |
+| 02-GDPR-compliance | 6 | 5 | In progress |
 | 03-testing-infrastructure | TBD | 0 | Not started |
 | 04-bug-fixes-ui-polish | TBD | 0 | Not started |
 | 05-monitoring-alerting | TBD | 0 | Not started |
@@ -36,7 +36,7 @@ Progress: [█████=====] 30% (Phase 1 complete, Phase 2 in progress - 4/
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 02-04 (3 min)
+- Last plan: 02-05 (5 min)
 - Trend: Steady
 
 *Updated after each plan completion*
@@ -76,10 +76,13 @@ Recent decisions affecting current work:
 - [02-04]: ConsentStatus model in auth_service.dart with displayName/description getters
 - [02-04]: Optimistic UI updates with error rollback pattern in consent screen
 - [02-04]: Privacy Preferences link added to Safety Settings (Privacy & Legal section)
+- [02-05]: Export only user's sent messages (received messages belong to sender per GDPR)
+- [02-05]: Photo keys only in export (not presigned URLs) to prevent data breach via export file
+- [02-05]: After Hours sessions limited to 30 days in export
 
 ### Pending Todos
 
-Phase 2 GDPR Compliance in progress. Next: 02-05 (data export), 02-06 (DPO contact + request forms).
+Phase 2 GDPR Compliance in progress. Next: 02-06 (DPO contact + request forms).
 
 ### Blockers/Concerns
 
@@ -88,12 +91,12 @@ Phase 2 GDPR Compliance in progress. Next: 02-05 (data export), 02-06 (DPO conta
 
 ## Session Continuity
 
-Last session: 2026-01-24T20:04:00Z
-Stopped at: Completed 02-04-PLAN.md (Frontend Consent Management UI)
+Last session: 2026-01-24T20:11:00Z
+Stopped at: Completed 02-05-PLAN.md (Data Export API)
 Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (Phase 2 of 7 in progress - 4/6 plans complete)*
+*Current milestone: Production Readiness (Phase 2 of 7 in progress - 5/6 plans complete)*
