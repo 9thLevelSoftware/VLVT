@@ -47,6 +47,10 @@ import {
   closeMatchingScheduler,
 } from './services/matching-scheduler';
 import {
+  initializeSessionCleanupJob,
+  closeSessionCleanupJob,
+} from './jobs/session-cleanup-job';
+import {
   createCsrfMiddleware,
   createCsrfTokenHandler,
   addVersionToHealth,
@@ -1665,6 +1669,7 @@ process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
   await closeMatchingScheduler();
   await closeSessionScheduler();
+  await closeSessionCleanupJob();
   process.exit(0);
 });
 
@@ -1672,6 +1677,7 @@ process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
   await closeMatchingScheduler();
   await closeSessionScheduler();
+  await closeSessionCleanupJob();
   process.exit(0);
 });
 
@@ -1700,6 +1706,12 @@ if (process.env.NODE_ENV !== 'test') {
       initializeMatchingScheduler(pool).catch((err) => {
         logger.error('Failed to initialize matching scheduler', { error: err.message });
         logger.warn('Matching will not work automatically. Start Redis and restart.');
+      });
+
+      // Initialize session cleanup job (non-blocking)
+      // Runs daily at 4 AM UTC to clean expired sessions and orphaned data
+      initializeSessionCleanupJob(pool).catch((err) => {
+        logger.warn('Session cleanup job initialization failed', { error: err.message });
       });
 
       app.listen(PORT, () => {
