@@ -5,29 +5,29 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 1 Gap Closure - Executing remaining gap closure plans (06-07)
+**Current focus:** Phase 1 Gap Closure - Executing remaining gap closure plan (07)
 
 ## Current Position
 
 Phase: 1 of 7 (Security Hardening) - Gap Closure
-Plan: 5 of 7 (gap closure plans) - COMPLETE
+Plan: 6 of 7 (gap closure plans) - COMPLETE
 Status: Gap closure in progress
-Last activity: 2026-01-24 - Completed 01-05-PLAN.md (KYCAID encryption helpers)
+Last activity: 2026-01-24 - Completed 01-06-PLAN.md (BOLA/IDOR audit)
 
-Progress: [==========] 100% + gap closure (29/29 + 3 gap plans in progress)
+Progress: [==========] 100% + gap closure (29/29 + 4 gap plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 33 (29 original + 4 gap closure)
+- Total plans completed: 34 (29 original + 5 gap closure)
 - Average duration: ~12 min
-- Total execution time: ~7.1 hours
+- Total execution time: ~7.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Completed | Status |
 |-------|-------|-----------|--------|
-| 01-security-hardening | 7 | 5 | Gap closure in progress |
+| 01-security-hardening | 7 | 6 | Gap closure in progress |
 | 02-profile-session | 3 | 3 | Complete |
 | 03-matching-engine | 4 | 4 | Complete |
 | 04-real-time-chat | 4 | 4 | Complete |
@@ -36,7 +36,7 @@ Progress: [==========] 100% + gap closure (29/29 + 3 gap plans in progress)
 | 07-safety-polish | 5 | 5 | Complete |
 
 **Recent Trend:**
-- Last plan: 01-05 (6 min)
+- Last plan: 01-06 (25 min)
 - Trend: Steady
 
 *Updated after each plan completion*
@@ -61,10 +61,12 @@ Recent decisions affecting current work:
 - [01-04]: SEC-06 Add console.warn for dev secret usage to catch staging misconfiguration
 - [01-05]: SEC-02 KYCAID encryption implemented; location encryption deferred to v2
 - [01-05]: KYCAID_ENCRYPTION_KEY required in production (throws error if missing)
+- [01-06]: SEC-04 SATISFIED - All 60 endpoints audited, 53 protected, 7 N/A (public auth)
+- [01-06]: 5 authorization patterns documented for consistent IDOR protection
 
 ### Pending Todos
 
-Gap closure plans 06-07 still to execute.
+Gap closure plan 07 still to execute.
 
 ### Blockers/Concerns
 
@@ -73,8 +75,8 @@ Gap closure plans 06-07 still to execute.
 
 ## Session Continuity
 
-Last session: 2026-01-24T17:16:50Z
-Stopped at: Completed 01-05-PLAN.md (KYCAID encryption helpers)
+Last session: 2026-01-24T18:25:00Z
+Stopped at: Completed 01-06-PLAN.md (BOLA/IDOR audit)
 Resume file: None
 
 ---
