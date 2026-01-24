@@ -28,7 +28,11 @@ const EMPTY_BODY_HASH = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991
 // Default timestamp tolerance (5 minutes in milliseconds)
 const DEFAULT_TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
 
-// Default development secret (MUST be overridden in production)
+// Default development secret - NEVER used in production (throws error)
+// This constant is intentionally visible to remind developers that:
+// 1. It exists ONLY for local development convenience
+// 2. Production MUST set REQUEST_SIGNING_SECRET (enforced with throw)
+// 3. The warning log helps catch misconfiguration during staging
 const DEFAULT_DEV_SECRET = 'vlvt-dev-signing-secret-DO-NOT-USE-IN-PRODUCTION';
 
 export interface SignatureMiddlewareOptions {
@@ -194,6 +198,12 @@ export function getSigningSecret(): string {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('REQUEST_SIGNING_SECRET must be set in production');
     }
+    // Log warning to remind developers to set proper secret
+    // This is safe for development but should never appear in production logs
+    console.warn(
+      '[SECURITY] Using DEFAULT_DEV_SECRET for request signing. ' +
+      'Set REQUEST_SIGNING_SECRET environment variable for production security.'
+    );
     return DEFAULT_DEV_SECRET;
   }
   return secret;
