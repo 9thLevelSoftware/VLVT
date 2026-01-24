@@ -13,7 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@sentry/node": "^7.0.0",
+    "@sentry/node": "^10.27.0",
     "express": "^5.0.0",
     "express-rate-limit": "^7.1.5",
     "firebase-admin": "^12.0.0",
