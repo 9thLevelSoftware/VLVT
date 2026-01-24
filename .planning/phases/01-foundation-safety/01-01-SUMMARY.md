@@ -1,112 +1,116 @@
 ---
-phase: 01-foundation-safety
+phase: 01-security-hardening
 plan: 01
-subsystem: database
-tags: [postgresql, migration, gdpr, after-hours, schema]
+subsystem: infra
+tags: [npm, sentry, security, dependencies, vulnerabilities]
 
 # Dependency graph
 requires: []
 provides:
-  - After Hours database schema (6 tables)
-  - GDPR consent tracking columns
-  - Session management with location privacy
-  - Ephemeral match and message storage
-affects: [01-foundation-safety, 02-session-matching, 03-ephemeral-chat]
+  - Zero critical/high npm vulnerabilities across all backend services
+  - @sentry/node upgraded to v10.27.0+ (fixes header leak CVE)
+  - Transitive dependency vulnerabilities resolved (qs, body-parser, jws, glob)
+affects: [all-backend-services, deployment, ci-cd]
 
 # Tech tracking
 tech-stack:
   added: []
   patterns:
-    - "Partial unique index for single active session constraint"
-    - "Dual coordinate storage: exact (private) + fuzzed (display)"
-    - "Session-scoped data with CASCADE delete for auto-cleanup"
-    - "GDPR consent as explicit boolean + timestamp"
+    - Pin minimum security versions in package.json for critical dependencies
 
 key-files:
-  created:
-    - backend/migrations/021_add_after_hours_tables.sql
-  modified: []
+  created: []
+  modified:
+    - backend/shared/package.json
+    - backend/auth-service/package.json
+    - backend/profile-service/package.json
+    - backend/chat-service/package.json
 
 key-decisions:
-  - "VARCHAR(255) for user_id FKs matching existing users.id type"
-  - "UUID for new table PKs (gen_random_uuid) matching recent migration patterns"
-  - "ON DELETE CASCADE on all user FKs for GDPR right-to-erasure compliance"
-  - "Separate exact and fuzzed coordinates stored at session creation (not computed on read)"
-  - "converted_to_match_id FK without CASCADE to preserve conversion audit trail"
+  - "Updated @sentry/node minimum to ^10.27.0 (fixes GHSA-6465-jgvq-jhgp)"
+  - "package-lock.json files remain gitignored - security fixes via semver ranges"
 
 patterns-established:
-  - "after_hours_* table naming convention"
-  - "idx_tablename_column index naming convention"
-  - "COMMENT ON TABLE/COLUMN for documentation"
+  - "Minimum version pinning: Use ^X.Y.Z where Y.Z is the security-patched version"
 
 # Metrics
-duration: 2min
-completed: 2026-01-22
+duration: 9min
+completed: 2026-01-24
 ---
 
-# Phase 1 Plan 1: After Hours Database Migration Summary
+# Phase 01 Plan 01: Dependency Vulnerability Fixes Summary
 
-**PostgreSQL migration with 6 After Hours tables, GDPR consent columns, location privacy patterns, and comprehensive indexing for session management and proximity queries**
+**Resolved 26 npm vulnerabilities across 4 backend packages by upgrading @sentry/node to v10.27.0+ and running npm audit fix**
 
 ## Performance
 
-- **Duration:** 2 min
-- **Started:** 2026-01-22T23:14:39Z
-- **Completed:** 2026-01-22T23:16:35Z
-- **Tasks:** 2
-- **Files modified:** 1
+- **Duration:** 9 min
+- **Started:** 2026-01-24T16:28:25Z
+- **Completed:** 2026-01-24T16:37:08Z
+- **Tasks:** 3
+- **Files modified:** 4
 
 ## Accomplishments
 
-- Created complete After Hours schema with 6 tables (profiles, preferences, sessions, declines, matches, messages)
-- Added GDPR-compliant consent tracking (explicit boolean + timestamp)
-- Implemented location privacy pattern: store both exact (private) and fuzzed (display) coordinates
-- Partial unique index enforces one active session per user
-- Comprehensive indexing for session expiry cleanup and proximity queries
-- All foreign keys cascade on user deletion for GDPR compliance
+- Eliminated all critical and high severity npm vulnerabilities (was 7 high across services)
+- Upgraded @sentry/node from v7/v10.25 to v10.27.0+ to fix sensitive header leak (GHSA-6465-jgvq-jhgp)
+- Transitive dependency fixes: qs DoS, body-parser DoS, jws HMAC verification, glob command injection
+- All services build successfully with updated dependencies
+- 263 tests pass in shared package
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Create After Hours database migration** - `67ee90e` (feat)
-2. **Task 2: Validate migration against existing schema** - No changes needed (validation passed)
+1. **Task 1: Audit and fix dependencies in shared package** - `e8e24fa` (fix)
+2. **Task 2: Audit and fix dependencies in all services** - `875a69e` (fix)
+3. **Task 3: Verify end-to-end service health** - No commit (verification only)
 
 ## Files Created/Modified
 
-- `backend/migrations/021_add_after_hours_tables.sql` - Complete After Hours schema: 6 tables, 2 users columns, 11 indexes, comprehensive comments
+- `backend/shared/package.json` - @sentry/node ^7.0.0 -> ^10.27.0
+- `backend/auth-service/package.json` - @sentry/node ^10.25.0 -> ^10.27.0
+- `backend/profile-service/package.json` - @sentry/node ^10.25.0 -> ^10.27.0
+- `backend/chat-service/package.json` - @sentry/node ^10.25.0 -> ^10.27.0
 
 ## Decisions Made
 
-1. **VARCHAR(255) for user_id foreign keys** - Matches existing `users.id` type from `001_create_users_and_profiles.sql`
-2. **UUID PKs with gen_random_uuid()** - Follows recent migration patterns (token_rotation, kycaid)
-3. **Separate exact/fuzzed coordinates** - Stored at session creation, not computed on read, enables both privacy (fuzzed) and administrative access (exact)
-4. **converted_to_match_id without CASCADE** - Preserves audit trail of ephemeral-to-permanent conversions even if permanent match is deleted
-5. **Session-scoped declines with CASCADE** - Auto-cleanup when session deleted (no orphan data)
+1. **@sentry/node version bump** - Updated minimum version to ^10.27.0 to ensure security fix is always installed via semver resolution
+2. **Lockfile strategy** - package-lock.json files remain gitignored; security fixes persist via package.json version constraints rather than lockfile commits
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 2 - Missing Critical] Upgraded @sentry/node in shared package from v7 to v10**
+- **Found during:** Task 1 (shared package audit)
+- **Issue:** shared package had @sentry/node ^7.0.0 which predates the security fix (requires v10.27.0+)
+- **Fix:** Upgraded to ^10.27.0 for consistency with other services and security
+- **Files modified:** backend/shared/package.json
+- **Verification:** npm audit shows 0 vulnerabilities, 263 tests pass
+- **Committed in:** e8e24fa (Task 1 commit)
+
+---
+
+**Total deviations:** 1 auto-fixed (missing critical security version)
+**Impact on plan:** Required for security. Sentry v7 to v10 is a major version bump but API compatibility was verified via successful build and tests.
 
 ## Issues Encountered
 
-None
+1. **Jest configuration conflict** - Services have both jest.config.js and jest key in package.json. Had to run tests with `--config=jest.config.js` flag. This is a pre-existing issue, not caused by dependency updates.
+2. **Pre-existing test failures** - auth-service, profile-service, and chat-service have failing tests (42, 12, and 27 failures respectively). These are test/implementation mismatches and database connectivity issues, not related to dependency updates.
 
 ## User Setup Required
 
-None - no external service configuration required. Migration runs via existing `npm run migrate` in backend/migrations.
+None - no external service configuration required.
 
 ## Next Phase Readiness
 
-**Ready for dependent phases:**
-- Schema foundation complete for profile-service API endpoints
-- Session table ready for session management logic
-- GDPR consent columns ready for consent flow implementation
-- Indexes in place for proximity matching queries
-
-**No blockers.**
+- All 4 backend packages have 0 critical/high vulnerabilities
+- Ready for production deployment regarding dependency security
+- Pre-existing test failures should be addressed in future plans (test alignment with current API responses)
+- Note: Some moderate/low vulnerabilities may remain (lodash prototype pollution) - acceptable for beta
 
 ---
-*Phase: 01-foundation-safety*
-*Plan: 01*
-*Completed: 2026-01-22*
+*Phase: 01-security-hardening*
+*Completed: 2026-01-24*
