@@ -1,6 +1,6 @@
 # Architecture
 
-**Analysis Date:** 2026-01-22
+**Analysis Date:** 2026-01-24
 
 ## Pattern Overview
 
@@ -10,30 +10,31 @@
 - Three independent Node.js/Express microservices deployed separately
 - Frontend uses Provider pattern with ChangeNotifierProxyProvider for dependency injection
 - Shared middleware library (`@vlvt/shared`) for common concerns across services
-- PostgreSQL as single source of truth with 20+ migration files
+- PostgreSQL as single source of truth with 25+ migration files
 - Real-time messaging via Socket.IO for chat service
 - Firebase integration for analytics, crash reporting, and push notifications
+- After Hours mode: ephemeral session-based matching with background schedulers
 
 ## Layers
 
 **Frontend Presentation Layer:**
 - Purpose: Render UI, handle user interactions, manage theme and navigation
 - Location: `frontend/lib/screens/`
-- Contains: Screen widgets (auth, discovery, matches, chat, profile, paywall)
+- Contains: Screen widgets (auth, discovery, matches, chat, profile, paywall, after_hours_*)
 - Depends on: Services layer via Provider, theme service
 - Used by: User interactions and OS lifecycle events
 
 **Frontend Services Layer (Business Logic):**
 - Purpose: Encapsulate domain logic, API communication, state management
 - Location: `frontend/lib/services/`
-- Contains: AuthService, ProfileApiService, ChatApiService, SocketService, SubscriptionService, LocationService, CacheService, VerificationService, SafetyService, TicketsService, DateProposalService, ThemeService, NotificationService, DeepLinkService, MessageQueueService, AnalyticsService
+- Contains: AuthService, ProfileApiService, ChatApiService, SocketService, SubscriptionService, LocationService, CacheService, VerificationService, SafetyService, TicketsService, DateProposalService, ThemeService, NotificationService, DeepLinkService, MessageQueueService, AnalyticsService, AfterHoursService, AfterHoursChatService, AfterHoursProfileService, AfterHoursSafetyService, DeviceFingerprintService, FeedbackService
 - Depends on: HTTP client, Firebase Admin SDK, RevenueCat SDK, Socket.io client
 - Used by: Screens and Provider tree
 
 **Frontend Provider Configuration:**
 - Purpose: Centralized dependency injection and provider setup
 - Location: `frontend/lib/providers/provider_tree.dart`
-- Contains: Provider definitions grouped by feature (core, discovery, profile, chat, safety, dating)
+- Contains: Provider definitions grouped by feature (core, discovery, profile, chat, safety, dating, afterHours)
 - Pattern: ChangeNotifierProxyProvider for services depending on AuthService
 
 **Frontend Models:**
@@ -51,28 +52,33 @@
 - Locations:
   - Service-specific: `backend/[service]/src/middleware/`
   - Shared: `backend/shared/src/middleware/`
-- Contains: authMiddleware, rate-limiter, error-handler, csrf, request-signing, socket-rate-limiter
+- Contains: authMiddleware, rate-limiter, error-handler, csrf, request-signing, socket-rate-limiter, after-hours-auth, api-version
 - Pattern: Express middleware functions and factories
 
 **Backend Services Layer:**
 - Purpose: Business logic, external service integration, data operations
 - Locations:
   - Auth: `backend/auth-service/src/services/` (email-service, kycaid-service)
-  - Profile: `backend/profile-service/src/services/` (fcm-service for push notifications)
-  - Chat: `backend/chat-service/src/services/` (fcm-service)
+  - Profile: `backend/profile-service/src/services/` (fcm-service, matching-engine, matching-scheduler, session-scheduler, photo-hash-service)
+  - Chat: `backend/chat-service/src/services/` (fcm-service, after-hours-safety-service, match-conversion-service)
 - Shared: `backend/shared/src/services/` (fcm-service)
+
+**Backend Background Jobs:**
+- Purpose: Scheduled tasks for session cleanup, matching, message expiry
+- Location: `backend/profile-service/src/jobs/session-cleanup-job.ts`, `backend/chat-service/src/jobs/message-cleanup-job.ts`
+- Pattern: BullMQ job queues with cron schedules
 
 **Backend Database Layer:**
 - Purpose: Data persistence with PostgreSQL
-- Location: `backend/migrations/` (001 through 020 SQL migration files)
-- Tables: users, profiles, matches, messages, blocks, reports, typing_indicators, read_receipts, user_subscriptions, password_credentials, refresh_tokens, golden_tickets, date_proposals, verifications, kycaid_verifications, audit_logs, profile_filters
+- Location: `backend/migrations/` (001 through 025 SQL migration files)
+- Tables: users, profiles, matches, messages, blocks, reports, typing_indicators, read_receipts, user_subscriptions, password_credentials, refresh_tokens, golden_tickets, date_proposals, verifications, kycaid_verifications, audit_logs, profile_filters, after_hours_sessions, after_hours_matches, after_hours_preferences
 
 **Backend Shared Library:**
 - Purpose: Common utilities and middleware across all services
 - Location: `backend/shared/src/`
 - Contains:
   - Errors: error-codes, error-response handling
-  - Middleware: auth, csrf, rate-limiting, request-signing, api-version
+  - Middleware: auth, csrf, rate-limiting, request-signing, api-version, after-hours-auth
   - Services: fcm-service (Firebase Cloud Messaging)
   - Types: api types, express extensions
   - Utils: audit-logger, env-validator, logger, response formatting
@@ -88,9 +94,9 @@
 
 **Socket.IO Real-Time Layer:**
 - Purpose: Real-time bidirectional communication for chat
-- Backend: `backend/chat-service/src/socket/index.ts`, `socket/auth-middleware.ts`, `socket/message-handler.ts`
+- Backend: `backend/chat-service/src/socket/index.ts`, `socket/auth-middleware.ts`, `socket/message-handler.ts`, `socket/after-hours-handler.ts`
 - Frontend: `frontend/lib/services/socket_service.dart`
-- Events: send_message, typing, mark_read, get_online_status, user:status_changed
+- Events: send_message, typing, mark_read, get_online_status, user:status_changed, after_hours:* events
 - Rate Limited: per-event limits to prevent abuse
 
 ## Data Flow
@@ -126,6 +132,17 @@
 7. Messages stored in database, broadcast to recipient's socket connection
 8. Typing indicators sent via `typing` event (rate limited: 10/10sec)
 9. Read receipts sent via `mark_read` event
+
+**After Hours Session Flow:**
+1. User enables After Hours mode in `AfterHoursTabScreen`
+2. `AfterHoursService.startSession()` sends POST to profile-service `/api/v1/after-hours/session/start`
+3. Backend creates `after_hours_sessions` record with expiry (1 hour default)
+4. Background `matching-scheduler.ts` runs every 30 seconds
+5. Matching engine queries active sessions, applies Haversine distance formula + mutual preferences
+6. Match created atomically with `SKIP LOCKED` to prevent duplicates
+7. Firebase FCM notification sent to both matched users
+8. Users join ephemeral chat via Socket.IO `after_hours:join_chat` event
+9. Messages auto-deleted when session expires
 
 **Photo Upload Flow:**
 1. User selects image via native file picker
@@ -169,15 +186,21 @@
 
 **BaseApiService (Frontend):**
 - Purpose: Common HTTP client with auth, retry, and error handling
-- Examples: `backend/lib/services/profile_api_service.dart`, chat_api_service.dart
+- Examples: `frontend/lib/services/profile_api_service.dart`, chat_api_service.dart
 - Pattern: Extends ChangeNotifier, overrides baseUrl in subclass
 - Features: Auto-retry on 401, timeout handling, header injection
 
 **ChangeNotifierProxyProvider (Frontend):**
 - Purpose: Dependency injection for services depending on AuthService
-- Examples: ProfileApiService, ChatApiService, SocketService, LocationService, VerificationService
+- Examples: ProfileApiService, ChatApiService, SocketService, LocationService, VerificationService, AfterHoursService, AfterHoursChatService
 - Pattern: Recreates dependent service when AuthService token changes
 - Benefit: Ensures all dependents use current authentication state
+
+**Session & Match Abstraction (After Hours):**
+- Purpose: Time-bounded matching periods with ephemeral chat
+- Location: `backend/migrations/021_add_after_hours_tables.sql`, `backend/profile-service/src/services/matching-engine.ts`
+- Pattern: Session created → matching engine finds candidates → match expires after 1 hour → messages deleted
+- Concurrency: `SKIP LOCKED` on match creation prevents race conditions
 
 **ErrorResponses (Backend):**
 - Purpose: Standardized error response format with error codes
@@ -197,12 +220,18 @@
 - Configuration: Event-specific limits (send_message: 30/min, typing: 10/10sec)
 - Applied to: Each socket connection after authentication
 
+**Matching Engine:**
+- Purpose: Find compatible After Hours candidates based on proximity and preferences
+- Location: `backend/profile-service/src/services/matching-engine.ts`
+- Algorithm: Haversine distance formula, mutual gender preferences, age range, blocked user exclusion
+- Concurrency: PostgreSQL `SKIP LOCKED` for atomic match creation
+
 ## Entry Points
 
 **Frontend Entry Point:**
 - Location: `frontend/lib/main.dart`
 - Triggers: App launch from OS
-- Responsibilities: Firebase initialization, theme setup, provider tree initialization, auth wrapper
+- Responsibilities: Firebase initialization (Crashlytics, Analytics), theme setup, AfterHours foreground task initialization, provider tree initialization, auth wrapper
 - Special handling: Splash screen, notification tap routing, deep link setup
 
 **Auth Service Entry Point:**
@@ -214,18 +243,20 @@
 
 **Profile Service Entry Point:**
 - Location: `backend/profile-service/src/index.ts`
-- Triggers: HTTP requests from frontend
-- Responsibilities: Profile CRUD, photo management, discovery filtering, face verification with Rekognition, ID verification with KYCAid
+- Triggers: HTTP requests from frontend, background cron jobs
+- Responsibilities: Profile CRUD, photo management, discovery filtering, face verification with Rekognition, After Hours session management, matching engine, session cleanup jobs
 - Multer setup for photo uploads
 - Image processing pipeline with Sharp
 - R2 (Cloudflare) integration for storage
+- Background workers: session-scheduler, matching-scheduler, session-cleanup-job
 
 **Chat Service Entry Point:**
 - Location: `backend/chat-service/src/index.ts`
 - Triggers: HTTP requests (REST), WebSocket connections (Socket.IO)
-- Responsibilities: Match management, message history, real-time messaging, typing indicators, read receipts, date proposals
+- Responsibilities: Match management, message history, real-time messaging, typing indicators, read receipts, date proposals, After Hours ephemeral chat
 - Socket.IO server initialization via `socket/index.ts`
 - Push notification delivery via Firebase Admin SDK
+- Background workers: message-cleanup-job
 
 ## Error Handling
 
@@ -294,10 +325,11 @@ Socket.IO Error Handling:
 - Can validate request signatures for API-to-API calls if implemented
 
 **API Versioning:**
-- Header-based versioning via `X-API-Version` header
-- Current version: tracked in `backend/shared/src/middleware/api-version.ts`
+- Path-based versioning via `/api/v[VERSION]/` prefix
+- Current version: v1, tracked in `backend/shared/src/middleware/api-version.ts`
 - Routes can be versioned for backward compatibility
+- Frontend configures version in `frontend/lib/config/app_config.dart`
 
 ---
 
-*Architecture analysis: 2026-01-22*
+*Architecture analysis: 2026-01-24*

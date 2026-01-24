@@ -1,6 +1,6 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-01-22
+**Analysis Date:** 2026-01-24
 
 ## Test Framework
 
@@ -27,6 +27,28 @@ npm run test:ci            # CI mode with coverage (text-summary reporter)
 
 # Run single test file
 npm test -- --testPathPattern="auth.test.ts"
+```
+
+**Frontend (Flutter/Dart):**
+
+**Runner:**
+- Flutter Test framework (built-in)
+- Config: `pubspec.yaml` dev_dependencies
+
+**Assertion Library:**
+- `flutter_test` package (expect, matchers)
+
+**Mocking:**
+- Mockito 5.6.1 for mock generation
+- `@GenerateMocks` annotation for code generation
+- Build runner for generating mocks: `flutter pub run build_runner build`
+
+**Run Commands:**
+```bash
+flutter test                              # Run all tests
+flutter test test/services/auth_service_test.dart  # Run single test
+flutter test --coverage                   # Generate coverage report
+flutter test --watch                      # Watch mode (not supported natively)
 ```
 
 ## Test File Organization
@@ -63,7 +85,12 @@ frontend/
 │   │   ├── auth_service_test.dart
 │   │   ├── auth_service_test.mocks.dart
 │   │   └── ...
-│   └── ...
+│   ├── widgets/
+│   │   ├── auth_screen_test.dart
+│   │   └── ...
+│   └── utils/
+│       ├── validators_test.dart
+│       └── ...
 └── pubspec.yaml
 ```
 
@@ -85,6 +112,9 @@ Jest looks for test files with patterns defined in jest.config.js:
 ```javascript
 testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts']
 ```
+
+Flutter test discovery:
+- All files ending in `_test.dart` in the `test/` directory
 
 ## Test Structure
 
@@ -188,7 +218,7 @@ import 'package:mockito/annotations.dart';
 
 @GenerateMocks([FlutterSecureStorage, http.Client])
 void main() {
-  group('AuthService Tests', () => {
+  group('AuthService Tests', () {
     late MockFlutterSecureStorage mockStorage;
     late MockClient mockHttpClient;
 
@@ -493,19 +523,19 @@ Frontend: Test data embedded in test files with `@GenerateMocks` annotations
 
 Backend coverage thresholds defined per service in package.json jest config:
 
-Auth-service:
+Auth-service (jest.config.js):
 ```javascript
-"coverageThreshold": {
-  "global": {
-    "branches": 30,
-    "functions": 30,
-    "lines": 30,
-    "statements": 30
-  }
+coverageThreshold: {
+  global: {
+    branches: 30,
+    functions: 30,
+    lines: 30,
+    statements: 30,
+  },
 }
 ```
 
-Profile-service (higher threshold):
+Profile-service and Chat-service (package.json):
 ```javascript
 "coverageThreshold": {
   "global": {
@@ -517,24 +547,19 @@ Profile-service (higher threshold):
 }
 ```
 
-Chat-service:
-```javascript
-"coverageThreshold": {
-  "global": {
-    "branches": 30,
-    "functions": 30,
-    "lines": 30,
-    "statements": 30
-  }
-}
-```
+Frontend: No enforced coverage thresholds
 
 **View Coverage:**
 
 Generate local HTML report:
 ```bash
+# Backend
 npm run test:coverage
 # Open coverage/index.html in browser
+
+# Frontend
+flutter test --coverage
+# View coverage/lcov.info
 ```
 
 Reporters configured:
@@ -559,6 +584,10 @@ Examples in `backend/auth-service/tests/`:
 - `middleware.test.ts` - Tests middleware functions
 - `rate-limiter.test.ts` - Tests rate limiting logic
 
+Examples in `frontend/test/`:
+- `auth_service_test.dart` - Tests AuthService with mocked HTTP and storage
+- `validators_test.dart` - Tests validation functions
+
 Pattern: Test one function/endpoint with all dependencies mocked
 
 **Integration Tests:**
@@ -581,7 +610,7 @@ Status: Not implemented
 Approach: Would use Jest + test containers or similar
 Target: Full app flows end-to-end
 
-Frontend: No E2E tests (would use Flutter integration tests with similar structure)
+Frontend: No E2E tests (would use Flutter integration tests)
 
 ## Common Patterns
 
@@ -757,4 +786,4 @@ GitHub Actions or similar CI systems should:
 
 ---
 
-*Testing analysis: 2026-01-22*
+*Testing analysis: 2026-01-24*

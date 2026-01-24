@@ -1,6 +1,6 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-01-22
+**Analysis Date:** 2026-01-24
 
 ## Status Summary
 
@@ -53,8 +53,8 @@ ssl: process.env.DATABASE_URL?.includes('railway')
 
 **Files:**
 - `backend/auth-service/src/index.ts` (2965 lines)
-- `backend/profile-service/src/index.ts` (~2000+ lines)
-- `backend/chat-service/src/index.ts` (~1800+ lines)
+- `backend/profile-service/src/index.ts` (1728 lines)
+- `backend/chat-service/src/index.ts` (1589 lines)
 
 **Impact:**
 - Difficult to test individual endpoints in isolation
@@ -326,6 +326,29 @@ logger.info('Location updated', {
 
 ---
 
+### Database Connection Pool Exhaustion Risk
+
+**Current State:**
+- Each service uses pg.Pool with default settings
+- 264 total pool.query calls across all services
+- No explicit pool size limits configured
+- High traffic on discovery/messaging could exhaust connections
+
+**Files:**
+- `backend/auth-service/src/index.ts:99-125` (72 pool.query calls)
+- `backend/profile-service/src/index.ts:161-187` (37 pool.query calls)
+- `backend/chat-service/src/index.ts:148-174` (40 pool.query calls)
+
+**Scaling Path:**
+1. Configure explicit pool size: `max: 20` per service
+2. Add connection timeout configuration
+3. Monitor pool metrics via pg-pool events
+4. Implement connection pooling at database level (PgBouncer)
+
+**Current Capacity:** Default pool max (10 connections) - may hit limits under concurrent load
+
+---
+
 ## Missing Critical Compliance Items
 
 ### Message Retention Policy
@@ -360,6 +383,53 @@ logger.info('Location updated', {
 
 ---
 
+## Dependencies at Risk
+
+### Firebase Admin SDK Version Mismatch
+
+**Issue:** chat-service uses firebase-admin@12.0.0 while profile-service uses firebase-admin@13.6.0
+
+**Files:**
+- `backend/chat-service/package.json:33` (version 12.0.0)
+- `backend/profile-service/package.json:40` (version 13.6.0)
+
+**Impact:**
+- Inconsistent API behavior across services
+- Security patches may not apply uniformly
+- Breaking changes could affect chat-service
+
+**Migration Plan:**
+1. Upgrade chat-service to firebase-admin@13.6.0
+2. Test FCM notification sending after upgrade
+3. Standardize dependency versions across all services
+
+**Priority:** Medium - functional but inconsistent
+
+---
+
+### Express Rate Limit Version Inconsistency
+
+**Issue:** Services use different versions of express-rate-limit
+
+**Files:**
+- `backend/auth-service/package.json:34` (version 7.5.0)
+- `backend/profile-service/package.json:37` (version 7.5.1)
+- `backend/chat-service/package.json:31` (version 8.2.1)
+
+**Impact:**
+- Chat service on v8.x may have different API/behavior
+- Rate limiting inconsistent across services
+- Harder to maintain shared middleware
+
+**Migration Plan:**
+1. Standardize all services on latest stable (8.x)
+2. Test rate limiting behavior after upgrade
+3. Update shared rate-limit middleware if needed
+
+**Priority:** Low - cosmetic inconsistency
+
+---
+
 ## Environment Variable Enforcement Improvements Made
 
 **Now Required at Startup:**
@@ -380,11 +450,13 @@ logger.info('Location updated', {
 - [ ] Enable TLS certificate validation for Railway (get CA bundle)
 - [ ] Require KYCAID_ENCRYPTION_KEY with startup validation
 - [ ] Migrate any existing plaintext KYCAID data to encrypted storage
+- [ ] Standardize firebase-admin SDK versions across services
 
 ### Phase 2: Architecture (Weeks 3-4)
 - [ ] Extract auth routes from `backend/auth-service/src/index.ts`
 - [ ] Extract profile routes from `backend/profile-service/src/index.ts`
 - [ ] Add route handler unit tests
+- [ ] Configure database connection pool limits
 
 ### Phase 3: Compliance (Weeks 5-6)
 - [ ] Define and implement message retention policy
@@ -394,7 +466,8 @@ logger.info('Location updated', {
 ### Phase 4: Performance (Optional)
 - [ ] Cache discovery pool by region
 - [ ] Add database indexes for geospatial queries
+- [ ] Implement PgBouncer for connection pooling
 
 ---
 
-*Concerns audit: 2026-01-22*
+*Concerns audit: 2026-01-24*
