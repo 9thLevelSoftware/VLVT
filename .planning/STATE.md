@@ -1,71 +1,67 @@
-# GSD State
-
-**Project:** After Hours Mode
-**Milestone:** v1.0 COMPLETE
-**Current Phase:** —
-**Status:** Milestone shipped, ready for next milestone
-
-## Position
-
-- Phase: — (v1.0 complete, v1.1 not started)
-- Wave: —
-- Plans: —
-- Last activity: 2026-01-24 - v1.0 milestone complete and archived
-
-## Progress
-
-```
-v1.0 After Hours Mode: SHIPPED 2026-01-24
-
-Phase 1: [##########] 3/3 plans complete
-Phase 2: [##########] 3/3 plans complete
-Phase 3: [##########] 4/4 plans complete
-Phase 4: [##########] 4/4 plans complete
-Phase 5: [##########] 3/3 plans complete
-Phase 6: [##########] 6/6 plans complete
-Phase 7: [##########] 5/5 plans complete
-Total:   [##########] 28/28 plans complete
-```
+# Project State
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-01-24)
 
-**Core value:** Immediate connections with nearby users — no swiping, system matches
-**Current focus:** Planning next milestone
+**Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
+**Current focus:** Phase 1 - Security Hardening
 
-## Accumulated Decisions
+## Current Position
 
-v1.0 decisions archived to `.planning/milestones/v1.0-ROADMAP.md`
+Phase: 1 of 7 (Security Hardening)
+Plan: 0 of TBD in current phase
+Status: Ready to plan
+Last activity: 2026-01-24 - Roadmap revised: added Phase 4 (Bug Fixes & UI Polish)
 
-Key patterns established:
-- Triple-gated auth middleware (premium + verified + consent)
-- Redis pub/sub for cross-service events
-- BullMQ for background job scheduling
-- SKIP LOCKED for concurrent matching
-- Fire-and-forget for non-blocking operations
+Progress: [----------] 0%
 
-## Current Context
+## Performance Metrics
 
-**v1.0 SHIPPED**
+**Velocity:**
+- Total plans completed: 0
+- Average duration: -
+- Total execution time: 0 hours
 
-All 7 phases complete. All 16 requirements satisfied. Audit passed.
+**By Phase:**
 
-Archived to:
-- `.planning/milestones/v1.0-ROADMAP.md`
-- `.planning/milestones/v1.0-MILESTONE-AUDIT.md`
-- `.planning/MILESTONES.md`
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
 
-## Next Steps
+**Recent Trend:**
+- Last 5 plans: -
+- Trend: Not started
 
-Start next milestone with `/gsd:new-milestone` to:
-1. Define v1.1 goals (questioning phase)
-2. Research implementation approach
-3. Write new REQUIREMENTS.md
-4. Create new ROADMAP.md
+*Updated after each plan completion*
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [Init]: Risk-priority ordering - security first, then GDPR, then testing, then monitoring
+- [Init]: 7 phases derived from 7 requirement categories (38 total requirements)
+- [Init]: Phase 7 includes v2 research items (device fingerprinting, photo hashing) as v2 scope
+- [Revision]: Added Phase 4 (Bug Fixes & UI Polish) with UI-01 to UI-06 requirements
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+None yet.
 
 ## Session Continuity
 
-- Last session: 2026-01-24
-- Stopped at: v1.0 milestone complete
-- Resume file: None
+Last session: 2026-01-24
+Stopped at: Roadmap revised with 7-phase structure
+Resume file: None
+
+---
+
+*State initialized: 2026-01-24*
+*Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*

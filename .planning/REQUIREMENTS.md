@@ -54,6 +54,15 @@ Requirements for beta launch. Each maps to roadmap phases.
 - [ ] **DEP-03**: Secrets management reviewed (no secrets in code, proper Railway configuration)
 - [ ] **DEP-04**: Backup restoration tested and documented
 
+### Bug Fixes & UI Polish
+
+- [ ] **UI-01**: UI bugs audit completed and critical/high issues fixed
+- [ ] **UI-02**: UX flow problems identified and fixed (navigation, dead ends, confusing journeys)
+- [ ] **UI-03**: Incomplete features completed or removed (no half-working functionality)
+- [ ] **UI-04**: Design consistency enforced (typography, spacing, colors, components)
+- [ ] **UI-05**: Error states and loading states reviewed and polished
+- [ ] **UI-06**: Edge cases handled (empty states, offline mode, timeouts)
+
 ### Safety Systems
 
 - [ ] **SAF-01**: Chat history preserved 30 days post-unmatch for moderation
@@ -130,24 +139,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-04 | Phase 3 | Pending |
 | TEST-05 | Phase 3 | Pending |
 | TEST-06 | Phase 3 | Pending |
-| MON-01 | Phase 4 | Pending |
-| MON-02 | Phase 4 | Pending |
-| MON-03 | Phase 4 | Pending |
-| MON-04 | Phase 4 | Pending |
-| MON-05 | Phase 4 | Pending |
-| MON-06 | Phase 4 | Pending |
-| DEP-01 | Phase 5 | Pending |
-| DEP-02 | Phase 5 | Pending |
-| DEP-03 | Phase 5 | Pending |
-| DEP-04 | Phase 5 | Pending |
-| SAF-01 | Phase 6 | Pending |
-| SAF-02 | Phase 6 | Pending |
-| SAF-03 | Phase 6 | Pending |
-| SAF-04 | Phase 6 | Pending |
+| UI-01 | Phase 4 | Pending |
+| UI-02 | Phase 4 | Pending |
+| UI-03 | Phase 4 | Pending |
+| UI-04 | Phase 4 | Pending |
+| UI-05 | Phase 4 | Pending |
+| UI-06 | Phase 4 | Pending |
+| MON-01 | Phase 5 | Pending |
+| MON-02 | Phase 5 | Pending |
+| MON-03 | Phase 5 | Pending |
+| MON-04 | Phase 5 | Pending |
+| MON-05 | Phase 5 | Pending |
+| MON-06 | Phase 5 | Pending |
+| DEP-01 | Phase 6 | Pending |
+| DEP-02 | Phase 6 | Pending |
+| DEP-03 | Phase 6 | Pending |
+| DEP-04 | Phase 6 | Pending |
+| SAF-01 | Phase 7 | Pending |
+| SAF-02 | Phase 7 | Pending |
+| SAF-03 | Phase 7 | Pending |
+| SAF-04 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 32 total
-- Mapped to phases: 32
+- v1 requirements: 38 total
+- Mapped to phases: 38
 - Unmapped: 0 ✓
 
 ---
