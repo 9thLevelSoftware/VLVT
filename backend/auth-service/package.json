@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node migrate.js",
+    "migrate:kycaid-encryption": "npx ts-node scripts/migrate-kycaid-encryption.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --coverageReporters=text --coverageReporters=lcov",
