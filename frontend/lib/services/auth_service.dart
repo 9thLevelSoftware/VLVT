@@ -10,6 +10,66 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import 'analytics_service.dart';
 
+/// Consent status data model for GDPR compliance
+class ConsentStatus {
+  final String purpose;
+  final bool granted;
+  final DateTime? grantedAt;
+  final DateTime? withdrawnAt;
+  final String? consentVersion;
+  final bool needsRenewal;
+
+  ConsentStatus({
+    required this.purpose,
+    required this.granted,
+    this.grantedAt,
+    this.withdrawnAt,
+    this.consentVersion,
+    this.needsRenewal = false,
+  });
+
+  factory ConsentStatus.fromJson(Map<String, dynamic> json) {
+    return ConsentStatus(
+      purpose: json['purpose'] as String,
+      granted: json['granted'] as bool,
+      grantedAt: json['grantedAt'] != null ? DateTime.parse(json['grantedAt']) : null,
+      withdrawnAt: json['withdrawnAt'] != null ? DateTime.parse(json['withdrawnAt']) : null,
+      consentVersion: json['consentVersion'] as String?,
+      needsRenewal: json['needsRenewal'] as bool? ?? false,
+    );
+  }
+
+  String get displayName {
+    switch (purpose) {
+      case 'location_discovery':
+        return 'Location-Based Discovery';
+      case 'marketing':
+        return 'Marketing Communications';
+      case 'analytics':
+        return 'Analytics & Improvements';
+      case 'after_hours':
+        return 'After Hours Mode';
+      default:
+        return purpose;
+    }
+  }
+
+  String get description {
+    switch (purpose) {
+      case 'location_discovery':
+        return 'Allow VLVT to use your location to show you nearby profiles.';
+      case 'marketing':
+        return 'Receive promotional emails and notifications about new features.';
+      case 'analytics':
+        return 'Help us improve VLVT by sharing anonymous usage data.';
+      case 'after_hours':
+        return 'Enable After Hours mode for late-night matching. This may reveal information about your dating preferences.';
+      default:
+        return '';
+    }
+  }
+}
+
 class AuthService extends ChangeNotifier {
   final _storage = const FlutterSecureStorage();
   final _googleSignIn = GoogleSignIn.instance;
@@ -676,5 +736,68 @@ class AuthService extends ChangeNotifier {
   String getKycaidVerificationUrl(String verificationId) {
     // KYCAID uses their hosted verification page
     return 'https://app.kycaid.com/verification/$verificationId';
+  }
+
+  // ========== GDPR Consent Management Methods ==========
+
+  /// Get all consent statuses for current user
+  Future<List<ConsentStatus>> getConsents() async {
+    if (_token == null) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.authServiceUrl}/auth/consents'),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> consents = data['consents'];
+        return consents.map((c) => ConsentStatus.fromJson(c)).toList();
+      }
+      debugPrint('Failed to fetch consents: ${response.statusCode}');
+      return [];
+    } catch (e) {
+      debugPrint('Error fetching consents: $e');
+      return [];
+    }
+  }
+
+  /// Grant consent for a specific purpose
+  Future<bool> grantConsent(String purpose) async {
+    if (_token == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${AppConfig.authServiceUrl}/auth/consents'),
+        headers: {
+          'Authorization': 'Bearer $_token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'purpose': purpose}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error granting consent: $e');
+      return false;
+    }
+  }
+
+  /// Withdraw consent for a specific purpose
+  Future<bool> withdrawConsent(String purpose) async {
+    if (_token == null) return false;
+
+    try {
+      final response = await http.delete(
+        Uri.parse('${AppConfig.authServiceUrl}/auth/consents/$purpose'),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Error withdrawing consent: $e');
+      return false;
+    }
   }
 }
