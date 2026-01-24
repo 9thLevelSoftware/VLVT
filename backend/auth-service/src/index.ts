@@ -1992,6 +1992,133 @@ app.delete('/auth/account', generalLimiter, authenticateJWT, async (req: Request
   }
 });
 
+// ===== CONSENT MANAGEMENT ENDPOINTS =====
+// GDPR-02, GDPR-05: Granular consent with withdrawal support
+
+// Current privacy policy version (update when policy changes)
+const CURRENT_CONSENT_VERSION = '2026-01-24';
+
+/**
+ * GET /auth/consents - Get user's current consent status
+ * Returns all consent purposes with their current state
+ */
+app.get('/auth/consents', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+
+  try {
+    const result = await pool.query(
+      `SELECT purpose, granted, granted_at, withdrawn_at, consent_version
+       FROM user_consents
+       WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Return all purposes with defaults for missing ones
+    const allPurposes = ['location_discovery', 'marketing', 'analytics', 'after_hours'];
+    const consents = allPurposes.map(purpose => {
+      const existing = result.rows.find(r => r.purpose === purpose);
+      return {
+        purpose,
+        granted: existing?.granted || false,
+        grantedAt: existing?.granted_at || null,
+        withdrawnAt: existing?.withdrawn_at || null,
+        consentVersion: existing?.consent_version || null,
+        currentVersion: CURRENT_CONSENT_VERSION,
+        needsRenewal: existing?.consent_version && existing.consent_version !== CURRENT_CONSENT_VERSION
+      };
+    });
+
+    res.json({ success: true, consents, currentVersion: CURRENT_CONSENT_VERSION });
+  } catch (error) {
+    logger.error('Failed to fetch consents', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to fetch consents' });
+  }
+});
+
+/**
+ * POST /auth/consents - Grant consent for a purpose
+ * Body: { purpose: string }
+ */
+app.post('/auth/consents', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { purpose } = req.body;
+
+  const validPurposes = ['location_discovery', 'marketing', 'analytics', 'after_hours'];
+  if (!validPurposes.includes(purpose)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid purpose',
+      validPurposes
+    });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO user_consents (user_id, purpose, granted, granted_at, consent_version, ip_address, user_agent)
+       VALUES ($1, $2, TRUE, CURRENT_TIMESTAMP, $3, $4, $5)
+       ON CONFLICT (user_id, purpose)
+       DO UPDATE SET
+         granted = TRUE,
+         granted_at = CURRENT_TIMESTAMP,
+         withdrawn_at = NULL,
+         consent_version = $3,
+         ip_address = $4,
+         user_agent = $5,
+         updated_at = CURRENT_TIMESTAMP`,
+      [userId, purpose, CURRENT_CONSENT_VERSION, req.ip, req.headers['user-agent']]
+    );
+
+    logger.info('Consent granted', { userId, purpose, version: CURRENT_CONSENT_VERSION });
+    res.json({ success: true, message: `Consent granted for ${purpose}` });
+  } catch (error) {
+    logger.error('Failed to grant consent', { error, userId, purpose });
+    res.status(500).json({ success: false, error: 'Failed to grant consent' });
+  }
+});
+
+/**
+ * DELETE /auth/consents/:purpose - Withdraw consent for a purpose
+ * Does not delete the record - sets withdrawn_at timestamp for audit
+ */
+app.delete('/auth/consents/:purpose', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { purpose } = req.params;
+
+  const validPurposes = ['location_discovery', 'marketing', 'analytics', 'after_hours'];
+  if (!validPurposes.includes(purpose)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid purpose',
+      validPurposes
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE user_consents
+       SET granted = FALSE, withdrawn_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND purpose = $2
+       RETURNING id`,
+      [userId, purpose]
+    );
+
+    if (result.rowCount === 0) {
+      // No consent existed - create a withdrawn record for audit trail
+      await pool.query(
+        `INSERT INTO user_consents (user_id, purpose, granted, withdrawn_at, consent_version)
+         VALUES ($1, $2, FALSE, CURRENT_TIMESTAMP, $3)`,
+        [userId, purpose, CURRENT_CONSENT_VERSION]
+      );
+    }
+
+    logger.info('Consent withdrawn', { userId, purpose });
+    res.json({ success: true, message: `Consent withdrawn for ${purpose}` });
+  } catch (error) {
+    logger.error('Failed to withdraw consent', { error, userId, purpose });
+    res.status(500).json({ success: false, error: 'Failed to withdraw consent' });
+  }
+});
+
 // ===== GOLDEN TICKET ENDPOINTS =====
 // Referral system for growth - users earn tickets through engagement
 
