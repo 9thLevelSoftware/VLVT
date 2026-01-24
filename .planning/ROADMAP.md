@@ -53,10 +53,15 @@ Plans:
   3. Users can export all their data as JSON within 30 days of request
   4. Users can delete their account and all associated data (including R2 photos)
   5. After Hours Mode participants provide explicit consent for special category data processing
-**Plans**: TBD
+**Plans**: 6 plans in 4 waves
 
 Plans:
-- [ ] 02-01: TBD (planned during phase planning)
+- [ ] 02-01-PLAN.md - Privacy policy links, data retention docs, Article 9 disclosure (GDPR-01, GDPR-06, GDPR-07)
+- [ ] 02-02-PLAN.md - Complete R2 photo deletion in account deletion (GDPR-04)
+- [ ] 02-03-PLAN.md - Consent database table and management APIs (GDPR-02, GDPR-05)
+- [ ] 02-04-PLAN.md - Consent management UI in frontend (GDPR-02, GDPR-05)
+- [ ] 02-05-PLAN.md - Data export API endpoint (GDPR-03)
+- [ ] 02-06-PLAN.md - Data export UI and verification checkpoint (GDPR-03)
 
 ### Phase 3: Testing Infrastructure
 **Goal**: Code changes can be made safely with automated regression detection
@@ -140,7 +145,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Security Hardening | 7/7 | Complete | 2026-01-24 |
-| 2. GDPR Compliance | 0/TBD | Not started | - |
+| 2. GDPR Compliance | 0/6 | Planned | - |
 | 3. Testing Infrastructure | 0/TBD | Not started | - |
 | 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
 | 5. Monitoring & Alerting | 0/TBD | Not started | - |
@@ -150,5 +155,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-24 - Phase 1 complete (7/7 plans, all success criteria verified)*
+*Last updated: 2026-01-24 - Phase 2 planned (6 plans in 4 waves)*
 *Coverage: 38/38 v1 requirements mapped*
