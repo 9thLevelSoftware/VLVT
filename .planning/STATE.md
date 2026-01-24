@@ -2,15 +2,15 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 7 - Safety Systems & Polish
-**Status:** In progress
+**Current Phase:** Complete
+**Status:** All phases complete
 
 ## Position
 
-- Phase: 07 of 07 (Safety Systems & Polish)
-- Wave: 1
-- Plans: 3/5 complete
-- Last activity: 2026-01-24 - Completed 07-03-PLAN.md (Session Cleanup Job)
+- Phase: 07 of 07 (Safety Systems & Polish) ✓
+- Wave: Complete
+- Plans: 5/5 complete
+- Last activity: 2026-01-24 - Completed Phase 7 (Safety Systems & Polish)
 
 ## Progress
 
@@ -21,8 +21,8 @@ Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
 Phase 6: [##########] 6/6 plans complete
-Phase 7: [######....] 3/5 plans complete
-Overall:  [#########.] 26/28 plans complete
+Phase 7: [##########] 5/5 plans complete
+Overall:  [##########] 28/28 plans complete
 ```
 
 ## Accumulated Decisions
@@ -120,46 +120,29 @@ Overall:  [#########.] 26/28 plans complete
 - [07-03] 4 AM UTC schedule runs 1 hour after message cleanup at 3 AM
 - [07-03] 7-day retention for decline records before deletion
 - [07-03] Non-blocking initialization pattern - server starts even if Redis unavailable
+- [07-04] PopupMenuButton for report/block actions in chat screen
+- [07-04] AfterHoursSafetyService registered via ChangeNotifierProxyProvider
+- [07-04] QuickReportDialog uses chips for reason selection
+- [07-05] 6 analytics methods for complete After Hours funnel
+- [07-05] DeviceFingerprintService collects device ID, model, platform
 
 ## Current Context
 
-**Phase 7 IN PROGRESS - Safety Systems & Polish**
+**ALL PHASES COMPLETE - MILESTONE v1.0 READY FOR AUDIT**
 
-Plan 07-01 complete (After Hours Block/Report):
-- After Hours safety service with blockAfterHoursUser and reportAfterHoursUser functions
-- POST /after-hours/matches/:matchId/block endpoint with optional reason
-- POST /after-hours/matches/:matchId/report endpoint with required reason enum
-- Report auto-blocks the reported user immediately
-- Both block and report auto-decline the After Hours match
-- Verified block synchronization already works in matching engine
+Phase 7 verification passed (18/18 must-haves):
+- Block synchronization with main app working
+- After Hours block and report endpoints functional
+- Quick report dialog in Flutter with chip selection
+- Device fingerprinting on session start
+- Photo perceptual hashing with ban enforcement
+- Session cleanup job scheduled at 4 AM UTC
+- All 6 analytics events instrumented
 
-Plan 07-02 complete (Ban Enforcement Infrastructure):
-- Migration 025 adds device_fingerprints and banned_photo_hashes tables
-- photo-hash-service.ts computes perceptual hashes using sharp-phash
-- device-fingerprint.ts stores fingerprints non-blocking
-- Session start accepts optional deviceFingerprint body parameter
-- Photo upload computes hash, checks against banned list, stores hash
-- Returns 403 for banned photos (Hamming distance < 10)
-
-Plan 07-03 complete (Session Cleanup Job):
-- BullMQ scheduled job at 4 AM UTC (1 hour after message cleanup)
-- Closes expired sessions (sets ended_at = expires_at)
-- Deletes decline records older than 7 days
-- Removes orphaned device fingerprints
-- Non-blocking initialization maintains server resilience
-
-Key files for 07-03:
-- `backend/profile-service/src/jobs/session-cleanup-job.ts` (BullMQ cleanup job)
-- `backend/profile-service/src/index.ts` (startup/shutdown wiring)
-
-**Next: 07-04 (User Settings & Notification Preferences)**
-
-Remaining in Phase 7:
-- 07-04: User Settings & Notification Preferences
-- 07-05: Integration Tests
+Next: `/gsd:audit-milestone` to verify requirements and cross-phase integration.
 
 ## Session Continuity
 
 - Last session: 2026-01-24
-- Stopped at: Completed 07-03-PLAN.md
+- Stopped at: Completed Phase 7, milestone ready for audit
 - Resume file: None
