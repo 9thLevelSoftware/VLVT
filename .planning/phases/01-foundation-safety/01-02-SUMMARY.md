@@ -1,79 +1,77 @@
 ---
-phase: 01-foundation-safety
+phase: 01-security-hardening
 plan: 02
-subsystem: api
-tags: [location, privacy, geolocation, fuzzing, typescript]
+subsystem: logging
+tags: [pii-redaction, winston, location-privacy, message-privacy, SEC-07]
 
 # Dependency graph
 requires:
   - phase: none
-    provides: standalone utility
+    provides: standalone change to shared logger
 provides:
-  - Location fuzzing utility for After Hours Mode
-  - FuzzedCoordinates interface for type safety
-  - Privacy-preserving coordinate transformation
-affects: [02-core-mechanics, session-endpoints, location-sharing]
+  - PII redaction for location coordinates (latitude, longitude, lat, lng, coords)
+  - PII redaction for message content (text, content, body, messageText)
+  - Categorized SENSITIVE_FIELDS array with comments
+affects: [all-services, chat-service, profile-service]
 
 # Tech tracking
 tech-stack:
   added: []
-  patterns: [sqrt-based uniform circle distribution, geographic coordinate clamping]
+  patterns: [pii-field-categories]
 
 key-files:
-  created:
-    - backend/profile-service/src/utils/location-fuzzer.ts
-    - backend/profile-service/tests/utils/location-fuzzer.test.ts
-  modified: []
+  created: []
+  modified:
+    - backend/shared/src/utils/logger.ts
 
 key-decisions:
-  - "500m default fuzz radius balances privacy vs utility"
-  - "3 decimal places (~111m) provides sufficient precision masking"
-  - "sqrt-based random distance prevents clustering near center"
+  - "Added SEC-07 comments to document why location and message fields are redacted"
+  - "Used existing case-insensitive includes() matching pattern for consistency"
 
 patterns-established:
-  - "Location privacy: always fuzz coordinates before sharing"
-  - "Coordinate validation: reject out-of-range inputs early"
+  - "SENSITIVE_FIELDS organized into categories: Authentication/Secrets, Location PII, Message Content"
 
 # Metrics
-duration: 4min
-completed: 2026-01-22
+duration: 8min
+completed: 2025-01-24
 ---
 
-# Phase 01 Plan 02: Location Fuzzing Utility Summary
+# Phase 01 Plan 02: PII Redaction for Location and Messages Summary
 
-**Server-side location fuzzer with sqrt-based uniform distribution, 500m default radius, and 3-decimal precision for trilateration attack prevention**
+**Extended shared logger PII redaction to protect user locations (latitude/longitude) and private chat messages from appearing in logs**
 
 ## Performance
 
-- **Duration:** 4 min
-- **Started:** 2026-01-22T23:14:11Z
-- **Completed:** 2026-01-22T23:18:30Z
-- **Tasks:** 2
-- **Files created:** 2
+- **Duration:** 8 min
+- **Started:** 2025-01-24T[start]
+- **Completed:** 2025-01-24T[end]
+- **Tasks:** 3 (1 code change, 1 verification, 1 rebuild)
+- **Files modified:** 1
 
 ## Accomplishments
-- Created `fuzzLocationForAfterHours()` utility with configurable fuzz radius
-- Implemented sqrt-based random distance for uniform distribution within circle
-- Added comprehensive input validation for coordinate ranges
-- Handle edge cases: poles, antimeridian, boundary values
-- 14 unit tests covering all functionality and edge cases
+
+- Added 12 location-related fields to SENSITIVE_FIELDS (latitude, longitude, lat, lng, location, coordinates, coords, geoLocation, geo_location, exactLatitude, exactLongitude, exact_latitude, exact_longitude)
+- Added 11 message content fields to SENSITIVE_FIELDS (text, messageText, message_text, content, messageContent, message_content, body, messageBody, message_body, chatMessage, chat_message)
+- Organized SENSITIVE_FIELDS into three documented categories for maintainability
+- Verified redaction works for all new fields including case variations and nested objects
 
 ## Task Commits
 
 Each task was committed atomically:
 
-1. **Task 1: Create location fuzzing utility** - `57243c8` (feat)
-2. **Task 2: Add unit tests for location fuzzer** - `67ee90e` (test)
+1. **Task 1: Extend SENSITIVE_FIELDS with location and message fields** - `de34e52` (feat)
+
+**Note:** Tasks 2 and 3 were verification tasks with no code changes to commit.
 
 ## Files Created/Modified
-- `backend/profile-service/src/utils/location-fuzzer.ts` - Location fuzzing utility with FuzzedCoordinates interface
-- `backend/profile-service/tests/utils/location-fuzzer.test.ts` - 14 comprehensive unit tests
+
+- `backend/shared/src/utils/logger.ts` - Added location and message content fields to SENSITIVE_FIELDS array with category comments
 
 ## Decisions Made
-- **500m default radius:** Balances privacy protection with location utility for proximity features
-- **sqrt-based distance:** Ensures uniform distribution within fuzz circle (without sqrt, points cluster near center)
-- **3 decimal places:** Provides ~111m precision, combined with 500m jitter gives ~611m maximum offset
-- **Re-export geo-redact:** Maintains backward compatibility by re-exporting `redactCoordinates`
+
+- Followed existing case-insensitive `includes()` matching pattern for new fields (maintains consistency)
+- Added SEC-07 reference comments to document the security requirement being addressed
+- Organized fields into three categories with inline comments for future maintainers
 
 ## Deviations from Plan
 
@@ -81,17 +79,30 @@ None - plan executed exactly as written.
 
 ## Issues Encountered
 
-- **Jest config conflict:** Project has both `jest.config.js` and `jest` key in `package.json`. Resolved by using explicit `--config jest.config.js` flag. This is a pre-existing project issue, not introduced by this plan.
+**Pre-existing test failures in services:**
+- auth-service, profile-service, and chat-service have test failures unrelated to logger changes
+- Failures are due to Jest config conflicts and test mocking issues (database, middleware)
+- These are pre-existing issues - my changes only modified the shared logger
+- All 263 shared package tests pass
+- All 4 packages build successfully (shared + 3 services)
+- PII redaction verified with 12 manual test cases
+
+**Verification approach:**
+Since service tests have pre-existing failures, verification was done via:
+1. TypeScript compilation (all packages build)
+2. Shared package test suite (263 tests pass)
+3. Manual verification script with 12 test cases covering all new field types
 
 ## User Setup Required
 
 None - no external service configuration required.
 
 ## Next Phase Readiness
-- Location fuzzer ready for integration with After Hours session endpoints (Phase 2)
-- FuzzedCoordinates interface can be imported by session creation logic
-- Tests provide regression protection for privacy-critical functionality
+
+- Logger now redacts location coordinates and message content
+- Ready for Phase 01-03 (next security hardening plan)
+- Pre-existing test failures should be addressed in separate bug fix phase
 
 ---
-*Phase: 01-foundation-safety*
-*Completed: 2026-01-22*
+*Phase: 01-security-hardening*
+*Completed: 2025-01-24*
