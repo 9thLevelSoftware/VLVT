@@ -32,6 +32,7 @@ import { globalErrorHandler, notFoundHandler, asyncHandler, AppError, ErrorRespo
 import { initializeSwagger } from './docs/swagger';
 import cacheManager from './utils/cache-manager';
 import * as kycaidService from './services/kycaid-service';
+import axios from 'axios';
 import {
   AuditLogger,
   AuditAction,
@@ -1908,6 +1909,7 @@ app.post('/auth/instagram/complete', authLimiter, async (req: Request, res: Resp
 
 // ===== ACCOUNT DELETION ENDPOINT =====
 // Required for Play Store compliance - allows users to delete their account
+// GDPR Article 17 - Right to Erasure: Includes R2 photo deletion
 
 app.delete('/auth/account', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
@@ -1915,6 +1917,38 @@ app.delete('/auth/account', generalLimiter, authenticateJWT, async (req: Request
 
   try {
     logger.info('Account deletion requested', { userId });
+
+    // ===== GDPR: R2 Photo Cleanup =====
+    // Fetch photo keys BEFORE database deletion (CASCADE would lose this data)
+    // Photo deletion is best-effort - failures don't block account deletion
+    const photosResult = await pool.query(
+      'SELECT photos FROM profiles WHERE user_id = $1',
+      [userId]
+    );
+    const photoKeys: string[] = photosResult.rows[0]?.photos || [];
+
+    if (photoKeys.length > 0) {
+      const profileServiceUrl = process.env.PROFILE_SERVICE_URL || 'http://localhost:3002';
+      try {
+        // Call profile-service internal endpoint to delete photos from R2
+        await axios.post(
+          `${profileServiceUrl}/api/internal/cleanup-photos`,
+          { userId, photoKeys },
+          {
+            headers: { 'X-Internal-Service': 'auth-service' },
+            timeout: 30000 // 30 second timeout for R2 operations
+          }
+        );
+        logger.info('R2 photos deleted for account deletion', { userId, photoCount: photoKeys.length });
+      } catch (photoError) {
+        // Log but don't block account deletion - Right to Erasure takes priority
+        logger.warn('Failed to delete R2 photos during account deletion', {
+          userId,
+          error: (photoError as Error).message,
+          photoCount: photoKeys.length
+        });
+      }
+    }
 
     await client.query('BEGIN');
 
