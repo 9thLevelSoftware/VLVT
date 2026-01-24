@@ -21,12 +21,24 @@ export interface LoggerOptions {
 
 // List of sensitive field names that should be redacted
 const SENSITIVE_FIELDS = [
+  // Authentication/Secrets
   'token', 'idToken', 'identityToken', 'authorization',
   'accessToken', 'refreshToken', 'tempToken', 'resetToken',
   'verificationToken', 'password', 'passwordHash', 'password_hash',
   'newPassword', 'currentPassword', 'secret', 'apiKey', 'api_key',
   'bearer', 'jwt', 'code', 'clientSecret', 'client_secret',
   'privateKey', 'private_key', 'creditCard', 'ssn',
+
+  // Location PII - exact coordinates must never appear in logs (SEC-07)
+  'latitude', 'longitude', 'lat', 'lng', 'location',
+  'coordinates', 'coords', 'geoLocation', 'geo_location',
+  'exactLatitude', 'exactLongitude', 'exact_latitude', 'exact_longitude',
+
+  // Message Content - private chat messages must never appear in logs (SEC-07)
+  'text', 'messageText', 'message_text',
+  'content', 'messageContent', 'message_content',
+  'body', 'messageBody', 'message_body',
+  'chatMessage', 'chat_message',
 ];
 
 /**
