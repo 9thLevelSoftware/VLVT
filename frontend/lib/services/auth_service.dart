@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
+
+import 'package:path_provider/path_provider.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -798,6 +801,41 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error withdrawing consent: $e');
       return false;
+    }
+  }
+
+  // ========== GDPR Data Export Methods ==========
+
+  /// Request data export (GDPR Article 15)
+  /// Returns the file path if successful, null if failed
+  Future<String?> requestDataExport() async {
+    if (_token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${AppConfig.authServiceUrl}/auth/data-export'),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+
+      if (response.statusCode == 200) {
+        // Save to documents directory
+        final directory = await getApplicationDocumentsDirectory();
+        final fileName = 'vlvt-data-export-${DateTime.now().toIso8601String().split('T')[0]}.json';
+        final file = File('${directory.path}/$fileName');
+        await file.writeAsString(response.body);
+
+        debugPrint('Data export saved to: ${file.path}');
+        return file.path;
+      } else if (response.statusCode == 429) {
+        debugPrint('Export rate limited');
+        return null; // Rate limited
+      } else {
+        debugPrint('Export failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Error requesting data export: $e');
+      return null;
     }
   }
 }
