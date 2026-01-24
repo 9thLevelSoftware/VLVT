@@ -2,15 +2,15 @@
 
 **Project:** After Hours Mode
 **Milestone:** v1.0
-**Current Phase:** 6 - Frontend Integration
-**Status:** Phase complete
+**Current Phase:** 7 - Safety Systems & Polish
+**Status:** In progress
 
 ## Position
 
-- Phase: 06 of 07 (Frontend Integration)
-- Wave: 3
-- Plans: 6/6 complete
-- Last activity: 2026-01-23 - Completed 06-06-PLAN.md (Gap Closure)
+- Phase: 07 of 07 (Safety Systems & Polish)
+- Wave: 1
+- Plans: 1/5 complete
+- Last activity: 2026-01-24 - Completed 07-01-PLAN.md (After Hours Block/Report)
 
 ## Progress
 
@@ -21,7 +21,8 @@ Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
 Phase 6: [##########] 6/6 plans complete
-Overall:  [##########] 23/23 plans complete
+Phase 7: [##........] 1/5 plans complete
+Overall:  [#########.] 24/28 plans complete
 ```
 
 ## Accumulated Decisions
@@ -108,68 +109,36 @@ Overall:  [##########] 23/23 plans complete
 - [06-06] acceptMatch remains socket-based (joinAfterHoursChat) - not HTTP
 - [06-06] Foreground service started after successful API call, not before
 - [06-06] Removed deprecated isSticky and iconData for flutter_foreground_task 9.2.0 compatibility
+- [07-01] Reason prefix after_hours: instead of source column for report tracking
+- [07-01] Fire-and-forget pattern for match decline after block
+- [07-01] Permanent blocks (same as main app) for After Hours
 
 ## Current Context
 
-**Phase 6 COMPLETE - Frontend Integration**
+**Phase 7 IN PROGRESS - Safety Systems & Polish**
 
-Plan 06-01 complete (Core Service & Navigation):
-- AfterHoursState enum with 7 states (inactive, activating, searching, matched, chatting, expiring, expired)
-- AfterHoursService state machine with socket event subscriptions
-- All 8 After Hours socket event streams handled
-- AfterHoursMatch model for match data parsing
-- After Hours tab added to main navigation for premium users (5 tabs total)
-- Provider tree updated with AfterHoursService and AfterHoursChatService
+Plan 07-01 complete (After Hours Block/Report):
+- After Hours safety service with blockAfterHoursUser and reportAfterHoursUser functions
+- POST /after-hours/matches/:matchId/block endpoint with optional reason
+- POST /after-hours/matches/:matchId/report endpoint with required reason enum
+- Report auto-blocks the reported user immediately
+- Both block and report auto-decline the After Hours match
+- Verified block synchronization already works in matching engine
 
-Plan 06-02 complete (Profile & Preferences):
-- AfterHoursProfileService API client (487 lines)
-- AfterHoursProfile and AfterHoursPreferences models
-- Profile CRUD + photo upload (multipart)
-- Preferences CRUD with gender/age/distance
-- AfterHoursProfileScreen with photo picker and bio input
-- AfterHoursPreferencesScreen with sliders and selection chips
-- Provider registration in afterHours() group
+Key files for 07-01:
+- `backend/chat-service/src/services/after-hours-safety-service.ts` (block/report logic)
+- `backend/chat-service/src/routes/after-hours-chat.ts` (block/report endpoints)
 
-Plan 06-03 complete (Session Activation Flow):
-- SessionTimer widget with gold/crimson urgency states (129 lines)
-- SearchingAnimation widget with pulsing radar rings (151 lines)
-- SessionExpiryBanner widget with countdown display (84 lines)
-- AfterHoursTabScreen with full session flow UI (507 lines)
-- Setup checklist shows profile and preferences completion status
-- Duration selector (15/30/60 min) when setup complete
-- State-driven content rendering for all 7 states
+**Next: 07-02 (Photo Perceptual Hashing)**
 
-Plan 06-04 complete (Match Card Overlay):
-- MatchCardOverlay widget with Tinder-style swipe gestures (477 lines)
-- Photo with gradient overlay for text readability
-- Swipe right = accept (CHAT indicator), swipe left = decline (PASS)
-- Chat/Decline button alternatives for tap-based interaction
-- Auto-decline countdown timer with color change at 60s
-- Modal integration via listener pattern, boolean flag prevents duplicates
-
-Plan 06-05 complete (Ephemeral Chat UI):
-- AfterHoursChatScreen with real-time messaging (721 lines)
-- Session timer in app bar with expiry handling
-- SaveMatchButton above message input
-- Partner saved/mutual save dialogs with haptic feedback
-- Chat navigation integrated from AfterHoursTabScreen
-- flutter_foreground_task added for background location support
-
-Plan 06-06 complete (Gap Closure):
-- AfterHoursService makes real HTTP calls (startSession, endSession, declineMatch, refreshSessionStatus)
-- AfterHoursProfileService registered in provider tree
-- FlutterForegroundTask integration for background location on Android 14+
-
-Key files for 06-06:
-- `frontend/lib/services/after_hours_service.dart` (API calls + foreground task)
-- `frontend/lib/providers/provider_tree.dart` (AfterHoursProfileService registration)
-
-**Next: Phase 07 - Testing & Deployment**
-
-All frontend integration complete. Ready for final testing and deployment phase.
+Remaining in Phase 7:
+- 07-02: Photo perceptual hashing for content moderation
+- 07-03: Soft/hard ban enforcement
+- 07-04: Session cleanup jobs
+- 07-05: Integration tests
 
 ## Session Continuity
 
-- Last session: 2026-01-23
-- Stopped at: Completed 06-06-PLAN.md
+- Last session: 2026-01-24
+- Stopped at: Completed 07-01-PLAN.md
 - Resume file: None
