@@ -12,7 +12,7 @@ VLVT transitions from MVP to production-ready state for staged beta launch. Seve
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Security Hardening** - Close exploitable vulnerabilities before deployment
+- [x] **Phase 1: Security Hardening** - Close exploitable vulnerabilities before deployment
 - [ ] **Phase 2: GDPR Compliance** - Establish legal compliance for EU users and special category data
 - [ ] **Phase 3: Testing Infrastructure** - Enable safe code changes with regression protection
 - [ ] **Phase 4: Bug Fixes & UI Polish** - Fix UI bugs and polish user experience for beta quality
@@ -39,9 +39,9 @@ Plans:
 - [x] 01-02-PLAN.md - Add location and message content to PII redaction (SEC-07)
 - [x] 01-03-PLAN.md - Migrate Socket.IO adapter to @socket.io/redis-adapter (SEC-09)
 - [x] 01-04-PLAN.md - Document TLS limitations and verify secrets handling (SEC-01, SEC-06)
-- [ ] 01-05-PLAN.md - Enforce KYCAID encryption at rest (SEC-02 gap closure)
-- [ ] 01-06-PLAN.md - Complete BOLA/IDOR audit and tests (SEC-04 gap closure)
-- [ ] 01-07-PLAN.md - Add TLS documentation to utility scripts (SEC-01 gap closure)
+- [x] 01-05-PLAN.md - Enforce KYCAID encryption at rest (SEC-02 gap closure)
+- [x] 01-06-PLAN.md - Complete BOLA/IDOR audit and tests (SEC-04 gap closure)
+- [x] 01-07-PLAN.md - Add TLS documentation to utility scripts (SEC-01 gap closure)
 
 ### Phase 2: GDPR Compliance
 **Goal**: EU users can exercise data rights and the app handles special category data lawfully
@@ -139,7 +139,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening | 4/7 | Gap Closure | - |
+| 1. Security Hardening | 7/7 | Complete | 2026-01-24 |
 | 2. GDPR Compliance | 0/TBD | Not started | - |
 | 3. Testing Infrastructure | 0/TBD | Not started | - |
 | 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
@@ -150,5 +150,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-24 - Phase 1 gap closure plans added (3 plans in Wave 3)*
+*Last updated: 2026-01-24 - Phase 1 complete (7/7 plans, all success criteria verified)*
 *Coverage: 38/38 v1 requirements mapped*
