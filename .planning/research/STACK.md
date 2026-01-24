@@ -1,463 +1,691 @@
-# Technology Stack: VLVT After Hours Mode
+# Technology Stack: VLVT Production Readiness
 
-**Project:** VLVT Dating App - After Hours Mode Feature
-**Researched:** 2026-01-22
+**Project:** VLVT Dating App - Production Readiness for Beta Launch
+**Researched:** 2026-01-24
 **Overall Confidence:** HIGH
 
 ## Executive Summary
 
-This document recommends the additional libraries, services, and infrastructure needed to implement proximity-based After Hours Mode in VLVT. The existing stack (Flutter + Node.js/Express + Socket.IO + PostgreSQL + Redis) provides a solid foundation. The recommendations focus on four areas: real-time proximity matching, ephemeral chat sessions, session management for timed After Hours Mode, and location fuzzing for privacy.
+This document recommends the tools, libraries, and services needed to make VLVT production-ready for beta launch. The recommendations cover six key areas: security scanning and auditing, testing frameworks, monitoring and alerting, GDPR compliance tooling, database backup solutions, and logging best practices. The existing stack (Node.js/TypeScript + Flutter + PostgreSQL + Redis + Railway) is solid; these additions harden it for production use with sensitive dating app data.
 
 ---
 
-## Recommended Stack Additions
+## 1. Security Scanning & Auditing
 
-### 1. Geospatial Queries at Scale
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **PostGIS** | 3.6.x | PostgreSQL geospatial extension | Precise distance calculations, spatial indexing, future-proof for complex geo features | HIGH |
-| **Redis GEOADD/GEOSEARCH** | (existing redis ^4.7.1) | Real-time proximity cache | O(log N) performance, sub-millisecond proximity queries, already in stack | HIGH |
-
-**Rationale:**
-
-The current system stores latitude/longitude as DECIMAL columns with B-tree indexes. This works for basic discovery but won't scale for real-time proximity matching where:
-- Users need sub-second location updates
-- Queries must find all users within X km efficiently
-- Edge cases (users near geohash boundaries) must be handled
-
-**Dual-layer approach:**
-1. **Redis Geo** (hot path): Real-time proximity queries for active After Hours Mode users. Use GEOADD to store active user locations, GEOSEARCH to find nearby users. Sub-millisecond queries, handles 1000s of users per geohash cell.
-
-2. **PostGIS** (cold path + persistence): Store location history, complex spatial queries, geofencing for future features. The existing comment in migration 004 already recommends PostGIS for production.
-
-**Why NOT earthdistance extension:**
-- earthdistance assumes spherical Earth (less accurate)
-- No spatial indexing (sequential scans)
-- Distance units hardcoded to statute miles
-- PostGIS is only slightly slower but far more capable
-- PostGIS geography type handles edge cases automatically
-
-Sources:
-- [PostGIS vs earthdistance comparison](https://elephanttamer.net/?p=11)
-- [Redis geospatial documentation](https://redis.io/docs/latest/develop/data-types/geospatial/)
-- [Hashrocket earthdistance vs PostGIS](https://hashrocket.com/blog/posts/juxtaposing-earthdistance-and-postgis)
-
----
-
-### 2. Ephemeral/Time-Boxed Chat Sessions
+### Recommended Tools
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| **BullMQ** | ^5.66.x | Job scheduling for session expiry | Modern, maintained, Redis-backed, supports delayed jobs | HIGH |
-| **pg_cron** | 1.6.x | PostgreSQL scheduled cleanup | Simple, battle-tested for batch deletes | MEDIUM |
+| **Snyk CLI** | ^1.1302.0+ | Dependency & code vulnerability scanning | Developer-first, supports SAST + SCA, Yarn 4/pnpm support, CI/CD integration | HIGH |
+| **npm audit** | (built-in) | Quick dependency vulnerability check | Zero-config baseline, catches known CVEs | HIGH |
+| **eslint-plugin-security** | ^3.0.1 | Static code security linting | Catches common Node.js security anti-patterns | HIGH |
+| **Socket.dev** | (online) | Pre-install package vetting | Flags network access, install scripts, obfuscated code | MEDIUM |
 
 **Rationale:**
 
-Ephemeral chat requires:
-1. **Session start** - Create timed session with fixed duration
-2. **Auto-expire** - End session and delete messages unless both users save
-3. **Cleanup** - Remove expired data efficiently
+The npm ecosystem saw 2,168+ malicious package reports in 2024, with 56% designed for data exfiltration in Q1 2025. A dating app handling location, photos, and intimate messages is a high-value target. Multi-layer security scanning is essential.
 
-**Recommended approach:**
+**Why Snyk over alternatives:**
+- **vs npm audit alone**: Snyk provides SAST (code analysis), not just SCA (dependency scanning)
+- **vs SonarQube**: SonarQube requires self-hosting; Snyk is SaaS with free tier
+- **vs Semgrep**: Snyk has better Node.js/TypeScript coverage out-of-box
+- Snyk Code finds vulnerabilities in custom code (XSS, injection, auth bypass)
+- Supports lockfile v3, Yarn 4, pnpm (recent additions in v1.1302.0)
 
-```
-Session Creation:
-1. Create after_hours_sessions row with expires_at timestamp
-2. Add BullMQ delayed job for session expiry notification
-3. Store messages in after_hours_messages with session_id FK
+**eslint-plugin-security catches:**
+- `detect-eval-with-expression` - eval() with user input
+- `detect-non-literal-fs-filename` - path traversal risks
+- `detect-no-csrf-before-method-override` - CSRF vulnerabilities
+- `detect-possible-timing-attacks` - timing attacks in auth
 
-Session Expiry:
-1. BullMQ worker fires at expires_at
-2. Check if both users marked "save"
-3. If no save: DELETE messages, mark session expired
-4. If save: Convert to permanent match/chat
+**Implementation:**
+
+```bash
+# Install security tooling (each service)
+npm install -D eslint-plugin-security@^3.0.1 snyk@latest
+
+# Add to CI pipeline
+npm audit --audit-level=high
+npx snyk test --severity-threshold=high
+npx snyk code test
+
+# Pre-commit check (package.json scripts)
+"lint:security": "eslint --plugin security --ext .ts src/"
 ```
 
-**Why BullMQ over alternatives:**
-- **vs node-cron**: node-cron is in-memory only, jobs lost on restart. After Hours sessions MUST survive restarts.
-- **vs Agenda**: Last major release Nov 2022, effectively unmaintained
-- **vs Bull**: Bull is in maintenance mode, BullMQ is the active successor
-- BullMQ's Job Schedulers (v5.16+) provide robust repeatable/delayed job management
-
-**Why pg_cron for cleanup:**
-- Batch deletion of expired sessions/messages
-- Runs directly in PostgreSQL, no external service
-- Efficient with PostgreSQL 17's improved vacuum performance
-- Use for nightly cleanup of any orphaned data
-
-Sources:
-- [BullMQ documentation](https://docs.bullmq.io)
-- [BullMQ delayed jobs](https://docs.bullmq.io/guide/jobs/delayed)
-- [Better Stack BullMQ guide](https://betterstack.com/community/guides/scaling-nodejs/bullmq-scheduled-tasks/)
-- [Node.js scheduler comparison](https://betterstack.com/community/guides/scaling-nodejs/best-nodejs-schedulers/)
-- [pg_cron for PostgreSQL](https://schinckel.net/2021/09/09/automatically-expire-rows-in-postgres/)
-
----
-
-### 3. Session Management for Timed After Hours Mode
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Redis TTL** | (existing) | Active session state | Native TTL, atomic operations, sliding expiration | HIGH |
-| **Socket.IO Rooms** | (existing ^4.7.2) | Real-time session channels | Dynamic room management, already in stack | HIGH |
-| **@socket.io/redis-adapter** | ^8.3.x | Horizontal scaling for rooms | Modern replacement for socket.io-redis, sharded pub/sub | HIGH |
-
-**Rationale:**
-
-Timed After Hours sessions need:
-1. **Active state tracking**: Who is in After Hours Mode right now
-2. **Session channels**: Real-time communication between matched users
-3. **Timer management**: Countdown, warnings, expiration
-
-**Session state in Redis:**
+**ESLint flat config (eslint.config.js):**
 
 ```javascript
-// User enters After Hours Mode
-await redis.setex(`After Hours:active:${userId}`, 3600, JSON.stringify({
-  startedAt: Date.now(),
-  preferences: { maxDistance: 5, ageRange: [25, 35] },
-  location: { lat: 34.0522, lng: -118.2437 }
-}));
+import pluginSecurity from 'eslint-plugin-security';
 
-// Also add to geo index
-await redis.geoAdd('After Hours:locations', {
-  longitude: -118.2437,
-  latitude: 34.0522,
-  member: userId
-});
-
-// Find nearby users
-const nearby = await redis.geoSearch('After Hours:locations', {
-  longitude: userLng,
-  latitude: userLat,
-  radius: 5,
-  unit: 'km'
-});
+export default [
+  pluginSecurity.configs.recommended,
+  // ... other configs
+];
 ```
 
-**Socket.IO room structure:**
-
-```javascript
-// When match created, both users join session room
-socket.join(`After Hours:session:${sessionId}`);
-
-// Emit to session participants only
-io.to(`After Hours:session:${sessionId}`).emit('message', data);
-io.to(`After Hours:session:${sessionId}`).emit('timer:update', { remaining: 1800 });
-io.to(`After Hours:session:${sessionId}`).emit('session:expiring', { warning: '5min' });
-```
-
-**IMPORTANT - Upgrade socket.io-redis:**
-
-The current codebase uses `socket.io-redis: ^6.1.1` which is deprecated. Upgrade to `@socket.io/redis-adapter: ^8.3.x`:
-- Package renamed in v7 to match Redis emitter naming
-- Supports Redis 7.0 sharded Pub/Sub for better performance
-- Active maintenance vs deprecated package
-
-Sources:
-- [Redis TTL best practices](https://devops.aibit.im/article/best-practices-redis-expire-ttl)
-- [Socket.IO Redis adapter](https://socket.io/docs/v4/redis-adapter/)
-- [Scaling Socket.IO with Redis](https://medium.com/@connect.hashblock/scaling-socket-io-redis-adapters-and-namespace-partitioning-for-100k-connections-afd01c6938e7)
-- [Socket.IO rooms documentation](https://socket.io/docs/v3/rooms/)
+**Sources:**
+- [Snyk npm package](https://www.npmjs.com/package/snyk)
+- [Snyk Product Updates](https://updates.snyk.io/)
+- [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security)
+- [Geekflare Node.js Security Tools](https://geekflare.com/nodejs-security-scanner/)
+- [npm Security Guide](https://blog.cyberdesserts.com/npm-security-vulnerabilities/)
 
 ---
 
-### 4. Location Fuzzing for Privacy
+## 2. Testing Frameworks
+
+### Backend Testing (Node.js/TypeScript)
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| **Geohash truncation** | Custom implementation | Location obfuscation | Simple, effective, configurable precision | HIGH |
-| **Random offset** | Custom implementation | Additional noise | Prevents trilateration attacks | HIGH |
+| **Jest** | ^29.7.0 | Unit & integration testing | Already in stack, fast, excellent TypeScript support | HIGH |
+| **Supertest** | ^7.1.4 | HTTP API testing | Already in stack, integrates seamlessly with Jest | HIGH |
+| **testcontainers** | ^10.x | Integration test containers | Spin up real PostgreSQL/Redis for tests, ensures parity with production | HIGH |
 
-**Rationale:**
+**Note:** Jest and Supertest are already installed across all services. Focus on improving coverage and adding integration tests with real databases.
 
-Dating apps have been exploited via trilateration - attackers use precise distances from multiple points to pinpoint exact locations. After Hours Mode increases this risk because:
-- Users share location more frequently
-- Real-time updates provide more data points
-- Proximity queries reveal relative positions
+**Coverage targets (update jest config):**
 
-**Recommended approach:**
+```json
+"coverageThreshold": {
+  "global": {
+    "branches": 70,
+    "functions": 70,
+    "lines": 70,
+    "statements": 70
+  }
+}
+```
+
+**Why testcontainers:**
+- Mocking PostgreSQL/Redis leads to false confidence
+- testcontainers spins up actual containers for tests
+- Tests match production behavior exactly
+- Clean slate per test run
+
+### Frontend Testing (Flutter)
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **flutter_test** | (SDK) | Unit & widget testing | Built-in, fast, excellent widget testing | HIGH |
+| **Patrol** | ^3.11.0 | E2E/integration testing | Flutter-first, handles native UI (permissions, notifications) | HIGH |
+| **integration_test** | (SDK) | Basic integration testing | Built-in, but limited native interaction | MEDIUM |
+
+**Why Patrol over alternatives:**
+
+Patrol is the recommended E2E testing framework for Flutter apps with native interactions. Key advantages:
+- Interacts with native permission dialogs, notifications, WebViews
+- Written in pure Dart (vs Maestro's YAML)
+- Uses UIAutomator (Android) and XCUITest (iOS) under the hood
+- Supports Firebase Test Lab, BrowserStack, LambdaTest
+- Hot restart support for faster test development
+
+**vs flutter integration_test:** Built-in integration_test cannot interact with platform dialogs. A dating app needs to test:
+- Location permission flows
+- Push notification permission
+- Camera/photo library permissions
+- OAuth login WebViews
+
+Patrol handles all of these from Dart code.
+
+**Installation:**
+
+```yaml
+# pubspec.yaml
+dev_dependencies:
+  patrol: ^3.11.0
+```
+
+```bash
+# Install patrol_cli
+dart pub global activate patrol_cli
+```
+
+**Minimum requirements:**
+- Flutter SDK >= 3.24.0
+- Dart SDK >= 3.5.0
+
+**Coverage reporting:**
+
+```bash
+# Generate coverage
+flutter test --coverage
+
+# Generate HTML report (requires lcov)
+genhtml coverage/lcov.info -o coverage/html
+
+# CI integration with Codecov/SonarQube
+# SonarQube: set sonar.dart.lcov.reportPaths=coverage/lcov.info
+```
+
+**Sources:**
+- [Patrol documentation](https://patrol.leancode.co/)
+- [Patrol pub.dev](https://pub.dev/packages/patrol)
+- [Flutter Test Coverage Guide](https://codewithandrea.com/articles/flutter-test-coverage/)
+- [Allure for Flutter Test Reports](https://www.verygood.ventures/blog/elevating-flutter-test-reports-with-allure)
+
+---
+
+## 3. Monitoring & Alerting
+
+### Application Performance Monitoring (APM)
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Sentry** | ^10.34.0 | Error tracking & APM | Already integrated (@sentry/node), excellent Node.js support, continuous profiling | HIGH |
+| **Railway Metrics** | (platform) | Infrastructure metrics | Built-in, zero-config, CPU/memory/network | HIGH |
+| **Railway Alerts** | (platform) | Threshold-based alerting | Sends to Slack/Discord/email when conditions met | HIGH |
+
+**Why keep Sentry (already in stack):**
+
+Sentry is already installed in all three backend services (`@sentry/node: ^10.25.0`). Upgrade to latest (^10.34.0) for:
+- Vercel AI SDK v6 support
+- GraphQL persisted operations support
+- Continuous profiling (no time limits)
+- OpenTelemetry integration
+
+**Sentry configuration for production:**
 
 ```typescript
-// Location fuzzing utility
-interface FuzzedLocation {
-  lat: number;
-  lng: number;
-  precision: 'exact' | 'neighborhood' | 'area';
-}
+import * as Sentry from '@sentry/node';
 
-function fuzzLocation(lat: number, lng: number, precisionMeters: number): FuzzedLocation {
-  // 1. Truncate to geohash precision
-  // geohash length 6 = ~1.2km x 0.6km rectangle
-  // geohash length 5 = ~5km x 5km rectangle
-
-  // 2. Add random offset within precision bounds
-  const angle = Math.random() * 2 * Math.PI;
-  const distance = Math.random() * precisionMeters;
-
-  const latOffset = (distance / 111320) * Math.cos(angle); // 111320m per degree lat
-  const lngOffset = (distance / (111320 * Math.cos(lat * Math.PI / 180))) * Math.sin(angle);
-
-  return {
-    lat: lat + latOffset,
-    lng: lng + lngOffset,
-    precision: precisionMeters <= 100 ? 'neighborhood' : 'area'
-  };
-}
-
-// Configuration per feature
-const FUZZING_CONFIG = {
-  After HoursDiscovery: 500,    // 500m fuzzing for "nearby" display
-  After HoursMatching: 100,     // 100m for matching algorithm (need reasonable accuracy)
-  profileDisplay: 1000,    // 1km for showing distance on profiles
-};
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 0.2,  // 20% of transactions for APM
+  profilesSampleRate: 0.1, // 10% of transactions for profiling
+  integrations: [
+    Sentry.httpIntegration(),
+    Sentry.expressIntegration(),
+    Sentry.postgresIntegration(),
+    Sentry.redisIntegration(),
+  ],
+});
 ```
 
-**Privacy layers:**
+**Railway alerting setup:**
 
-1. **Storage**: Store exact coordinates encrypted, fuzzed coordinates in clear
-2. **Display**: Never show exact distance (use "< 1 km", "1-2 km" bands)
-3. **Matching**: Use fuzzed coordinates for matching, re-verify with slightly less fuzzing for final match
-4. **Rate limiting**: Limit location update frequency to prevent tracking
+Railway provides built-in monitoring with alerts to Slack/Discord/email. Configure thresholds:
+- CPU > 80% for 5 minutes
+- Memory > 85%
+- Response time p95 > 2s
+- Error rate > 1%
 
-**What NOT to do:**
-- Don't show distances in feet/meters (enables trilateration)
-- Don't update location on every GPS change (enables tracking)
-- Don't store location history without encryption
+**Webhook integration for custom alerts:**
 
-Sources:
-- [Dating app privacy risks](https://www.penligent.ai/hackinglabs/dating-apps-privacy-risks-and-how-ai-powered-penetration-tools-can-help/)
-- [Trilateration attacks on dating apps](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
-- [Location obfuscation techniques](https://www.researchgate.net/publication/224516626_An_Obfuscation-Based_Approach_for_Protecting_Location_Privacy)
+```
+Deployment state changes -> Slack/Discord webhook
+Custom events -> Railway webhooks with auto-transform
+```
+
+### Uptime Monitoring
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Better Uptime** | (SaaS) | External uptime checks | Simple, free tier, integrates with incident management | MEDIUM |
+| **StatusGator** | (SaaS) | Railway status aggregation | Monitors Railway platform status, proactive alerts | LOW |
+
+**Sources:**
+- [Sentry Node.js SDK](https://docs.sentry.io/platforms/node/)
+- [@sentry/node npm](https://www.npmjs.com/package/@sentry/node)
+- [Railway Monitoring Docs](https://docs.railway.com/guides/monitoring)
+- [Better Stack Node.js APM Comparison](https://betterstack.com/community/comparisons/nodejs-application-monitoring-tools/)
+- [Sentry Alternatives Comparison](https://last9.io/blog/the-best-sentry-alternatives/)
 
 ---
 
-### 5. Flutter Frontend Additions
+## 4. GDPR Compliance Tooling
 
-| Package | Version | Purpose | Why | Confidence |
-|---------|---------|---------|-----|------------|
-| **flutter_foreground_task** | ^8.x | Background location for active After Hours Mode | Reliable foreground service, survives app minimize | HIGH |
-| **geolocator** | ^14.0.2 | (existing) Location services | Already in stack, well-maintained | HIGH |
+### Data Subject Request (DSAR) Implementation
 
-**Rationale:**
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Custom DSAR API** | N/A | Handle access/deletion requests | Core GDPR requirement, must be built in-house | HIGH |
+| **gdpr-subject-rights-api** | (OpenAPI spec) | API design reference | F-Secure open-source spec for DSAR endpoints | MEDIUM |
 
-When user is in active After Hours Mode, the app needs to:
-1. Track location even when minimized
-2. Show persistent notification (required by Android 14+)
-3. Send location updates to server
-4. Receive match notifications in real-time
+**GDPR requirements for dating apps:**
 
-**Why flutter_foreground_task:**
-- Designed specifically for foreground services
-- Works with geolocator (already in stack)
-- Handles Android 14+ restrictions properly
-- Shows required persistent notification
-- Runs in separate isolate, survives app lifecycle
+GDPR enforcement intensified with 2,245 fines totaling 5.65B EUR by March 2025. Dating apps with sensitive data (location, photos, messages, After Hours Mode content) face heightened scrutiny.
 
-**Why NOT workmanager:**
-- WorkManager is for periodic/deferrable tasks
-- OS controls exact execution timing
-- Not suitable for continuous real-time tracking
-- Would miss proximity matches
+**Required capabilities:**
+1. **Right of Access** - Export all user data within 30 days
+2. **Right to Erasure** - Delete all user data on request
+3. **Right to Rectification** - Allow users to correct data
+4. **Data Portability** - Export in machine-readable format (JSON)
+5. **Consent Management** - Track and honor consent choices
+
+**API endpoints to implement:**
+
+```typescript
+// DSAR endpoints (auth-service or dedicated service)
+POST   /api/v1/dsar/access-request    // Request data export
+GET    /api/v1/dsar/access-request/:id // Check request status
+POST   /api/v1/dsar/deletion-request  // Request account deletion
+GET    /api/v1/dsar/deletion-request/:id
+GET    /api/v1/me/data-export        // Immediate data download
+DELETE /api/v1/me/account            // Self-service deletion
+
+// Response within 30 days (extendable to 90 for complex cases)
+```
+
+### Data Encryption
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **pgcrypto** | (PostgreSQL extension) | Column-level encryption | Encrypt sensitive fields (messages, exact location) | HIGH |
+| **Node.js crypto** | (built-in) | Application-level encryption | Encrypt before database storage | HIGH |
+
+**Encryption strategy:**
+
+```
+Storage-level:  Railway PostgreSQL has encryption at rest (platform level)
+Application-level: Encrypt sensitive columns before INSERT
+                   - exact_latitude/exact_longitude (store fuzzed in clear)
+                   - after_hours_messages.content
+                   - Any PII beyond profile basics
+```
+
+**Application-level encryption pattern:**
+
+```typescript
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+
+const ALGORITHM = 'aes-256-gcm';
+const KEY = Buffer.from(process.env.ENCRYPTION_KEY!, 'hex'); // 32 bytes
+
+export function encrypt(plaintext: string): { ciphertext: string; iv: string; tag: string } {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv(ALGORITHM, KEY, iv);
+  let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
+  ciphertext += cipher.final('hex');
+  return {
+    ciphertext,
+    iv: iv.toString('hex'),
+    tag: cipher.getAuthTag().toString('hex'),
+  };
+}
+```
+
+### GDPR-Compliant Logging
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Winston** | ^3.18.3 | Structured logging | Already in stack, supports log rotation | HIGH |
+
+**GDPR logging requirements:**
+- Never log PII in plain text (user IDs OK, emails/names NOT OK)
+- Implement log rotation (30-day retention max for non-audit logs)
+- Anonymize/pseudonymize before logging
+- Encrypt logs at rest
+
+**Sources:**
+- [GDPR Subject Rights API (F-Secure)](https://github.com/F-Secure/gdpr-subject-rights-api)
+- [API Data Protection GDPR Guide](https://complydog.com/blog/api-data-protection-developers-gdpr-implementation-guide)
+- [GDPR Compliance Software Comparison](https://sprinto.com/blog/gdpr-compliance-software/)
+- [GDPR-Compliant Logging Checklist](https://www.bytehide.com/blog/gdpr-compliant-logging-a-javascript-developers-checklist)
+- [PostgreSQL Encryption Best Practices](https://www.enterprisedb.com/postgresql-best-practices-encryption-monitoring)
+
+---
+
+## 5. Database Backup Solutions
+
+### Railway PostgreSQL Backups
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Railway Postgres Daily Backups** | (template) | Automated daily backups | Official template, version-aware pg_dump, retention policies | HIGH |
+| **PostgreSQL S3 Backups** | (template) | Backup to Cloudflare R2 | Compatible with R2 (already used for photos), TypeScript-based | HIGH |
+
+**Why use Railway templates:**
+
+Railway provides official templates that:
+- Auto-detect PostgreSQL version (15-17)
+- Use correct pg_dump version for compatibility
+- Organize backups with date-based directories
+- Include Prometheus metrics for monitoring
+- Support respawn protection (prevent excessive backups)
+- Allow custom retention policies
+
+**Recommended setup:**
+
+Since VLVT already uses Cloudflare R2 for photo storage, use the same bucket (or separate backup bucket) for database backups.
+
+**Configuration:**
+
+```
+BACKUP_DATABASE_URL=postgresql://...  # Railway connection string
+BACKUP_CRON_EXPRESSION=0 3 * * *      # Daily at 3 AM UTC
+AWS_S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+AWS_S3_BUCKET=vlvt-backups
+AWS_ACCESS_KEY_ID=<R2 access key>
+AWS_SECRET_ACCESS_KEY=<R2 secret>
+BACKUP_RETENTION_DAYS=30
+```
+
+**Restoration process:**
+
+```bash
+# Download and decompress backup
+gunzip backup-2026-01-24.tar.gz
+
+# Restore to database
+pg_restore -d $DATABASE_URL backup-2026-01-24.tar
+```
+
+**Point-in-time recovery (PITR):**
+
+Railway's managed PostgreSQL includes WAL archiving for point-in-time recovery on higher tiers. For beta launch, daily backups with 30-day retention is sufficient.
+
+**Sources:**
+- [Railway PostgreSQL Backup Guide](https://blog.railway.com/p/postgre-backup)
+- [Automated PostgreSQL Backups](https://blog.railway.com/p/automated-postgresql-backups)
+- [postgres-s3-backups template](https://github.com/railwayapp-templates/postgres-s3-backups)
+
+---
+
+## 6. Logging Best Practices
+
+### Recommended Stack
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Winston** | ^3.18.3 | Structured logging | Already in stack, mature, flexible transports | HIGH |
+| **OR Pino** | ^9.x | High-performance logging | 5-10x faster than Winston, JSON-native, better for high-throughput | HIGH |
+
+**Winston vs Pino decision:**
+
+- **Keep Winston if:** Existing logging works, you need multiple transports (file, console, external), flexibility is priority
+- **Switch to Pino if:** Performance is critical, you prefer JSON-first approach, microservices need minimal logging overhead
+
+**Recommendation:** Keep Winston for now (already integrated), but configure it properly for production.
+
+### Production Logging Configuration
+
+**Winston configuration (recommended):**
+
+```typescript
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
+    winston.format.json()
+  ),
+  defaultMeta: {
+    service: 'auth-service',
+    version: process.env.npm_package_version
+  },
+  transports: [
+    new winston.transports.Console({
+      format: process.env.NODE_ENV === 'production'
+        ? winston.format.json()
+        : winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+          )
+    })
+  ]
+});
+
+// Add correlation ID middleware
+export function correlationMiddleware(req, res, next) {
+  req.correlationId = req.headers['x-correlation-id'] || crypto.randomUUID();
+  res.setHeader('x-correlation-id', req.correlationId);
+  next();
+}
+```
+
+**Best practices:**
+
+1. **Use structured JSON in production** - Railway log aggregation works best with JSON
+2. **Include correlation IDs** - Trace requests across services
+3. **Log levels:**
+   - ERROR: Failures requiring attention
+   - WARN: Degraded but functional
+   - INFO: Significant events (auth, key actions)
+   - DEBUG: Development troubleshooting only
+4. **Never log:**
+   - Passwords, tokens, API keys
+   - Full email addresses (log domain only)
+   - Exact location coordinates (log city/area)
+   - Message content
+
+**Sources:**
+- [Node.js Logging Best Practices](https://betterstack.com/community/guides/logging/nodejs-logging-best-practices/)
+- [Pino vs Winston Comparison](https://betterstack.com/community/comparisons/pino-vs-winston/)
+- [Node.js Logging Libraries 2025](https://last9.io/blog/node-js-logging-libraries/)
+
+---
+
+## 7. JWT Security Hardening
+
+### Current State & Recommendations
+
+| Aspect | Current | Recommended | Confidence |
+|--------|---------|-------------|------------|
+| **Algorithm** | HS256 (assumed) | RS256 or ES256 | HIGH |
+| **Access Token TTL** | Unknown | 15 minutes | HIGH |
+| **Refresh Token TTL** | Unknown | 7 days | HIGH |
+| **Token Rotation** | Unknown | Enabled | HIGH |
+
+**Why asymmetric algorithms (RS256/ES256):**
+
+For microservices architecture, asymmetric algorithms (RS256, ES256) are strongly recommended:
+- Private key stays with auth-service
+- Public key distributed to profile-service, chat-service for verification
+- No shared secrets across services
+- Easier key rotation via JWKS endpoints
 
 **Implementation pattern:**
 
-```dart
-// Start After Hours Mode
-await FlutterForegroundTask.init(
-  androidNotificationOptions: AndroidNotificationOptions(
-    channelId: 'after_hours_mode',
-    channelName: 'After Hours Mode Active',
-    channelDescription: 'Location tracking for nearby matches',
-  ),
-  foregroundTaskOptions: ForegroundTaskOptions(
-    interval: 30000, // 30 second location updates
-    isOnceEvent: false,
-    autoRunOnBoot: false,
-  ),
+```typescript
+// auth-service: Sign with private key
+import jwt from 'jsonwebtoken';
+const privateKey = fs.readFileSync('private.pem');
+
+const accessToken = jwt.sign(
+  { userId, type: 'access' },
+  privateKey,
+  { algorithm: 'RS256', expiresIn: '15m' }
 );
 
-// In foreground task callback
-void onLocation(Position position) {
-  // Send to server via existing socket connection
-  socketService.emit('After Hours:location', {
-    'lat': position.latitude,
-    'lng': position.longitude,
-  });
-}
+// profile-service/chat-service: Verify with public key
+const publicKey = fs.readFileSync('public.pem');
+// Or fetch from JWKS endpoint: https://auth.vlvt.app/.well-known/jwks.json
+
+jwt.verify(token, publicKey, { algorithms: ['RS256'] });
 ```
 
-**Required permissions (add to existing):**
+**Refresh token rotation:**
 
-Android (AndroidManifest.xml):
-```xml
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+```typescript
+// On refresh token use:
+// 1. Validate refresh token
+// 2. Issue new access token
+// 3. Issue NEW refresh token
+// 4. Invalidate OLD refresh token
+// 5. If old refresh token is reused: REVOKE ALL tokens for user (indicates theft)
 ```
 
-Sources:
-- [flutter_foreground_task package](https://pub.dev/packages/flutter_foreground_task)
-- [Background location tracking guide](https://medium.com/@naveenkumarkompelly99/flutter-background-location-tracking-using-flutter-foreground-task-and-geolocator-38fc68c03bd8)
-- [Android 14 background restrictions](https://medium.com/@shubhampawar99/handling-background-services-in-flutter-the-right-way-across-android-14-ios-17-b735f3b48af5)
+**Sources:**
+- [JWT Security Best Practices 2025](https://jwt.app/blog/jwt-best-practices/)
+- [RS256 vs HS256 Comparison](https://supertokens.com/blog/rs256-vs-hs256)
+- [JWT Best Practices Checklist](https://curity.io/resources/learn/jwt-best-practices/)
+- [Refresh Token Rotation Guide](https://www.serverion.com/uncategorized/refresh-token-rotation-best-practices-for-developers/)
 
 ---
 
-## Database Schema Additions
+## 8. Socket.IO Security Checklist
 
-**New tables needed:**
+### Production Hardening
 
-```sql
--- Enable PostGIS
-CREATE EXTENSION IF NOT EXISTS postgis;
+| Check | Status | Action |
+|-------|--------|--------|
+| **Upgrade adapter** | Required | Replace `socket.io-redis` with `@socket.io/redis-adapter` |
+| **Auth middleware** | Verify | Validate JWT on connection, not just on events |
+| **Rate limiting** | Verify | Limit events per connection per second |
+| **Input validation** | Verify | Validate all incoming event data |
+| **Room authorization** | Critical | Verify user belongs to room before join |
 
--- After Hours sessions
-CREATE TABLE after_hours_sessions (
-  id VARCHAR(36) PRIMARY KEY,
-  user_a_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
-  user_b_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
-  status VARCHAR(20) DEFAULT 'active', -- active, expired, saved, cancelled
-  started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-  user_a_saved BOOLEAN DEFAULT FALSE,
-  user_b_saved BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+**Socket.IO security implementation:**
 
--- After Hours messages (ephemeral)
-CREATE TABLE after_hours_messages (
-  id VARCHAR(36) PRIMARY KEY,
-  session_id VARCHAR(36) REFERENCES after_hours_sessions(id) ON DELETE CASCADE,
-  sender_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+```typescript
+import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
 
--- Add PostGIS geography column to profiles (optional, for complex queries)
-ALTER TABLE profiles ADD COLUMN location GEOGRAPHY(POINT, 4326);
+const io = new Server(server, {
+  cors: {
+    origin: ['https://vlvt.app'],
+    credentials: true
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
 
--- Create spatial index
-CREATE INDEX idx_profiles_location_geo ON profiles USING GIST(location);
+// Auth middleware - verify JWT on every connection
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  try {
+    const decoded = await verifyJWT(token);
+    socket.data.userId = decoded.userId;
+    next();
+  } catch {
+    next(new Error('Authentication required'));
+  }
+});
 
--- Function to update geography from lat/lng
-CREATE OR REPLACE FUNCTION update_profile_geography()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.latitude IS NOT NULL AND NEW.longitude IS NOT NULL THEN
-    NEW.location = ST_SetSRID(ST_MakePoint(NEW.longitude, NEW.latitude), 4326)::geography;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_update_profile_geography
-  BEFORE INSERT OR UPDATE ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_profile_geography();
+// Room authorization - verify before join
+socket.on('join:chat', async (roomId) => {
+  const isAuthorized = await checkRoomMembership(socket.data.userId, roomId);
+  if (!isAuthorized) {
+    socket.emit('error', { message: 'Not authorized' });
+    return;
+  }
+  socket.join(roomId);
+});
 ```
+
+**Sources:**
+- [Socket.IO Security Best Practices](https://ably.com/topic/socketio)
+- [WebSocket Security Vulnerabilities](https://ably.com/topic/websocket-security)
 
 ---
 
 ## Installation Summary
 
-### Backend (Node.js)
+### Backend - All Services
 
 ```bash
-# New dependencies
-npm install bullmq@^5.66.0
+# Security scanning
+npm install -D snyk@latest eslint-plugin-security@^3.0.1
+
+# Testing (if adding testcontainers)
+npm install -D testcontainers@^10.0.0
+
+# Socket.IO adapter upgrade (chat-service only)
+npm uninstall socket.io-redis
 npm install @socket.io/redis-adapter@^8.3.0
 
-# Remove deprecated package
-npm uninstall socket.io-redis
-
-# PostGIS - database level, via Railway/Docker
-# pg_cron - database level, via Railway addon or manual install
+# Update Sentry
+npm install @sentry/node@^10.34.0
 ```
 
-### Frontend (Flutter)
+### Frontend
 
 ```yaml
 # pubspec.yaml additions
-dependencies:
-  flutter_foreground_task: ^8.10.0
-  # geolocator already installed: ^14.0.1
+dev_dependencies:
+  patrol: ^3.11.0
 ```
 
-### Database (PostgreSQL)
+### CI/CD Pipeline Additions
 
-```sql
--- One-time setup (Railway supports PostGIS)
-CREATE EXTENSION IF NOT EXISTS postgis;
-CREATE EXTENSION IF NOT EXISTS pg_cron; -- if available
+```yaml
+# Add to Railway/GitHub Actions
+steps:
+  - name: Security Scan
+    run: |
+      npm audit --audit-level=high
+      npx snyk test --severity-threshold=high
+
+  - name: Test with Coverage
+    run: |
+      npm run test:coverage
+
+  - name: Flutter Tests
+    run: |
+      flutter test --coverage
+      patrol test
 ```
 
 ---
 
-## Alternatives Considered
+## What NOT to Use
 
-| Category | Recommended | Alternative | Why Not Alternative |
-|----------|-------------|-------------|---------------------|
-| Geospatial (DB) | PostGIS | earthdistance | No spatial index, miles-only, spherical model |
-| Geospatial (cache) | Redis Geo | Elasticsearch | Overkill, adds operational complexity |
-| Job queue | BullMQ | Agenda | Unmaintained since Nov 2022 |
-| Job queue | BullMQ | node-cron | In-memory only, lost on restart |
-| Socket adapter | @socket.io/redis-adapter | socket.io-redis | Deprecated, renamed in v7 |
-| Background location | flutter_foreground_task | workmanager | Not for continuous tracking |
-| Background location | flutter_foreground_task | flutter_background_geolocation | Heavy, overkill for this use case |
-
----
-
-## Risk Assessment
-
-| Component | Risk Level | Mitigation |
-|-----------|------------|------------|
-| PostGIS installation | LOW | Railway supports PostGIS out of box |
-| BullMQ learning curve | LOW | Well-documented, similar to existing Bull patterns |
-| Socket adapter migration | LOW | API compatible, mostly import changes |
-| Background location (iOS) | MEDIUM | iOS limits to ~30s every 15min when backgrounded; use push notifications |
-| Location privacy | HIGH | Implement fuzzing BEFORE launch, audit for trilateration |
+| Category | Avoid | Why |
+|----------|-------|-----|
+| **Security** | OWASP ZAP alone | Great for web apps, but VLVT is API + mobile; use Snyk for code |
+| **Testing** | Maestro | YAML-based, less Flutter-native than Patrol |
+| **Testing** | Appium | Heavy, complex setup, not Flutter-optimized |
+| **Monitoring** | Datadog | Expensive, overkill for beta; Sentry + Railway is sufficient |
+| **Monitoring** | New Relic | Cost prohibitive for startup, Sentry covers needs |
+| **Logging** | console.log | No structure, no levels, impossible to aggregate |
+| **Logging** | Bunyan | Unmaintained since 2021 |
+| **GDPR** | OneTrust | Enterprise pricing, overkill for beta; build minimal DSAR API |
+| **Backups** | Manual pg_dump | Error-prone, no monitoring, no retention policy |
 
 ---
 
-## Version Summary
+## Confidence Assessment
 
-| Package | Version | Type |
-|---------|---------|------|
-| PostGIS | 3.6.x | PostgreSQL extension |
-| BullMQ | ^5.66.0 | npm package (new) |
-| @socket.io/redis-adapter | ^8.3.0 | npm package (replaces socket.io-redis) |
-| flutter_foreground_task | ^8.10.0 | pub.dev package (new) |
-| geolocator | ^14.0.1 | pub.dev package (existing) |
-| redis | ^4.7.1 | npm package (existing) |
-| socket.io | ^4.7.2 | npm package (existing) |
+| Area | Confidence | Notes |
+|------|------------|-------|
+| Security Scanning (Snyk) | HIGH | Verified via npm, official docs, recent 2025 updates |
+| Testing (Jest/Supertest) | HIGH | Already in stack, well-documented |
+| Testing (Patrol) | HIGH | Verified via pub.dev, active development, v3.11.0 recent |
+| Monitoring (Sentry) | HIGH | Already in stack, verified version ^10.34.0 |
+| Railway Alerting | HIGH | Verified via Railway docs |
+| GDPR Compliance | MEDIUM | Implementation patterns verified, specifics depend on legal review |
+| Database Backups | HIGH | Railway official templates, verified |
+| Logging (Winston) | HIGH | Already in stack, configuration patterns verified |
+| JWT Security | HIGH | Best practices well-documented, implementation straightforward |
 
 ---
 
-## Sources
+## Sources Summary
 
-### Geospatial
-- [PostGIS vs earthdistance - Elephant Tamer](https://elephanttamer.net/?p=11)
-- [PostGIS Geometry vs Geography - Coord](https://medium.com/coord/postgis-performance-showdown-geometry-vs-geography-ec99967da4f0)
-- [Redis Geospatial Documentation](https://redis.io/docs/latest/develop/data-types/geospatial/)
-- [Redis GEOSEARCH Command](https://redis.io/docs/latest/commands/geosearch/)
+### Security
+- [Snyk npm](https://www.npmjs.com/package/snyk)
+- [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security)
+- [Node.js Security Scanners](https://geekflare.com/nodejs-security-scanner/)
+- [npm Security Guide](https://blog.cyberdesserts.com/npm-security-vulnerabilities/)
 
-### Job Scheduling
-- [BullMQ Official Documentation](https://docs.bullmq.io)
-- [BullMQ Delayed Jobs](https://docs.bullmq.io/guide/jobs/delayed)
-- [Node.js Scheduler Comparison - Better Stack](https://betterstack.com/community/guides/scaling-nodejs/best-nodejs-schedulers/)
-- [pg_cron for Postgres TTL](https://schinckel.net/2021/09/09/automatically-expire-rows-in-postgres/)
+### Testing
+- [Patrol Documentation](https://patrol.leancode.co/)
+- [Flutter Test Coverage](https://codewithandrea.com/articles/flutter-test-coverage/)
+- [Allure Flutter Reports](https://www.verygood.ventures/blog/elevating-flutter-test-reports-with-allure)
 
-### Real-Time & Socket.IO
-- [Socket.IO Redis Adapter](https://socket.io/docs/v4/redis-adapter/)
-- [Scaling Socket.IO - Ably](https://ably.com/topic/scaling-socketio)
-- [Socket.IO Rooms Documentation](https://socket.io/docs/v3/rooms/)
+### Monitoring
+- [Sentry Node.js Docs](https://docs.sentry.io/platforms/node/)
+- [Railway Monitoring](https://docs.railway.com/guides/monitoring)
+- [Node.js APM Comparison](https://betterstack.com/community/comparisons/nodejs-application-monitoring-tools/)
 
-### Flutter Background Services
-- [flutter_foreground_task Package](https://pub.dev/packages/flutter_foreground_task)
-- [Background Location Tracking Guide](https://medium.com/@naveenkumarkompelly99/flutter-background-location-tracking-using-flutter-foreground-task-and-geolocator-38fc68c03bd8)
-- [Android 14 Background Restrictions](https://medium.com/@shubhampawar99/handling-background-services-in-flutter-the-right-way-across-android-14-ios-17-b735f3b48af5)
+### GDPR
+- [GDPR Subject Rights API](https://github.com/F-Secure/gdpr-subject-rights-api)
+- [GDPR Compliance Automation](https://secureprivacy.ai/blog/gdpr-compliance-automation)
+- [PostgreSQL Encryption](https://www.enterprisedb.com/postgresql-best-practices-encryption-monitoring)
 
-### Privacy & Security
-- [Dating App Privacy Risks - Penligent](https://www.penligent.ai/hackinglabs/dating-apps-privacy-risks-and-how-ai-powered-penetration-tools-can-help/)
-- [Geolocation Risks in Dating Apps - Check Point](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
-- [Location Obfuscation Techniques](https://www.researchgate.net/publication/224516626_An_Obfuscation-Based_Approach_for_Protecting_Location_Privacy)
+### Backups
+- [Railway PostgreSQL Backups](https://blog.railway.com/p/postgre-backup)
+- [Automated Backups Template](https://blog.railway.com/p/automated-postgresql-backups)
+
+### Logging
+- [Node.js Logging Best Practices](https://betterstack.com/community/guides/logging/nodejs-logging-best-practices/)
+- [Pino vs Winston](https://betterstack.com/community/comparisons/pino-vs-winston/)
+
+### JWT Security
+- [JWT Best Practices 2025](https://jwt.app/blog/jwt-best-practices/)
+- [RS256 vs HS256](https://supertokens.com/blog/rs256-vs-hs256)

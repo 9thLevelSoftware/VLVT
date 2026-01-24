@@ -1,474 +1,668 @@
-# Domain Pitfalls: After Hours/Proximity Dating Features
+# Domain Pitfalls: Dating App Production Readiness
 
-**Domain:** After Hours Mode addition to existing dating app (VLVT)
-**Researched:** 2026-01-22
-**Confidence:** HIGH (multiple authoritative sources, recent legal cases, security research)
+**Domain:** Dating app production launch preparation
+**Researched:** 2026-01-24
+**Confidence:** HIGH (multiple documented breaches, lawsuits, regulatory actions 2024-2025)
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, legal liability, or catastrophic user harm.
+Mistakes that cause data breaches, regulatory fines, lawsuits, or user harm.
 
 ---
 
-### Pitfall 1: Trilateration Location Attacks
+### Pitfall 1: Exposed API Keys and Secrets in App Code
 
-**What goes wrong:** Attackers can pinpoint a user's exact location (within 10-111 meters) even when "hide distance" is enabled, by spoofing their own GPS coordinates from multiple points and measuring relative distance changes in the profile list ordering.
+**What goes wrong:** API keys, encryption keys, and cloud storage credentials are embedded in the app code or committed to repositories. Researchers extract these secrets and gain direct access to user data.
+
+**Real incidents:**
+- April 2025: M.A.D Mobile apps (BDSM People, Pink, Translove, Chica, Brish) exposed 1.5 million explicit images because API keys and encryption passwords were published in app code, granting access to Google Cloud Storage buckets with no authentication
+- July 2025: Tea app breach exposed 72,000 images and 1.1 million messages due to Firebase storage bucket misconfiguration
 
 **Why it happens:**
-- API returns un-rounded distance values
-- Profile sorting by proximity reveals relative distance even without showing numbers
-- Backend still uses precise coordinates even when UI hides them
-
-**Consequences:**
-- User physical safety compromised (documented hate crimes, stalking)
-- Especially dangerous for LGBTQ+ users in hostile regions
-- KU Leuven researchers demonstrated this on Grindr, Hinge, Bumble, Happn, Badoo, and Hily in 2024
+- Secrets hardcoded during development and never removed
+- `.env` files committed to version control
+- Cloud storage buckets default to public access
+- No security review before release
 
 **Warning signs:**
-- Distance values have more than 1 decimal place
-- Profile list order changes predictably when user moves
-- "Hide distance" option only affects UI, not backend calculations
+- Secrets visible in decompiled APK/IPA
+- Environment files in git history
+- Cloud storage URLs accessible without authentication
+- Third-party security researchers reaching out
 
 **Prevention:**
-1. Round coordinates to 3 decimal places (~1km uncertainty) on the SERVER, not client
+1. Use platform-specific secure storage (Android Keystore, iOS Keychain) for any client-side secrets
+2. Backend secrets via environment variables, never in code
+3. Pre-commit hooks to scan for secrets (`gitleaks`, `trufflehog`)
+4. Automated CI scans for exposed credentials
+5. Cloud storage buckets must require authentication by default
+6. Regular security audits before each release
+
+**Phase to address:** Pre-launch security audit (immediate)
+
+**Sources:**
+- [Cybernews: Dating Apps Leak Private Photos](https://cybernews.com/security/ios-dating-apps-leak-private-photos/)
+- [Appknox: Tea App Data Breach Analysis](https://www.appknox.com/blog/tea-app-data-breach-security-flaws-analysis-appknox)
+
+---
+
+### Pitfall 2: Broken Object-Level Authorization (BOLA/IDOR)
+
+**What goes wrong:** API endpoints return or modify data based on user-supplied IDs without verifying the requesting user owns that data. Attackers enumerate IDs to access other users' profiles, messages, photos, and location data.
+
+**Real incidents:**
+- November 2025: Feeld dating app had BOLA vulnerabilities allowing access to other users' chats (including deleted chats), profile modification, and photo access without authentication
+- May 2025: Raw dating app exposed user locations accurate to street level, birth dates, and sexual preferences via IDOR vulnerability
+- 2024: Researchers found API vulnerabilities in Tinder, Bumble, Grindr, and Hinge exposing precise user locations
+
+**Why it happens:**
+- Trusting client-supplied IDs (user_id, chat_id, photo_id) without verification
+- Authorization checks missing from some endpoints
+- "Security through obscurity" (assuming IDs won't be guessed)
+- Separate authorization logic per endpoint instead of middleware
+
+**Warning signs:**
+- Endpoints accept user IDs from request parameters
+- No middleware verifying resource ownership
+- Different authorization implementations across services
+- Pentesting reveals access to other users' data
+
+**Prevention:**
+1. Authorization middleware that verifies resource ownership for EVERY endpoint
+2. User ID derived from JWT, never from request body/parameters
+3. Consistent authorization patterns across all services
+4. Automated API security testing in CI (`OWASP ZAP`, `Burp Suite`)
+5. Regular penetration testing before major releases
+6. Implement row-level security in database queries
+
+**Phase to address:** Pre-launch security audit (immediate)
+
+**Sources:**
+- [FireTail: Feeld Dating App API Vulnerabilities](https://www.firetail.ai/blog/feeld-dating-app-api)
+- [Dark Reading: Dating Apps Expose Location](https://www.darkreading.com/application-security/swipe-right-for-data-leaks-dating-apps-expose-location-more)
+- [API Security Issue 271: Raw Dating App](https://apisecurity.io/issue-271-api-breaches-surge-in-apac-raw-dating-app-exposes-users-api-credential-missteps-api-sprawl/)
+
+---
+
+### Pitfall 3: GDPR Special Category Data Violations
+
+**What goes wrong:** Dating apps that imply sexual orientation or sexual behavior (including "After Hours" modes, LGBTQ+ dating, hookup features) handle GDPR Article 9 "special category" data without proper explicit consent, lawful basis, or data minimization.
+
+**Real incidents:**
+- Grindr fined 6.5M EUR (2024, upheld on appeal) for sharing GPS location, IP addresses, and user data with advertising partners without valid consent. Key violation: merely using Grindr "strongly indicates sexual orientation" - making ALL user data special category data
+- Bumble Inc. paid 32M GBP settlement (2024) for collecting facial recognition biometric data without explicit consent
+
+**Why it happens:**
+- Consent bundled into general privacy policy acceptance (invalid under GDPR)
+- Third-party SDKs (analytics, ads, crash reporting) receive location and behavioral data
+- "Legitimate interest" claimed instead of explicit consent for special category data
+- Assuming privacy policy agreement equals GDPR consent (it does not)
+- Treating profile creation as manifesting data public (regulators rejected this for dating apps)
+
+**Warning signs:**
+- Single checkbox for privacy policy acceptance
+- Analytics/ad SDKs have access to location data
+- No separate, specific consent for data processing purposes
+- User cannot use app without consenting to optional processing
+- Data shared with "partners" without specifying what data and which partners
+
+**Prevention:**
+1. Explicit, granular consent for each processing purpose (matching, analytics, personalization)
+2. Service must be usable without consenting to non-essential processing
+3. No location data shared with ANY third party (including analytics)
+4. Data minimization: store only what's necessary, delete when purpose fulfilled
+5. Right to erasure: complete deletion within 30 days, including backups (put "beyond use")
+6. Appoint Data Protection Officer (required when processing special category data at scale)
+7. Document lawful basis for ALL processing under Article 6 AND Article 9
+8. Conduct Data Protection Impact Assessment before launch
+
+**VLVT-specific risk:** After Hours Mode implies sexual/romantic context, making ALL associated data special category data under GDPR - same as Grindr ruling.
+
+**Phase to address:** Pre-launch compliance review (critical)
+
+**Sources:**
+- [Computer Weekly: Grindr GDPR Fine](https://www.computerweekly.com/news/252495431/Grindr-complaint-results-in-96m-GDPR-fine)
+- [NOYB: Grindr Fine Confirmed](https://noyb.eu/en/norwegian-court-confirms-eu-57-million-fine-grindr)
+- [TechCrunch: Grindr GDPR Consent Breaches](https://techcrunch.com/2021/12/15/grindr-final-gdpr-fine/)
+- [GDPRhub: Article 9 GDPR](https://gdprhub.eu/Article_9_GDPR)
+
+---
+
+### Pitfall 4: Ban Evasion Through Trivial Account Recreation
+
+**What goes wrong:** Banned users (including those reported for sexual assault) create new accounts within minutes using the same name, photos, and birthday. Serial offenders continue targeting victims.
+
+**Real incidents:**
+- February 2025 (The Markup investigation): Banned Tinder users could immediately create new accounts with identical name, birthday, and photos; hop to Hinge without changes
+- December 2025: 6 women sued Hinge/Tinder after being assaulted by a doctor who remained on platforms despite reports since 2020, despite being "banned" multiple times
+- Match Group tracked sexual assault reports since 2016 (hundreds per week by 2022) but failed to prevent repeat offenders
+
+**Why it happens:**
+- Bans tied to email/phone (easily bypassed with burner accounts)
+- No photo hashing to detect banned users' images
+- No device fingerprinting
+- Verification data not used for ban enforcement (identity verified but not checked against ban database)
+- Cross-platform ban enforcement not implemented
+- No behavioral pattern detection
+
+**Warning signs:**
+- Reports describing same person from "different" accounts
+- Same device ID appearing across multiple accounts
+- New accounts with photos matching banned accounts (detectable via perceptual hashing)
+- User reports mentioning "they came back"
+
+**Prevention:**
+1. Device fingerprinting (Android ID, IDFA/GAID, hardware characteristics)
+2. Photo hashing: perceptual hash all profile photos, check against banned photo database
+3. Face verification comparison against banned face database
+4. Phone number reputation scoring (detect burner numbers, VoIP)
+5. Behavioral pattern detection (messaging patterns, report velocity)
+6. Rate limit account creation from same device/IP
+7. Ban the verified identity, not just the account
+
+**VLVT advantage:** KYCAid + Rekognition verification creates persistent identity - ban the biometric identity, not the email address.
+
+**Phase to address:** Pre-launch safety system (critical)
+
+**Sources:**
+- [NPR: Match Group Slow to Remove Dangerous Daters](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault)
+- [The Markup: Dating App Cover-Up](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up)
+- [Sauder Schelkopf: Match Group Investigation](https://sauderschelkopf.com/investigations/match-groups-dating-app-failure-to-protect-users-from-sexual-assault-lawsuit-investigation/)
+
+---
+
+### Pitfall 5: Trilateration Attack via API Distance Data
+
+**What goes wrong:** Attackers can pinpoint user locations (within 2-111 meters) by spoofing their own GPS coordinates from multiple points and measuring distance changes in API responses or profile ordering.
+
+**Real incidents:**
+- 2024: KU Leuven researchers demonstrated trilateration on Grindr, Hinge, Bumble, Happn, Badoo, and Hily
+- Hornet app: researchers achieved 10-meter accuracy even when distance display was disabled
+- All 15 dating apps analyzed leaked some form of sensitive location data
+
+**Why it happens:**
+- API returns exact distance values (or distances with too many decimal places)
+- Profile sorting reveals relative distance even without showing numbers
+- "Hide distance" only affects UI, not backend calculations
+- Rate limiting insufficient to prevent rapid trilateration queries
+
+**Warning signs:**
+- Distance values have more than 0 decimal places
+- Profile ordering changes predictably when user moves
+- Distance calculations performed client-side
+- No rate limiting on location-based queries
+
+**Prevention:**
+1. Round coordinates to 3 decimal places (~1km uncertainty) SERVER-SIDE, not client
 2. Add random jitter (+/- 500m) to stored coordinates for proximity calculations
-3. Quantize distance buckets ("< 1km", "1-5km", "5-15km") rather than continuous values
+3. Quantize distance into buckets ("< 1km", "1-5km", "5-15km") - never continuous values
 4. Randomize profile ordering within distance buckets
-5. Rate-limit location-based queries to prevent rapid trilateration attempts
+5. Rate limit location-based queries (max 10/minute per user)
+6. Detect and block rapid location changes indicating spoofing
 
-**Phase to address:** Phase 1 (Core Infrastructure) - MUST be correct from day one
+**Phase to address:** Pre-launch security audit (critical)
 
 **Sources:**
-- [KU Leuven Research on Dating App Location Leaks](https://several.com/news/researchers-discover-location-leaks-in-six-dating-apps)
-- [Check Point Research: Illusion of Privacy in Dating Apps](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
-- [Grindr Data Breach Analysis - Huntress](https://www.huntress.com/threat-library/data-breach/grindr-data-breach)
+- [Check Point Research: Geolocation Risks in Dating Apps](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
+- [Dark Reading: Dating Apps Expose Location](https://www.darkreading.com/application-security/swipe-right-for-data-leaks-dating-apps-expose-location-more)
+- [PortSwigger: Bumble Trilateration Vulnerability](https://portswigger.net/daily-swig/trilateration-vulnerability-in-dating-app-bumble-leaked-users-exact-location)
 
 ---
 
-### Pitfall 2: Ban Evasion Enabling Repeat Offenders
+### Pitfall 6: Deepfake Bypass of Identity Verification
 
-**What goes wrong:** Banned users (including convicted predators) create new accounts within minutes using the same name, photos, and birthday. Serial offenders continue targeting victims across Match Group apps.
+**What goes wrong:** Scammers use real-time deepfake software to pass live selfie verification, then use AI-generated profile photos. Standard liveness detection is increasingly defeated.
 
-**Why it happens:**
-- Verification only checks identity once at signup
-- No persistent device fingerprinting
-- Cross-app bans not enforced
-- Email/phone verification is trivially bypassed with burner accounts
-
-**Consequences:**
-- December 2025 lawsuit: 6 women sued Hinge/Tinder after being assaulted by a serial rapist who remained on platforms despite reports since 2020
-- Users banned for assault can return within hours
-- NPR investigation (February 2025) confirmed banned users rejoin easily
-
-**Warning signs:**
-- Reports about the same behavior patterns from "different" users
-- New accounts with photos matching banned accounts
-- Device IDs appearing across multiple accounts
-
-**Prevention:**
-1. Device fingerprinting (combine device ID, IDFA/GAID, behavioral biometrics)
-2. Photo hashing - hash all profile photos and check against banned photo database
-3. Verification selfie comparison against banned face database
-4. Cross-platform ban enforcement if operating multiple apps
-5. Phone number reputation scoring (detect burner numbers)
-6. Behavioral pattern detection (messaging patterns, unmatch timing)
-
-**VLVT advantage:** KYCAid + Rekognition verification creates persistent identity - use it to maintain ban database of verified identities, not just accounts.
-
-**Phase to address:** Phase 2 (Safety Systems) - Critical before launch
-
-**Sources:**
-- [NPR: Match Group Slow to Weed Out Predators](https://www.npr.org/2025/02/21/nx-s1-5301046/match-group-dating-app-tinder-hinge-assault-cases-investigation)
-- [Dating App Rape Survivors Lawsuit (December 2025)](https://www.denverpost.com/2025/12/16/denver-sexual-assault-lawsuit-hinge/)
-- [Ban Evasion Methods - Prove.com](https://www.prove.com/blog/3-dating-app-fraud-issues-that-can-be-addressed-with-identity-verification)
-
----
-
-### Pitfall 3: Deepfake/AI Profile Bypass of Verification
-
-**What goes wrong:** Scammers use real-time deepfake video to pass live selfie verification, then upload AI-generated profile photos. Standard "liveness detection" is increasingly defeated.
+**Real incidents:**
+- 2024: Dating industry had highest ID fraud rate (8.9%) of ALL industries - higher than finance (2.7%)
+- 3/4 of UK dating app users encountered deepfakes; 19% were personally deceived
+- Scammers use DeepFaceLive, Magicam, and Amigo AI to alter face, voice, gender, and race during live verification
+- Only 0.1% of people can distinguish real from fake images/video
 
 **Why it happens:**
-- Deepfake technology improved dramatically in 2024-2025
-- Tutorials for bypassing KYC with deepfakes are publicly available
-- "Face fraud factories" sell real people's IDs for small sums
-- Standard liveness checks (blink, head turn) are easily spoofed
-
-**Consequences:**
-- 1 in 4 daters globally targeted by dating scams (Gen Digital 2025)
-- 60% of online daters believe they've been contacted by AI users
-- 62% of people fail to identify AI-generated dating profiles
-- Deepfake incidents increased 10x from 2022-2023
+- Standard liveness checks (blink, head turn) are easily spoofed with pre-recorded deepfakes
+- Virtual camera software can inject manipulated video streams
+- Face-swap technology improved dramatically in 2024-2025
+- Verification happens once at signup, never again
 
 **Warning signs:**
-- Verification selfies have subtle inconsistencies (lighting, eye movement)
+- Verification selfies have subtle inconsistencies (lighting, eye movement patterns)
 - Profile photos look "too perfect" or have AI artifacts
-- User behavior patterns inconsistent with verified identity
+- Behavioral patterns inconsistent with verified identity (age, language, timezone)
+- High rate of romance scam reports despite verification
 
 **Prevention:**
 1. Use certified liveness detection (ISO 30107-3 compliant)
 2. Implement deepfake detection models alongside verification
-3. Behavioral verification: require actions during video that are hard to deepfake (specific phrase, random gesture sequence)
-4. Photo authentication: check uploaded photos against AI-generation detectors
-5. Ongoing verification: periodic re-verification for active users
-6. Cross-reference with fraud databases (not just identity verification)
+3. Require randomized, unpredictable verification actions (specific phrase, random gesture sequence)
+4. Check uploaded photos against AI-generation detectors
+5. Block known virtual camera applications
+6. Periodic re-verification for active users
+7. Cross-reference with fraud databases (not just identity verification)
 
-**Rekognition consideration:** AWS Rekognition has known bias issues (higher error rates for darker-skinned women). At 80% confidence threshold, ACLU found 5% false positive rate. Use 99%+ confidence threshold AND human review for edge cases.
+**AWS Rekognition caution:** Known bias issues (higher error rates for darker-skinned women). Use 99%+ confidence threshold AND human review for edge cases, not default 80% threshold.
 
-**Phase to address:** Phase 1 (Verification Implementation) - Foundation must resist current attacks
+**Phase to address:** Verification system hardening (high priority)
 
 **Sources:**
-- [Gen Digital 2025 Cyber Safety Report](https://newsroom.gendigital.com/2025-02-04-Romance-Reimagined-How-AI-is-Playing-Cupid-and-Catfish)
-- [Trend Micro: AI vs AI Deepfakes and eKYC](https://www.trendmicro.com/vinfo/us/security/news/cyber-attacks/ai-vs-ai-deepfakes-and-ekyc)
-- [Scientific American: Rise of AI Chatfishing](https://www.scientificamerican.com/article/the-rise-of-ai-chatfishing-in-online-dating-poses-a-modern-turing-test/)
-- [AWS Rekognition Bias Research - Joy Buolamwini](https://medium.com/@Joy.Buolamwini/response-racial-and-gender-bias-in-amazon-rekognition-commercial-ai-system-for-analyzing-faces-a289222eeced)
+- [Sumsub: Deepfakes on Dating Apps](https://sumsub.com/newsroom/one-in-five-single-brits-have-already-been-duped-by-deepfakes-on-dating-apps/)
+- [Veriff: Real-time Deepfake Fraud](https://www.veriff.com/identity-verification/news/real-time-deepfake-fraud-in-2025-fighting-back-against-ai-driven-scams)
+- [DeepStrike: Deepfake Statistics 2025](https://deepstrike.io/blog/deepfake-statistics-2025)
 
 ---
 
-### Pitfall 4: Unmatch-Before-Report Exploitation
+### Pitfall 7: Chat History Destruction Enables Repeat Offenders
 
-**What goes wrong:** Bad actors unmatch victims before they can report, erasing chat evidence and making platform investigation impossible. This is cited as a "defective design" in the December 2025 lawsuit.
+**What goes wrong:** Bad actors unmatch victims before they can report, erasing chat evidence. Platforms cannot investigate patterns; victims cannot prove harassment.
+
+**Real incidents:**
+- December 2025 lawsuit: "Unmatch-before-report" explicitly cited as "defective design" enabling repeat sexual assault
+- Serial offenders learned to unmatch immediately after assault/harassment
+- Platforms cannot correlate reports without preserved evidence
 
 **Why it happens:**
 - Unmatching deletes conversation history on both sides
-- No preserved audit trail for safety investigations
-- Attackers learn to unmatch immediately after assault/harassment
-
-**Consequences:**
-- Victims cannot report with evidence
-- Platform cannot investigate patterns
-- Repeat offenders go undetected
-- Legal liability: design explicitly called "defective" in 2025 lawsuit
+- No server-side retention for safety investigations
+- Ephemeral chat features prioritize privacy over safety
+- No mechanism to report after unmatch
 
 **Warning signs:**
 - High unmatch rate for specific users immediately after messaging
 - Reports mentioning "they unmatched me before I could report"
 - Abuse patterns not correlating with reports
+- Low evidence quality in safety investigations
 
 **Prevention:**
-1. Preserve chat history server-side for 30-90 days post-unmatch
-2. Allow reporting even after unmatch (with preserved evidence)
+1. Preserve chat history server-side for 30-90 days post-unmatch (encrypted, access-restricted)
+2. Allow reporting even after unmatch with preserved evidence
 3. Flag rapid unmatch patterns as suspicious behavior
-4. Implement "shadow archive" - unmatching hides conversation from user but preserves for safety team
+4. Implement "shadow archive" - unmatching hides from user but preserves for safety team
 5. Notify users they can report previous matches from match history
+6. Document retention policy clearly in Terms of Service
 
-**VLVT advantage:** Ephemeral chat default actually helps here IF you preserve server-side copies for safety review. Make retention policy clear in terms of service.
+**VLVT ephemeral chat consideration:** Server-side retention for safety investigations is compatible with ephemeral UI. Users don't see the history, but safety team can.
 
-**Phase to address:** Phase 2 (Safety Systems) - Must launch with this
-
-**Sources:**
-- [December 2025 Hinge/Tinder Lawsuit](https://www.denverpost.com/2025/12/16/denver-sexual-assault-lawsuit-hinge/)
-- [Content Moderation Best Practices - Stream](https://getstream.io/blog/dating-app-safety/)
-
----
-
-### Pitfall 5: GDPR/Privacy Law Violations with Location Data
-
-**What goes wrong:** Location data, especially combined with sexual orientation (implied by After Hours app usage), is "special category" data under GDPR Article 9. Sharing with advertisers, poor consent flows, or inadequate security triggers massive fines.
-
-**Why it happens:**
-- Sexual orientation is inferred from app usage
-- Location data collection scope creep
-- Third-party SDKs accessing location
-- Inadequate consent mechanisms
-
-**Consequences:**
-- Grindr fined 6.5M EUR by Norwegian DPA for sharing user data (location, age, gender, sexual orientation) with advertisers without explicit consent
-- Up to 4% of global revenue or 20M EUR per violation
-- Reputational damage in privacy-conscious markets
-
-**Warning signs:**
-- Analytics/ad SDKs have location permissions
-- Consent flows mention "partners" without explicit data types
-- Location used for purposes beyond matching (analytics, ad targeting)
-
-**Prevention:**
-1. Explicit consent for location with clear purpose limitation (matching only)
-2. No location sharing with third parties (including analytics)
-3. Implement data minimization: store only what's needed, delete when not needed
-4. 72-hour breach notification procedures
-5. Clear data deletion on account deletion (not just deactivation)
-6. Document legal basis for processing under GDPR Article 9
-
-**Phase to address:** Phase 1 (Core Infrastructure) - Consent flows and data handling from start
+**Phase to address:** Safety system implementation (critical for launch)
 
 **Sources:**
-- [Grindr GDPR Fine Analysis - GDPR Local](https://gdprlocal.com/privacy-dating-sites-and-apps/)
-- [EFF: Dating Apps Need to Learn Consent](https://www.eff.org/deeplinks/2025/07/dating-apps-need-learn-how-consent-works)
-- [Privacy Guides: Queer Dating Apps Data Risks](https://www.privacyguides.org/articles/2025/06/24/queer-dating-apps-beware-who-you-trust/)
+- [The Markup: Dating App Cover-Up Investigation](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up)
+- [Denver Trial: Match Group Lawsuit](https://www.denvertrial.com/law-firms-sue-hinge-and-match-group-after-serial-rapist-assaults-multiple-users-on-its-platform/)
 
 ---
 
 ## Moderate Pitfalls
 
-Mistakes that cause delays, technical debt, or degraded user experience.
+Mistakes that cause operational issues, technical debt, user churn, or delayed launches.
 
 ---
 
-### Pitfall 6: Battery Drain from Continuous Location Polling
+### Pitfall 8: SMS Verification Easily Bypassed
 
-**What goes wrong:** Real-time proximity features poll GPS constantly, draining battery 13-38% faster than normal, causing app uninstalls.
+**What goes wrong:** Phone verification intended to prevent fake accounts is trivially bypassed with virtual phone numbers, allowing bot networks and banned users to rejoin instantly.
 
 **Why it happens:**
-- Using PRIORITY_HIGH_ACCURACY for background location
-- Polling every few seconds when user is stationary
-- Not leveraging OS geofencing APIs
-- Failing to adapt polling frequency to user movement
-
-**Prevention:**
-1. Use PRIORITY_BALANCED_POWER_ACCURACY for background
-2. Implement adaptive polling: high frequency when moving near geofences, low when stationary
-3. Leverage OS geofencing APIs (optimized for battery)
-4. Set minimum 30-second intervals for background updates (75% power savings vs 5-second)
-5. Use significant-change location services as baseline
-6. Cap registered geofences (Android limits 100, dynamically register/unregister)
+- Services like Tinderophone sell verification-ready numbers
+- VoIP detection is imperfect
+- Burner phone numbers are cheap and abundant
+- No additional signals correlated with phone verification
 
 **Warning signs:**
-- User reviews mentioning battery drain
-- App appearing in OS "battery usage" screens prominently
-- Background activity warnings from OS
+- High rate of accounts from known VoIP providers
+- Multiple accounts verified with numbers from same provider
+- Banned users returning within hours
+- Bot accounts passing verification
 
-**Phase to address:** Phase 3 (Real-time Features) - Performance optimization
+**Prevention:**
+1. Phone number reputation scoring (detect burner numbers, carrier type)
+2. Block known VoIP providers and verification bypass services
+3. Rate limit verifications from same IP/device
+4. Combine phone with device fingerprinting
+5. Consider phone as one signal, not sole gate
+6. Monitor for suspicious verification patterns
+
+**Phase to address:** Authentication hardening (moderate priority)
 
 **Sources:**
-- [Android Developers: Location and Battery](https://developer.android.com/develop/sensors-and-location/location/battery)
-- [GPS Battery Optimization Guide - Glance](https://thisisglance.com/learning-centre/how-do-i-optimise-gps-battery-usage-in-location-apps)
+- [Infobip: Verification Without Phone](https://www.infobip.com/blog/how-to-get-verified-without-your-phone)
+- [IS Decisions: Why SMS 2FA Is Not Secure](https://www.isdecisions.com/en/blog/mfa/why-sms-authentication-2fa-not-secure)
 
 ---
 
-### Pitfall 7: Overwhelming/Creepy Notification UX
+### Pitfall 9: Bot and Fake Profile Proliferation
 
-**What goes wrong:** Real-time proximity notifications feel stalker-like ("John is 200m away!") or overwhelm users with constant pings when in populated areas.
+**What goes wrong:** Automated accounts flood the platform with scam bots, romance fraud operators, and spam. Over 15% of dating profiles are fake or bot-generated industry-wide.
 
 **Why it happens:**
-- Treating proximity like a feature to maximize rather than balance
-- Not considering notification fatigue
-- Forgetting that "nearby" in a city center means hundreds of users
-- Notifications that reveal too much location precision
-
-**Prevention:**
-1. Rate-limit proximity notifications (max N per hour)
-2. Aggregate: "5 people nearby" not 5 individual notifications
-3. User-controlled notification granularity
-4. Never reveal precise distance in notifications
-5. Opt-in for active session only, not passive background
-6. "Creepy factor" review: if notification would feel unsettling to receive, redesign it
-7. Test notification copy with diverse user groups
+- Basic CAPTCHA bypassed by human fraud farms
+- Account creation has insufficient friction
+- AI generates convincing fake photos and bios
+- Scammers profit enough ($4,400 average per romance scam victim) to pay subscription costs
 
 **Warning signs:**
-- Users disabling notifications entirely
-- App reviews mentioning "creepy" or "overwhelming"
-- Notification permission decline rate above platform average
+- Rapid-fire matching/messaging from new accounts
+- Generic profile photos (AI-generated or stock)
+- Copy-paste message patterns
+- High report rate for specific user segments
+- Surge in sign-ups from single IP range
 
-**Phase to address:** Phase 3 (Real-time Features) - UX design and testing
+**Prevention:**
+1. Multi-layered verification (phone + photo + behavior)
+2. Behavioral analysis: flag rapid matching, copy-paste messaging, external link sharing
+3. AI-powered photo authenticity detection
+4. Honeypot fields in registration (invisible to humans, filled by bots)
+5. Rate limit account creation per device/IP
+6. Ongoing behavioral monitoring, not just signup verification
+7. Phone number reputation scoring
+
+**Phase to address:** Anti-abuse systems (moderate priority)
 
 **Sources:**
-- [Smashing Magazine: Better Notifications UX](https://www.smashingmagazine.com/2025/07/design-guidelines-better-notifications-ux/)
-- [UXCam: Push Notification Guide 2025](https://uxcam.com/blog/push-notification-guide/)
+- [Prove: Dating App Fraud Issues](https://www.prove.com/blog/3-dating-app-fraud-issues-that-can-be-addressed-with-identity-verification)
+- [Verified Visitors: Dating Fraud Bots](https://www.verifiedvisitors.com/threat-research/dating-and-romance-fraud-bots)
+- [Anura: Dating App Fraud](https://www.anura.io/blog/dating-app-fraud-why-you-need-to-swipe-left)
 
 ---
 
-### Pitfall 8: Premium Paywall Does Not Stop Abuse
+### Pitfall 10: Right to Erasure Implementation Gaps
 
-**What goes wrong:** Assuming premium-only access prevents bad actors. Scammers and predators pay subscription costs as "business expenses."
-
-**Why it happens:**
-- Overestimating financial barrier as deterrent
-- Romance scammers average $4,400 stolen per victim - subscription is ROI
-- Credential sharing and stolen payment methods
-
-**Prevention:**
-1. Paywall as ONE layer, not THE solution
-2. Combine with: verification, behavioral monitoring, report analysis
-3. Monitor for account sharing patterns
-4. Payment method reputation (flagged cards, trial abuse patterns)
-5. Verification + payment = stronger signal, but not sufficient alone
-
-**VLVT context:** Your planned premium-only access is a good friction layer but must be combined with verification and monitoring. Do not rely on it for safety.
-
-**Phase to address:** Phase 1 (Access Controls) - Set expectations correctly
-
-**Sources:**
-- [CBC: How Dating Apps Frustrate You Into Paying](https://www.cbc.ca/news/canada/dating-apps-frustration-premium-1.7144810)
-- [Prove: Dating App Fraud and Verification](https://www.prove.com/blog/3-dating-app-fraud-issues-that-can-be-addressed-with-identity-verification)
-
----
-
-### Pitfall 9: Moderation Queue Overwhelm
-
-**What goes wrong:** Reports flood in faster than human moderators can review, creating backlogs. AI moderation alone misses context-dependent harassment.
+**What goes wrong:** Users request account deletion but data persists in backups, logs, analytics, third-party services, or is only "soft deleted." GDPR requires complete erasure within 30 days.
 
 **Why it happens:**
-- After Hours contexts have higher harassment rates
-- LGBTQ+ users face elevated discrimination/threats
-- AI struggles with coded language, cultural context
-- "Mass reporting" abuse by bad actors
-
-**Prevention:**
-1. AI triage: prioritize high-severity reports for human review
-2. Category-specific queues (harassment vs spam vs fake profile)
-3. Auto-action for clear violations (explicit images, slurs)
-4. Human review for context-dependent cases
-5. Report-abuse detection (users weaponizing report system)
-6. Moderator well-being: rotate, limit exposure, mental health support
+- Soft delete flags data without removing it
+- Backups not considered in deletion process
+- Third-party services (analytics, crash reporting) retain data
+- Logs contain PII
+- No systematic data mapping (don't know where all data lives)
 
 **Warning signs:**
-- Report resolution time increasing
+- Deleted users can still be found in database queries
+- Backup restoration brings back deleted accounts
+- Third-party dashboards show deleted user data
+- No deletion confirmation sent to users
+- GDPR subject access requests reveal "deleted" data
+
+**Prevention:**
+1. Hard delete from production databases (not soft delete for user-requested deletions)
+2. Document all data locations (Record of Processing Activities)
+3. Backups: put deleted data "beyond use" - cannot be restored or accessed
+4. Notify third parties of deletion requirements
+5. Purge PII from logs (or implement log retention limits)
+6. Send deletion confirmation to user
+7. Test deletion with penetration testing / data recovery attempts
+8. Clear timeline: complete within 30 days, notify if extension needed
+
+**Apple App Store requirement:** Apps allowing account creation MUST allow in-app account deletion.
+
+**Phase to address:** GDPR compliance (high priority)
+
+**Sources:**
+- [GDPR.eu: Right to be Forgotten](https://gdpr.eu/right-to-be-forgotten/)
+- [Authgear: Right to Erasure for Apps](https://www.authgear.com/post/the-right-to-erasure-and-how-you-can-follow-it-for-your-apps)
+- [VeraSafe: GDPR and Backup Systems](https://verasafe.com/blog/do-i-need-to-erase-personal-data-from-backup-systems-under-the-gdpr/)
+
+---
+
+### Pitfall 11: Insufficient Content Moderation at Scale
+
+**What goes wrong:** Reports flood in faster than moderators can review. AI moderation alone misses context-dependent harassment. Bad actors exploit gaps.
+
+**Real incidents:**
+- Match Group received hundreds of sexual assault reports per week but dismissed safety team (2022-2024)
+- Tea app removed from App Store for excessive complaints about minors' information being posted
+- 52% of dating apps experienced data breach/leak in past 3 years (Mozilla 2024)
+- 28% of online daters harassed through dating apps (women: 42%)
+
+**Why it happens:**
+- AI struggles with coded language, cultural context, sarcasm
+- Human moderation doesn't scale with growth
+- No prioritization system for high-severity reports
+- Moderator burnout from exposure to harmful content
+- "Mass reporting" weaponized against legitimate users
+
+**Warning signs:**
+- Report queue growing faster than resolution rate
+- Average resolution time increasing
+- Moderator turnover/burnout
 - User complaints about unresolved reports
-- Moderator burnout/turnover
+- App store reviews mentioning safety concerns
 
-**Phase to address:** Phase 2 (Safety Systems) - Scale with launch
+**Prevention:**
+1. AI triage: auto-prioritize high-severity reports (assault, threats, minors)
+2. Auto-action for clear violations (explicit content, slurs, known scam patterns)
+3. Human review for context-dependent cases
+4. Category-specific queues with different SLAs
+5. Report-abuse detection (users weaponizing report system)
+6. Moderator wellness: rotation, exposure limits, mental health support
+7. Publish transparency reports (report volumes, resolution times, actions taken)
+
+**Phase to address:** Operations scaling (pre-launch)
 
 **Sources:**
-- [Dating Pro: Content Moderation Strategies](https://www.datingpro.com/blog/effective-strategies-for-content-moderation-for-dating-apps/)
-- [Concordia: Harms on LGBTQ+ Dating Apps](https://www.concordia.ca/cunews/main/items/the-conversation/2025/more-than-just-a-bad-date--navigating-harms-on-lgbtq--dating-app.html)
+- [Checkstep: Content Moderation and Dating 2024](https://www.checkstep.com/3-facts-about-content-moderation-and-dating-2024/)
+- [Mentor Research: Criticisms of Major Dating Apps](https://www.mentorresearch.org/criticisms-of-tinder-hinge-matchcom-plenty-of-fish-and-okcupid)
+- [NPR: Match Group Safety Team Dismantled](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault)
 
 ---
 
-### Pitfall 10: Screenshot/Evidence Preservation Gap
+### Pitfall 12: PII in Logs and Error Messages
 
-**What goes wrong:** Ephemeral chat deletes evidence before victims can document harassment. Users cannot prove what was said.
+**What goes wrong:** Logging captures sensitive user data (emails, locations, messages, tokens). When logs are accessed by support staff, exposed in errors, or breached, PII is compromised.
 
 **Why it happens:**
-- Ephemeral design prioritizes privacy over safety
-- No screenshot notification to deter harassment
-- No server-side retention for investigations
+- Default logging captures full request/response bodies
+- Error messages include user context
+- Debug logging left enabled in production
+- Log aggregation services store data in third-party systems
+- No log review in security audit
+
+**Warning signs:**
+- Searching logs reveals user emails, locations, message content
+- Error tracking (Sentry, Bugsnag) contains user identifiers
+- Support staff can search for users in logs
+- Log retention exceeds operational necessity
 
 **Prevention:**
-1. Server-side retention (encrypted) for N days regardless of ephemeral UI
-2. Implement screenshot detection and notification (deterrent effect)
-3. "Export evidence" feature that captures chat with metadata
-4. Make retention policy transparent in ToS
-5. Balance: ephemeral for user privacy, retained for safety investigations
+1. Structured logging with explicit field allowlists (never log request bodies by default)
+2. PII redaction middleware for all log outputs
+3. Separate correlation IDs from user IDs in logs
+4. Log retention limits (30 days operational, then aggregate/delete)
+5. Review log outputs as part of security audit
+6. Error tracking: enable PII scrubbing, audit what's captured
 
-**VLVT context:** Your "ephemeral chat by default" needs careful implementation. UI can be ephemeral while backend preserves for safety. Communicate this clearly.
+**Phase to address:** Pre-launch security audit (high priority)
 
-**Phase to address:** Phase 2 (Chat Implementation) - Design from start
+---
+
+### Pitfall 13: Cold Start / Chicken-and-Egg Launch Failure
+
+**What goes wrong:** App launches to empty user base. Early users see no matches, leave, never return. Network effects never bootstrap.
+
+**Why it happens:**
+- Launching nationally/globally instead of concentrated geographic area
+- No pre-launch user acquisition strategy
+- Paid ads at launch have terrible ROI (high cost per acquisition, low conversion, fast churn)
+- Test users mixed with real users
+
+**Warning signs:**
+- Users open app, see no nearby matches
+- High Day 1 churn
+- Negative reviews mentioning "no one here"
+- Users assume app is dead
+
+**Prevention:**
+1. Geographic concentration: launch in ONE city/region, saturate before expanding
+2. Pre-launch waitlist with referral incentives
+3. Seed initial users (events, campus, community partnerships)
+4. Clear test user separation (never show test accounts to real users)
+5. Expectations setting: communicate launch phase to early users
+6. Consider closed beta with invites to concentrate density
+
+**Phase to address:** Launch planning (pre-launch)
 
 **Sources:**
-- [Confide: Screenshot-Proof Messaging](https://getconfide.com/)
-- [Safety Features Dating Apps Need - Glance](https://thisisglance.com/learning-centre/what-safety-features-should-my-dating-app-have-to-protect-users)
+- [SkaDate: Solving the Cold Start Problem](https://www.skadate.com/how-to-launch-a-dating-app-in-2026-solving-the-cold-start-problem/)
+- [Guru Technolabs: Why Dating Apps Fail](https://www.gurutechnolabs.com/why-dating-apps-fail/)
 
 ---
 
 ## Minor Pitfalls
 
-Mistakes that cause annoyance but are fixable with iteration.
+Mistakes that cause friction but are fixable with iteration.
 
 ---
 
-### Pitfall 11: Poor Geofence Responsiveness on Android 8+
+### Pitfall 14: TLS/SSL Misconfiguration
 
-**What goes wrong:** Geofence triggers delayed by up to 2 minutes on modern Android, users think feature is broken.
+**What goes wrong:** Outdated TLS configurations allow interception of user data in transit. Certificate pinning not implemented or improperly configured.
 
-**Why it happens:** Android 8+ intentionally delays geofence callbacks for battery optimization.
+**Real finding:** 7 major dating platforms (Badoo, Zoosk, AdultFriendFinder, Match, Grindr, Ourtime, Ashley Madison) showed high TLS configuration issues in 2025 Business Digital Index analysis.
 
 **Prevention:**
-1. Set user expectations: "You'll be notified when someone enters your area"
-2. Don't promise real-time in marketing
-3. Use foreground location service for active sessions (higher responsiveness)
-4. Hybrid approach: geofence for background, active polling for foreground
+1. TLS 1.3 minimum (deprecate 1.2)
+2. Certificate pinning in mobile apps
+3. HSTS headers with long max-age
+4. Regular SSL Labs testing (aim for A+ rating)
+5. Automated certificate renewal monitoring
 
-**Phase to address:** Phase 3 (Real-time Features) - UX messaging
+**Phase to address:** Infrastructure hardening (moderate priority)
 
-**Source:** [Android Developers: Geofencing](https://developer.android.com/develop/sensors-and-location/location/geofencing)
+**Sources:**
+- [Business Digital Index: Dating Apps Study](https://businessdigitalindex.com/research/75-of-dating-apps-are-unsafe-new-study-finds/)
+- [Promon: Dating App Data Breach Prevention](https://promon.io/security-news/dating-app-data-breach)
 
 ---
 
-### Pitfall 12: Block List Not Comprehensive
+### Pitfall 15: Push Notification Privacy Leaks
 
-**What goes wrong:** User blocks someone in main app, still sees them in After Hours Mode (or vice versa).
+**What goes wrong:** Push notifications display message content or sender identity on lock screen, exposing user's dating activity to anyone who sees their phone.
 
 **Why it happens:**
-- Separate databases/services for features
-- Block list not synchronized across modes
-- Edge cases: blocked before After Hours Mode existed
+- Default notification content shows message preview
+- Notification title reveals app name and context
+- No user control over notification privacy
 
 **Prevention:**
-1. Single source of truth for blocks
-2. Blocks are bidirectional and cross-feature
-3. Migration script for existing blocks when launching After Hours Mode
-4. Block from After Hours Mode also blocks in main app
+1. Default to privacy-preserving notifications ("You have a new message")
+2. User-configurable notification detail level
+3. Never show explicit content in notifications
+4. Consider generic app icon/name for lock screen
+5. Rich notifications only when phone is unlocked (Face ID/Touch ID)
 
-**VLVT advantage:** You've planned for "blocks carry over" - ensure implementation is bulletproof. Test edge cases.
-
-**Phase to address:** Phase 1 (Data Model) - Schema design
+**Phase to address:** UX polish (lower priority)
 
 ---
 
-### Pitfall 13: Location Permission Fatigue
+### Pitfall 16: OAuth Token Mishandling
 
-**What goes wrong:** Users decline "always allow" location because they don't understand why After Hours Mode needs background access.
+**What goes wrong:** Social login tokens stored insecurely, providing attackers access to user's full social media profile beyond necessary scope.
 
 **Why it happens:**
-- iOS/Android permission prompts are generic
-- Users trained to decline "always" permissions
-- No clear value proposition communicated
+- Tokens stored in plain text in app storage
+- Requesting excessive OAuth scopes
+- Tokens not rotated or refreshed properly
+- Third-party services receive unnecessary tokens
 
 **Prevention:**
-1. Pre-permission education screen explaining value
-2. Request "while using" first, upgrade to "always" later with clear benefit
-3. Graceful degradation: feature works with "while using" but enhanced with "always"
-4. Never request permissions on first launch
+1. Request minimum necessary OAuth scopes
+2. Store tokens in secure storage (Keychain/Keystore)
+3. Implement proper token refresh rotation
+4. Never share OAuth tokens with third parties
+5. Audit OAuth implementation for scope creep
 
-**Phase to address:** Phase 3 (Real-time Features) - Permission flows
+**Phase to address:** Authentication audit (moderate priority)
 
----
-
-## Phase-Specific Warnings Summary
-
-| Phase | Likely Pitfall | Mitigation |
-|-------|---------------|------------|
-| Phase 1: Core Infrastructure | Trilateration attacks, GDPR violations | Server-side location fuzzing, consent flows |
-| Phase 1: Verification | Deepfake bypass, Rekognition bias | Certified liveness, 99% threshold, human review |
-| Phase 2: Safety Systems | Ban evasion, unmatch exploitation | Device fingerprinting, preserved evidence |
-| Phase 2: Chat | Screenshot gap with ephemeral | Server retention with ephemeral UI |
-| Phase 3: Real-time | Battery drain, creepy notifications | Adaptive polling, notification design review |
-| Phase 3: Premium | Paywall false confidence | Combine with verification + monitoring |
+**Sources:**
+- [Promon: Dating App Data Breach](https://promon.io/security-news/dating-app-data-breach)
 
 ---
 
-## VLVT Mitigations Assessment
+## Phase-Specific Warning Summary
 
-Your planned mitigations evaluated against research:
+| Phase | Critical Pitfalls | Moderate Pitfalls |
+|-------|-------------------|-------------------|
+| **Security Audit** | Exposed secrets (1), BOLA/IDOR (2), Trilateration (5), PII in logs (12), TLS config (14) | OAuth tokens (16) |
+| **GDPR Compliance** | Special category data (3), Right to erasure (10) | Notification privacy (15) |
+| **Safety Systems** | Ban evasion (4), Chat preservation (7) | Content moderation (11) |
+| **Verification Hardening** | Deepfake bypass (6) | SMS bypass (8), Bot proliferation (9) |
+| **Launch Preparation** | - | Cold start (13) |
 
-| Planned Mitigation | Assessment | Gap |
-|-------------------|------------|-----|
-| KYCAid + Rekognition verification | GOOD - but needs deepfake detection, 99% threshold | Add ISO 30107-3 liveness, ongoing re-verification |
-| Location fuzzing (general area) | ESSENTIAL - implement server-side | Must be server-side with jitter, not client-side |
-| Blocks carry over | GOOD - single source of truth | Test edge cases, bidirectional enforcement |
-| Can block within After Hours Mode | GOOD - table stakes | Ensure cross-feature |
-| Premium-only (barrier to abuse) | MODERATE - not sufficient alone | Do not rely on this for safety |
-| Ephemeral chat by default | MIXED - good for privacy, risk for evidence | Server-side retention for investigations |
+---
 
-**Critical additions needed:**
-1. Unmatch-report preservation system
-2. Ban database tied to verified identity (not just account)
-3. Device fingerprinting for ban enforcement
-4. Photo hashing for ban evasion detection
-5. Deepfake detection layer on verification
-6. Rate-limited, randomized proximity queries
+## VLVT-Specific Risk Assessment
+
+Based on VLVT's architecture and features:
+
+| VLVT Component | Highest Risk Pitfall | Recommended Action |
+|----------------|---------------------|-------------------|
+| After Hours Mode | GDPR special category (3) | Explicit consent flow, no third-party data sharing |
+| Location-based matching | Trilateration (5) | Server-side coordinate fuzzing with jitter |
+| KYCAid + Rekognition | Deepfake bypass (6), Rekognition bias | Add deepfake detection, 99% threshold, periodic re-verification |
+| Ephemeral chat | Chat preservation gap (7) | Server-side retention for safety, ephemeral UI only |
+| User blocking/reporting | Ban evasion (4) | Hash photos, fingerprint devices, ban biometric identity |
+| R2 photo storage | Exposed secrets (1) | Audit bucket permissions, no public access |
+| JWT authentication | BOLA/IDOR (2) | Authorization middleware on ALL endpoints |
+| Railway deployment | PII in logs (12) | Structured logging with PII redaction |
+
+---
+
+## Pre-Launch Checklist
+
+Critical items that MUST be verified before production launch:
+
+### Security
+- [ ] No secrets in app code or repository
+- [ ] All API endpoints have authorization middleware
+- [ ] Location data rounded server-side (3 decimal places + jitter)
+- [ ] Photo storage buckets require authentication
+- [ ] TLS 1.3 with certificate pinning
+- [ ] Rate limiting on all endpoints
+- [ ] Penetration test completed
+
+### GDPR
+- [ ] Explicit, granular consent for each processing purpose
+- [ ] Right to erasure implemented (hard delete within 30 days)
+- [ ] Data Protection Impact Assessment completed
+- [ ] No location data shared with third parties
+- [ ] Privacy policy specifies exact data processing
+
+### Safety
+- [ ] Chat history preserved server-side post-unmatch
+- [ ] Reporting available for unmatched users
+- [ ] Device fingerprinting for ban enforcement
+- [ ] Photo hashing against banned user database
+- [ ] Moderation queue with prioritization
+
+### Operations
+- [ ] PII redacted from all logs
+- [ ] Monitoring and alerting configured
+- [ ] Database backup and recovery tested
+- [ ] Incident response plan documented
+- [ ] Test users cannot appear to real users
 
 ---
 
 ## Sources
 
 ### Security Research
-- [KU Leuven: Dating App Location Leaks](https://several.com/news/researchers-discover-location-leaks-in-six-dating-apps)
 - [Check Point: Geolocation Risks in Dating Apps](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
-- [Trend Micro: Deepfakes vs eKYC](https://www.trendmicro.com/vinfo/us/security/news/cyber-attacks/ai-vs-ai-deepfakes-and-ekyc)
+- [FireTail: Feeld API Vulnerabilities](https://www.firetail.ai/blog/feeld-dating-app-api)
+- [Cybernews: Dating Apps Leak Photos](https://cybernews.com/security/ios-dating-apps-leak-private-photos/)
+- [Business Digital Index: 75% of Dating Apps Unsafe](https://businessdigitalindex.com/research/75-of-dating-apps-are-unsafe-new-study-finds/)
 
-### Legal Cases
-- [NPR: Match Group Predator Investigation (Feb 2025)](https://www.npr.org/2025/02/21/nx-s1-5301046/match-group-dating-app-tinder-hinge-assault-cases-investigation)
-- [Denver Post: Hinge/Tinder Lawsuit (Dec 2025)](https://www.denverpost.com/2025/12/16/denver-sexual-assault-lawsuit-hinge/)
-- [Grindr GDPR Fine](https://gdprlocal.com/privacy-dating-sites-and-apps/)
+### Legal/Regulatory
+- [Grindr GDPR Fine - TechCrunch](https://techcrunch.com/2021/12/15/grindr-final-gdpr-fine/)
+- [NOYB: Grindr Fine Upheld](https://noyb.eu/en/norwegian-court-confirms-eu-57-million-fine-grindr)
+- [Match Group Lawsuit - The Markup](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up)
+- [FTC Match Group Settlement](https://www.ftc.gov/news-events/news/press-releases/2025/08/match-group-agrees-pay-14-million-permanently-stop-deceptive-advertising-cancellation-billing)
 
 ### Industry Reports
-- [Gen Digital 2025 Cyber Safety Report](https://newsroom.gendigital.com/2025-02-04-Romance-Reimagined-How-AI-is-Playing-Cupid-and-Catfish)
-- [EFF: Dating Apps and Consent](https://www.eff.org/deeplinks/2025/07/dating-apps-need-learn-how-consent-works)
+- [Sumsub: Deepfakes on Dating Apps](https://sumsub.com/newsroom/one-in-five-single-brits-have-already-been-duped-by-deepfakes-on-dating-apps/)
+- [NPR: Match Group Investigation](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault)
+- [Appknox: Tea App Breach Analysis](https://www.appknox.com/blog/tea-app-data-breach-security-flaws-analysis-appknox)
 
-### Technical Documentation
-- [Android: Location and Battery](https://developer.android.com/develop/sensors-and-location/location/battery)
-- [AWS Rekognition Guidance](https://docs.aws.amazon.com/rekognition/latest/dg/considerations-public-safety-use-cases.html)
+### Technical Standards
+- [GDPR Article 17: Right to Erasure](https://gdpr-info.eu/art-17-gdpr/)
+- [GDPR Article 9: Special Category Data](https://gdprhub.eu/Article_9_GDPR)
+- [OWASP API Security Top 10](https://owasp.org/API-Security/)

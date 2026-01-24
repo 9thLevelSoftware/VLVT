@@ -1,246 +1,470 @@
-# Project Research Summary
+# Production Readiness Research Summary
 
-**Project:** VLVT Dating App - After Hours Mode
-**Domain:** Proximity-based After Hours/casual dating feature
-**Researched:** 2026-01-22
+**Project:** VLVT Dating App - Beta Launch Preparation
+**Domain:** Dating app production readiness (security, compliance, quality)
+**Researched:** 2026-01-24
 **Confidence:** HIGH
 
 ## Executive Summary
 
-After Hours Mode is a premium, timed, proximity-based matching feature for the VLVT dating app. Research confirms this is a well-established domain with clear patterns: the core loop of session-based matching with ephemeral chat has been validated by apps like Pure and Grindr's "Right Now." The recommended approach is to **extend existing services** (profile-service and chat-service) rather than create new microservices, leveraging VLVT's existing PostgreSQL Haversine implementation for proximity queries and Socket.IO infrastructure for real-time messaging.
+VLVT is preparing for staged beta launch with real users, transitioning from MVP to production-ready state. This research identifies the critical security, compliance, testing, and operational capabilities required to safely launch a dating app handling sensitive data (location, photos, intimate messages, After Hours Mode content).
 
-The key differentiation is VLVT's **auto-matching system** (system assigns matches vs. endless swiping) combined with **ephemeral-by-default chat with mutual save**. No major competitor offers both. This creates urgency, reduces decision fatigue, and respects privacy while allowing genuine connections to persist.
+The recommended approach follows a risk-prioritized sequence: **security hardening first** (blocks exploitable vulnerabilities immediately), **GDPR compliance second** (legal requirement before beta users), **testing infrastructure third** (enables safe changes), **bug fixes fourth** (with test coverage), **monitoring fifth** (visibility after hardening), and **documentation last** (captures completed decisions). This order minimizes risk while maximizing value, following the principle "fix what you have before adding what you need."
 
-Critical risks center on **location privacy** (trilateration attacks have been demonstrated on 6 major dating apps), **ban evasion** (a December 2025 lawsuit explicitly cited this as "defective design"), and **deepfake verification bypass** (60% of users cannot identify AI-generated profiles). All three require proactive mitigation in Phase 1 - they cannot be bolted on later. VLVT's existing KYCAid + Rekognition verification provides a foundation, but must be enhanced with server-side location fuzzing, device fingerprinting for ban enforcement, and deepfake detection.
+Key risks center on dating app-specific vulnerabilities documented in recent breaches: exposed API keys (M.A.D Mobile apps leaked 1.5M explicit images in April 2025), BOLA/IDOR flaws (Feeld breach November 2025), GDPR special category data violations (Grindr 6.5M EUR fine for location sharing), and ban evasion enabling serial offenders (Match Group lawsuits December 2025). VLVT's After Hours Mode creates heightened GDPR risk as all associated data qualifies as "special category" under Article 9 - requiring explicit consent, not just privacy policy acceptance.
 
-## Technology Decisions
+## Key Findings
 
-The existing VLVT stack (Flutter + Node.js/Express + Socket.IO + PostgreSQL + Redis) is well-suited for After Hours Mode. Key additions:
+### Recommended Stack
 
-| Technology | Purpose | Rationale |
-|------------|---------|-----------|
-| **PostGIS** | Geospatial queries | Precise distance calculations, spatial indexing; superior to earthdistance extension |
-| **Redis GEOADD/GEOSEARCH** | Real-time proximity cache | Sub-millisecond queries for active users; already in stack |
-| **BullMQ** | Session expiry scheduling | Robust delayed jobs that survive restarts; replaces unmaintained alternatives |
-| **@socket.io/redis-adapter** | Horizontal scaling | Modern replacement for deprecated socket.io-redis; supports sharded Pub/Sub |
-| **flutter_foreground_task** | Background location (mobile) | Required for Android 14+ foreground services; works with existing geolocator |
+The existing VLVT stack (Node.js/TypeScript + Flutter + PostgreSQL + Redis + Railway) is solid. Production readiness requires adding security scanning, testing frameworks, monitoring, and compliance tooling - not replacing core technologies.
 
-**Upgrade required:** Replace deprecated `socket.io-redis: ^6.1.1` with `@socket.io/redis-adapter: ^8.3.x`.
+**Core additions:**
 
-**Start simple:** Use PostgreSQL Haversine (existing pattern) for Phase 1. Add Redis Geo only if scale demands (hundreds of concurrent sessions).
+- **Snyk CLI (^1.1302.0)**: Dependency + code vulnerability scanning with SAST and SCA capabilities. Chosen over npm audit alone for code analysis, not just dependency scanning. Critical for dating apps as npm ecosystem saw 2,168+ malicious packages in 2024.
 
-## Feature Landscape
+- **Patrol (^3.11.0)**: Flutter E2E testing framework that handles native permissions (location, camera, push notifications). Superior to integration_test for dating app flows requiring platform dialog interaction. Supports Firebase Test Lab.
 
-### Table Stakes (Must Have for Launch)
-- Photo verification gate (existing Rekognition - make mandatory)
-- Separate After Hours profile (photo + description)
-- Basic preferences (gender seeking, distance range)
-- 30-minute timed sessions
-- Location fuzzing (ranges like "< 1 km", not exact coordinates)
-- Ephemeral chat with mutual save mechanism
-- Blocking (permanent, bidirectional, cross-feature)
-- Premium gate (RevenueCat integration)
+- **Sentry (^10.34.0)**: Already in stack at v10.25.0, upgrade for continuous profiling and improved APM. Railway monitoring provides infrastructure metrics; Sentry covers application errors and performance.
 
-### Differentiators (VLVT's Competitive Edge)
-- **Auto-matching system** - No swiping; system assigns matches and pushes profile cards
-- **Ephemeral-by-default with mutual save** - Privacy first, but connections can persist
-- **Session-scoped declines** - "Not tonight" does not equal "never"
-- **Separate After Hours profile** - Context-appropriate presentation
+- **Railway PostgreSQL Backups**: Official templates using pg_dump to Cloudflare R2 (already used for photos). Daily backups with 30-day retention, version-aware, includes Prometheus metrics.
 
-### Anti-Features (Do NOT Build)
-- Exact location display (trilateration risk)
-- Unlimited session duration (zombie profiles)
-- Swipe-based interface (conflicts with auto-matching)
-- AI-generated responses (authenticity is paramount)
-- Social media integration (privacy concern)
-- Algorithmic desirability scoring (creates harmful feedback loops)
+- **Winston (^3.18.3)**: Already integrated, keep for structured logging. Configure for production with JSON format, correlation IDs, PII redaction. Alternative: Pino (5-10x faster) if performance becomes critical.
 
-### Defer to Post-MVP
-- Kinks/interests tags
-- Session extension option
-- Voice messages
-- Activity notifications ("X just went live")
+**Security hardening:**
 
-## Architecture Approach
+- **JWT migration to RS256/ES256**: Asymmetric algorithms recommended for microservices. Private key stays with auth-service, public key distributed to profile-service and chat-service. Enables easier key rotation via JWKS endpoints.
 
-**Recommendation: Extend existing services, not new microservice.**
+- **Socket.IO adapter upgrade**: Replace deprecated `socket.io-redis` with `@socket.io/redis-adapter` (^8.3.0). Add authentication middleware on connection, room authorization, and rate limiting per connection.
 
-- **profile-service** gains: After Hours profiles, preferences, session lifecycle, proximity matching
-- **chat-service** gains: After Hours Socket.IO rooms, ephemeral messages, save-to-permanent flow
-- **auth-service**: No changes needed (existing JWT + middleware patterns sufficient)
+**GDPR compliance tooling:**
 
-**Data Flow:**
-1. User activates session via profile-service (validates premium + verification)
-2. profile-service creates session record, adds user to matching pool
-3. Matching runs periodically, finds compatible nearby active users
-4. chat-service notifies both users via Socket.IO (`After Hours:new_match`)
-5. Users chat in ephemeral room; messages stored in `after_hours_messages` table
-6. Session expires: messages deleted unless both tapped "Save"
-7. Mutual save: messages copied to permanent `messages` table, regular match created
+- **Custom DSAR API**: Required endpoints for data access requests, deletion requests, and data export. Must respond within 30 days (extendable to 90 for complex cases). No off-the-shelf solution fits dating app needs.
 
-**New Database Tables:**
-- `after_hours_profiles` - Separate profile for After Hours
-- `after_hours_preferences` - Gender seeking, distance, interests
-- `after_hours_sessions` - Active sessions with expiry
-- `after_hours_declines` - Session-scoped declines (reset each session)
-- `after_hours_matches` - Temporary connections
-- `after_hours_messages` - Ephemeral messages (auto-cleanup)
+- **Application-level encryption**: AES-256-GCM for sensitive columns (exact location coordinates, After Hours messages). Storage-level encryption exists (Railway PostgreSQL), but application-level adds defense-in-depth.
 
-## Critical Risks
+### Expected Features
 
-### 1. Trilateration Location Attacks (CRITICAL)
-**Risk:** Attackers pinpoint exact user location within 10-111 meters by spoofing GPS from multiple points.
-**Prevention:** Server-side coordinate rounding (3 decimals), random jitter (+/- 500m), distance buckets not continuous values, randomized ordering within buckets, rate-limited queries.
-**Phase:** Must be correct in Phase 1. Cannot retrofit.
+**Table stakes (must have for beta):**
 
-### 2. Ban Evasion (CRITICAL)
-**Risk:** Banned predators return within hours using same photos/identity. December 2025 lawsuit cited this as "defective design."
-**Prevention:** Device fingerprinting (IDFA/GAID + device ID), photo hashing against ban database, verification selfie comparison against banned faces, phone number reputation scoring.
-**VLVT Advantage:** Tie bans to verified identity, not just accounts.
-**Phase:** Phase 2 (Safety Systems) - Must launch with this.
+- **Rate limiting on all endpoints**: OWASP API Top 10 - Lack of Resources and Rate Limiting. 100 req/10min for auth endpoints, sliding window algorithm. Per-IP, per-user, and per-token limits.
 
-### 3. Deepfake Verification Bypass (CRITICAL)
-**Risk:** Scammers use real-time deepfake video to pass liveness checks. 62% of users cannot identify AI profiles.
-**Prevention:** ISO 30107-3 certified liveness detection, deepfake detection models, 99%+ confidence threshold (not 80%), behavioral verification, human review for edge cases.
-**Phase:** Phase 1 - Foundation must resist current attacks.
+- **JWT short expiration + refresh rotation**: 15-minute access tokens, 7-day refresh tokens. Refresh token rotation on use (issue new, invalidate old). Reuse detection triggers full token revocation.
 
-### 4. Unmatch-Before-Report Exploitation (HIGH)
-**Risk:** Bad actors unmatch victims before they can report, erasing evidence.
-**Prevention:** Server-side chat retention (30-90 days post-unmatch), allow reporting after unmatch, flag rapid unmatch patterns as suspicious.
-**VLVT Note:** Ephemeral UI can coexist with server-side retention for safety. Be transparent in ToS.
-**Phase:** Phase 2 (Chat Implementation).
+- **Input validation (server-side)**: All user input validated server-side. Sanitize output. Use parameterized queries (already implemented with pg).
 
-### 5. GDPR/Privacy Violations (HIGH)
-**Risk:** Location + implied sexual orientation = "special category" data. Grindr fined 6.5M EUR for improper handling.
-**Prevention:** Explicit consent with purpose limitation, no location sharing with third parties, data minimization, clear deletion on account deletion, documented Article 9 legal basis.
-**Phase:** Phase 1 - Consent flows from start.
+- **HTTPS with TLS 1.2+**: Railway provides by default. Certificate pinning recommended for mobile apps to prevent MITM attacks.
 
-## Implementation Priorities
+- **GDPR data subject rights**: Right to access (data export as JSON), right to erasure (hard delete within 30 days, including R2 photos), right to rectification. Required for EU users, Apple App Store mandate.
 
-Based on dependencies and risk analysis:
+- **Granular consent collection**: Separate consent for essential (account), location, analytics, marketing. Pre-checked boxes invalid under GDPR. Record timestamp + policy version.
 
-### Phase 1: Foundation & Safety (Weeks 1-2)
-**Rationale:** Location fuzzing and verification must be correct from day one. Data layer must exist before any features.
-**Delivers:** Database schema, location privacy utilities, enhanced verification gate
-**Addresses:** Trilateration risk, GDPR compliance, deepfake bypass
-**Build Order:**
-1. Database migrations (After Hours tables)
-2. Server-side location fuzzing utility
-3. Premium + verification middleware
-4. Consent flow updates
+- **In-app account deletion**: Apple requirement since 2022, GDPR Article 17. Initiate from Settings, confirm intent, complete within 14 days. Cascade to all services including R2 photo storage.
 
-### Phase 2: Profile & Session Management (Weeks 3-4)
-**Rationale:** Cannot match users without profiles and sessions.
-**Delivers:** After Hours profile CRUD, preferences, session lifecycle
-**Implements:** profile-service extensions
-**Build Order:**
-1. After Hours profile endpoints
-2. Preferences endpoints
-3. Session start/end endpoints
-4. Session expiry with BullMQ
+- **Report & block functionality**: Apple Guideline 1.2 for user-generated content. Verify report button accessible, block is immediate, categories cover harassment/abuse/safety.
 
-### Phase 3: Matching Engine (Week 5)
-**Rationale:** Core differentiator; depends on sessions existing.
-**Delivers:** Proximity matching, preference filtering, match notifications
-**Uses:** PostgreSQL Haversine (existing pattern)
-**Build Order:**
-1. Proximity matching query
-2. Preference filter logic
-3. Match notification trigger to chat-service
+- **Privacy policy (accessible in-app)**: Link in Settings + App Store metadata. Plain language. Cover: what collected, why, how long, who receives, user rights.
 
-### Phase 4: Real-Time Chat (Weeks 6-7)
-**Rationale:** Depends on matching to create connections.
-**Delivers:** Ephemeral chat rooms, session-scoped messaging, Socket.IO events
-**Avoids:** Battery drain (adaptive polling), overwhelming notifications
-**Build Order:**
-1. Socket.IO room management for After Hours
-2. Ephemeral message storage
-3. After Hours:* event handlers
-4. Session expiry notifications
-5. Server-side retention for safety
+- **Authentication flow tests**: Critical path - auth failures lock users out. Test: signup, login, password reset, token refresh, logout, session expiry. Happy + unhappy paths.
 
-### Phase 5: Save Mechanism & Conversion (Week 8)
-**Rationale:** Depends on working chat flow.
-**Delivers:** Mutual save voting, message conversion to permanent, match creation
-**Build Order:**
-1. Save vote storage
-2. Mutual save detection
-3. Message copy to permanent table
-4. Regular match creation
+- **Payment flow tests**: RevenueCat integration verification. Test: purchase, restore, entitlement check, webhook handling, subscription expiry.
 
-### Phase 6: Frontend Integration (Weeks 9-11)
-**Rationale:** Backend must be complete for testing.
-**Delivers:** After HoursService state machine, profile screens, preference settings, match card UI, ephemeral chat UI, save interaction
-**Uses:** flutter_foreground_task for background location
-**Build Order:**
-1. After HoursService (session state)
-2. Profile creation screens
-3. Preference settings
-4. Match card UI
-5. Ephemeral chat UI
-6. Save interaction flow
+- **Error tracking**: Sentry for backend (upgrade to 10.34.0), Firebase Crashlytics for mobile (already integrated). Error grouping, alerting, stack traces.
 
-### Phase 7: Safety Systems & Polish (Week 12)
-**Rationale:** Final layer before launch.
-**Delivers:** Ban evasion prevention, cleanup jobs, analytics, edge case handling
-**Addresses:** Ban evasion, unmatch exploitation, moderation queue
-**Build Order:**
-1. Device fingerprinting
-2. Photo hashing for ban detection
-3. Cleanup job for expired sessions
-4. Report system enhancements
-5. Analytics events
+- **API uptime monitoring**: Health check endpoints (/health on each service). External monitoring (Better Uptime, Railway alerts). 99.9% uptime target.
 
-## Open Questions
+**Competitive differentiators (should have):**
 
-1. **Session duration:** 30 minutes is recommended baseline. Should premium users get extension option?
-2. **Re-matching within session:** If user declines all matches, do they wait for new users to activate, or session just ends empty?
-3. **iOS background limitations:** iOS limits background location to ~30s every 15min. Acceptable, or need push notification workaround?
-4. **Interests/tags:** Defer to v2, or include basic version in MVP?
-5. **Video verification:** Current photo verification sufficient, or add video liveness for After Hours specifically?
+- **Content moderation system**: AI triage for high-severity reports (assault, threats, minors). Auto-action for clear violations (explicit content, slurs). Human review for context-dependent cases.
+
+- **Device fingerprinting for ban enforcement**: Android ID, IDFA/GAID, hardware characteristics. Prevents trivial account recreation by banned users. Critical given Match Group lawsuit evidence of serial offenders returning.
+
+- **Photo hashing for ban detection**: Perceptual hash profile photos, check against banned photo database. Detects banned users using same photos on new accounts.
+
+- **Deepfake detection**: Dating industry has highest ID fraud rate (8.9%) of all sectors. Add deepfake detection alongside AWS Rekognition. Require randomized verification actions, check for AI-generation artifacts.
+
+- **Behavioral bot detection**: Flag rapid matching, copy-paste messaging, external link sharing. Honeypot fields in registration. Phone number reputation scoring.
+
+**Defer to v2+ (post-beta):**
+
+- **Certificate pinning**: Can cause issues if certificates rotate. Implement with backup pins once infrastructure stabilizes.
+
+- **Penetration testing**: Professional security audit recommended before major scale, not blocking for beta if security audit complete.
+
+- **End-to-end encryption**: Signal Protocol level complexity. Conflicts with content moderation requirements. Users expect platform-readable messages for safety reporting.
+
+- **Bug bounty program**: Start after basic security is solid. HackerOne, Bugcrowd. Not appropriate during beta phase.
+
+### Architecture Approach
+
+Production-readiness for existing applications requires a specific ordering that minimizes risk while maximizing value. The fundamental principle: **fix what you have before adding what you need**.
+
+**Major phases (dependency-ordered):**
+
+1. **Security Hardening** — Exploitable vulnerabilities must close before deployment. No dependencies; blocks all other work. Includes: fix critical/high security issues, enable TLS validation, require encryption keys, rotate secrets, dependency vulnerability scan. Estimated: 1-2 weeks.
+
+2. **GDPR Compliance** — Legal requirement before beta users. Depends on security (encryption enforcement). Includes: data mapping, consent flows, data subject rights endpoints, retention policies, privacy-by-design review. Estimated: 2-3 weeks.
+
+3. **Testing Infrastructure** — Enables safe change for remaining work. Depends on security (don't test insecure code) and partial GDPR (consent flows need tests). Includes: characterization tests for critical paths, CI pipeline with test gates, security regression tests. Pattern: incremental coverage, not 100% coverage. Estimated: 2-3 weeks.
+
+4. **Bug Fixes** — Code changes require test coverage to prevent regressions. Depends on testing infrastructure. Workflow: write failing test, fix bug, test passes, never regress. Estimated: 2-3 weeks.
+
+5. **Monitoring & Observability** — Visibility into production after hardening. Depends on security (don't log secrets), GDPR (don't log PII), bug fixes (reduce noise). Includes: structured logging, health checks, error tracking, metrics, dashboards, alerting. Pattern: domain-oriented observability. Estimated: 2-3 weeks.
+
+6. **Documentation** — Captures decisions from completed phases. Depends on all previous phases (document what exists, not what's planned). Includes: security docs, runbooks, architecture decision records, deployment docs. Estimated: 1 week.
+
+**Critical path dependencies:**
+
+```
+Security → GDPR → Testing → Bug Fixes → Monitoring → Documentation
+```
+
+Parallel opportunity: GDPR consent flow implementation can run parallel with Testing infrastructure setup (no conflicts).
+
+**Anti-patterns to avoid:**
+
+- **Adding monitoring before security**: Logs may capture secrets/PII, monitoring insecure code alerts on breaches after they happen.
+- **Testing everything before fixes**: Delays critical security work, tests may need rewriting after security changes.
+- **Big-bang refactoring**: Introduces new bugs, delays production-readiness. Use characterization tests and incremental changes.
+- **Skipping GDPR until later**: Legal liability from day one, retrofitting consent is harder than building in.
+- **Adding features during hardening**: New features introduce bugs and security surface. Feature freeze during production-readiness.
+
+### Critical Pitfalls
+
+Based on documented dating app breaches and regulatory actions from 2024-2025:
+
+1. **Exposed API keys in app code** — M.A.D Mobile apps (April 2025) exposed 1.5M explicit images because API keys and encryption passwords were in app code. Prevention: Platform-specific secure storage (Keychain/EncryptedSharedPreferences), backend secrets via environment variables, pre-commit hooks (gitleaks), cloud storage requires authentication. **Phase: Pre-launch security audit.**
+
+2. **Broken object-level authorization (BOLA/IDOR)** — Feeld (November 2025) allowed access to other users' chats, profile modification, photos without authentication. Prevention: Authorization middleware verifying resource ownership on EVERY endpoint, user ID from JWT not request parameters, automated API security testing in CI, row-level security in queries. **Phase: Pre-launch security audit.**
+
+3. **GDPR special category data violations** — Grindr fined 6.5M EUR (2024, upheld) for sharing GPS location and user data without valid consent. Merely using Grindr "strongly indicates sexual orientation" making ALL data special category. Prevention: Explicit granular consent (not bundled), no location data to third parties including analytics, data minimization, right to erasure within 30 days, Data Protection Impact Assessment. **VLVT risk: After Hours Mode implies sexual/romantic context, same as Grindr ruling.** **Phase: Pre-launch compliance review.**
+
+4. **Ban evasion through trivial account recreation** — Match Group (December 2025) lawsuits showed banned users (including sexual assault reports) could immediately create new accounts with same name/photos/birthday. Prevention: Device fingerprinting, photo perceptual hashing against banned database, face verification comparison, phone reputation scoring, ban the verified identity not the email. **VLVT advantage: KYCAid + Rekognition creates persistent identity.** **Phase: Pre-launch safety systems.**
+
+5. **Trilateration attack via API distance data** — Researchers (2024) pinpointed user locations within 2-111 meters on Grindr, Hinge, Bumble by spoofing GPS and measuring distance changes. Prevention: Round coordinates to 3 decimals (~1km) server-side, add random jitter ±500m, quantize distance into buckets ("<1km", "1-5km"), randomize ordering within buckets, rate limit location queries (10/min), detect rapid location changes. **Phase: Pre-launch security audit.**
+
+6. **Deepfake bypass of identity verification** — Dating industry has highest ID fraud rate (8.9%) in 2024, higher than finance (2.7%). Scammers use DeepFaceLive/Magicam to pass live selfie checks. Prevention: ISO 30107-3 compliant liveness, deepfake detection models, randomized verification actions, AI-generation detection on photos, block virtual camera apps, periodic re-verification. **AWS Rekognition caution: bias issues, use 99%+ threshold + human review.** **Phase: Verification system hardening.**
+
+7. **Chat history destruction enables repeat offenders** — Match Group lawsuits (December 2025) cited "unmatch-before-report" as defective design. Serial offenders unmatch immediately, erasing evidence. Prevention: Preserve chat server-side 30-90 days post-unmatch (encrypted, access-restricted), allow reporting after unmatch, flag rapid unmatch patterns, "shadow archive" for safety team. **VLVT consideration: server-side retention compatible with ephemeral UI.** **Phase: Safety systems implementation.**
+
+8. **PII in logs and error messages** — Default logging captures full request/response bodies exposing emails, locations, messages, tokens. Prevention: Structured logging with explicit field allowlists (never log request bodies by default), PII redaction middleware, separate correlation IDs from user IDs, 30-day log retention then aggregate/delete, error tracking PII scrubbing. **Phase: Pre-launch security audit.**
+
+## Implications for Roadmap
+
+Based on combined research, production readiness should be structured into 6 sequential phases with clear dependencies:
+
+### Phase 1: Security Hardening
+
+**Rationale:** Security vulnerabilities are exploitable immediately upon deployment. Every day the app runs without fixes is a day attackers could compromise user data. For a dating app handling location and intimate messages, this is especially critical. No dependencies - security work blocks all other production work.
+
+**Delivers:**
+- Critical/high security issues closed
+- TLS certificate validation enabled (Railway DB connections)
+- Encryption keys required at startup (KYCAID)
+- Secrets rotated and audited
+- Dependency vulnerabilities resolved
+- Authorization middleware on all endpoints
+- Location data fuzzing (3 decimals + jitter)
+- Rate limiting verified
+
+**Addresses (from FEATURES.md):**
+- Rate limiting on all endpoints (table stakes)
+- JWT algorithm validation (table stakes)
+- HTTPS everywhere with TLS 1.2+ (table stakes)
+- Input validation server-side (table stakes)
+- Error handling without info leak (table stakes)
+
+**Avoids (from PITFALLS.md):**
+- Exposed API keys (#1 critical)
+- BOLA/IDOR vulnerabilities (#2 critical)
+- Trilateration attacks (#5 critical)
+- PII in logs (#8 critical)
+
+**Effort estimate:** 1-2 weeks
+
+**Research needed:** No - security patterns well-documented, existing findings provide specific issues.
+
+---
+
+### Phase 2: GDPR Compliance Verification
+
+**Rationale:** Legal compliance is hard requirement before beta users. GDPR fines are percentage-of-revenue based. User trust in dating app requires privacy protection. After Hours Mode creates special category data risk (same as Grindr ruling).
+
+**Delivers:**
+- Data mapping and inventory documented
+- Granular consent UI + backend storage
+- Data subject rights endpoints (access, delete, export)
+- Retention policy definitions + enforcement
+- Privacy-by-design review completed
+- R2 photo cleanup verified
+- Location precision redaction
+
+**Addresses (from FEATURES.md):**
+- Privacy policy accessible in-app (table stakes)
+- Granular consent collection (table stakes)
+- Right to access - data export (table stakes)
+- Right to erasure - account deletion (table stakes)
+- Data minimization audit (table stakes)
+- Data retention policy (table stakes)
+- Location data consent (table stakes)
+
+**Avoids (from PITFALLS.md):**
+- GDPR special category data violations (#3 critical)
+- Right to erasure implementation gaps (#10 moderate)
+
+**Depends on:** Phase 1 (encryption requirements must be enforced first)
+
+**Effort estimate:** 2-3 weeks
+
+**Research needed:** No - GDPR requirements well-defined, implementation patterns verified.
+
+---
+
+### Phase 3: Testing Infrastructure
+
+**Rationale:** Testing enables safe change for bug fixes and future development. Security and compliance work is well-scoped and can be verified manually. Testing infrastructure then protects all remaining work from regressions. Pattern: incremental coverage, not 100% - characterization tests for code you're about to change, tests before fixing bugs, coverage gates on new code only.
+
+**Delivers:**
+- CI pipeline running on all PRs
+- Characterization tests for critical paths (auth, profile, matching, messaging)
+- Security regression tests (auth, authorization, input validation)
+- Coverage reporting and gating (80% on new code)
+- Database migration test harness
+- Test data management
+
+**Addresses (from FEATURES.md):**
+- Authentication flow tests (table stakes)
+- Payment flow tests (table stakes)
+- Match flow tests (table stakes)
+- Chat flow tests (table stakes)
+- Safety flow tests (table stakes)
+- Data deletion tests (table stakes)
+- Integration tests API (table stakes)
+
+**Avoids:** Future regressions across all pitfall categories
+
+**Depends on:** Phase 1 (don't test insecure code), Phase 2 partial (consent flows will need tests)
+
+**Effort estimate:** 2-3 weeks
+
+**Research needed:** No - testing patterns well-established (Jest/Supertest for backend, Patrol for Flutter).
+
+---
+
+### Phase 4: Bug Fixes & Incomplete Features
+
+**Rationale:** Bug fixes require code changes. Code changes without test coverage risk regressions. With test infrastructure from Phase 3, bugs can be fixed safely using test-first workflow: write failing test, fix bug, test passes, never regress.
+
+**Delivers:**
+- Known bugs triaged and prioritized
+- Critical bugs fixed with tests proving the fix
+- Error handling reviewed for graceful failures
+- Incomplete features completed or removed
+- No regressions (all tests passing)
+
+**Addresses:** Issues from BUGS_AND_ISSUES_FINDINGS.md, INCOMPLETE_FEATURES_FINDINGS.md
+
+**Avoids:** Introducing new bugs while fixing existing ones
+
+**Depends on:** Phase 3 (tests prove bugs are fixed)
+
+**Effort estimate:** 2-3 weeks
+
+**Research needed:** No - bug-specific, test-first workflow is standard practice.
+
+---
+
+### Phase 5: Monitoring & Observability
+
+**Rationale:** Monitoring reveals problems in production, but monitoring insecure/non-compliant/buggy code creates noise and liability. With security, compliance, and bugs addressed, monitoring becomes valuable for operations.
+
+**Delivers:**
+- Structured logging with JSON format, correlation IDs, PII redaction
+- Health check endpoints (liveness/readiness)
+- Error tracking via Sentry (upgraded to 10.34.0)
+- Metrics collection (latency, throughput, error rates)
+- Dashboards for service health, user activity, API performance
+- Alerting on critical thresholds
+
+**Addresses (from FEATURES.md):**
+- Error tracking backend + mobile (table stakes)
+- API uptime monitoring (table stakes)
+- API performance/latency tracking (table stakes)
+- Authentication failure alerts (table stakes)
+- Database metrics (table stakes)
+
+**Avoids (from PITFALLS.md):**
+- PII in logs (already addressed in Phase 1, but reinforced here)
+
+**Depends on:** Phase 1 (don't log secrets), Phase 2 (don't log PII), Phase 4 (reduce noise)
+
+**Effort estimate:** 2-3 weeks
+
+**Research needed:** No - Winston configuration patterns verified, Railway monitoring documented.
+
+---
+
+### Phase 6: Safety Systems & Operations Polish
+
+**Rationale:** Beta launch requires robust safety systems to protect users and prevent the serial offender scenarios documented in Match Group lawsuits. Operational documentation captures decisions from previous phases.
+
+**Delivers:**
+- Chat history server-side preservation (30-90 days post-unmatch)
+- Reporting available for unmatched users
+- Device fingerprinting for ban enforcement
+- Photo perceptual hashing against banned user database
+- Content moderation queue with AI triage
+- Deepfake detection enhancement
+- Security documentation and runbooks
+- Architecture decision records
+- Deployment and rollback documentation
+
+**Addresses (from FEATURES.md):**
+- Content moderation system (differentiator)
+- Device fingerprinting for bans (differentiator)
+- Photo hashing for ban detection (differentiator)
+- Deepfake detection (differentiator)
+- Behavioral bot detection (differentiator)
+
+**Avoids (from PITFALLS.md):**
+- Ban evasion through trivial recreation (#4 critical)
+- Deepfake bypass of verification (#6 critical)
+- Chat history destruction (#7 critical)
+- Content moderation at scale (#11 moderate)
+- Bot proliferation (#9 moderate)
+
+**Depends on:** Phase 5 (monitoring provides signals for abuse detection), all phases (documentation captures completed work)
+
+**Effort estimate:** 2-3 weeks
+
+**Research needed:** Moderate - deepfake detection integration with AWS Rekognition, perceptual hashing library selection, content moderation AI service evaluation.
+
+---
+
+### Phase Ordering Rationale
+
+- **Security first** prevents exploitation during remaining work. Dating apps are high-value targets (location, photos, messages).
+- **GDPR second** because legal liability starts day one of beta. After Hours Mode creates special category data requiring explicit consent before data collection.
+- **Testing third** enables safe changes for bug fixes. Manual verification acceptable for small security/compliance scope.
+- **Bug fixes fourth** leverage test coverage to prevent regressions. Test-first workflow ensures bugs stay fixed.
+- **Monitoring fifth** provides production visibility after hardening. Monitoring insecure/non-compliant code creates liability.
+- **Safety systems + docs last** depend on monitoring signals for abuse detection, capture completed decisions.
+
+**Parallel opportunities:**
+- Phase 2 consent UI can overlap with Phase 3 test infrastructure (no conflicts)
+- Phase 5 monitoring setup can begin while Phase 4 bug fixes are in code review
+
+**Feature freeze:** No new features during production-readiness. Hardening only. New features introduce bugs and security surface.
+
+### Research Flags
+
+**Needs deeper research during phase planning:**
+
+- **Phase 6 (Safety Systems):** Deepfake detection integration specifics, perceptual hashing library evaluation, content moderation AI service selection. Current research provides direction but not implementation details.
+
+**Standard patterns (skip research-phase):**
+
+- **Phase 1 (Security):** Security patterns well-documented in OWASP, existing findings provide specific issues.
+- **Phase 2 (GDPR):** GDPR requirements well-defined, implementation patterns verified via F-Secure API spec.
+- **Phase 3 (Testing):** Jest/Supertest/Patrol setup documented, incremental coverage pattern from "Working Effectively with Legacy Code."
+- **Phase 4 (Bug Fixes):** Bug-specific, test-first workflow is standard practice.
+- **Phase 5 (Monitoring):** Winston configuration verified, Railway monitoring documented, Sentry upgrade straightforward.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Extends proven VLVT patterns; well-documented libraries |
-| Features | HIGH | Multiple competitor analyses, clear market convergence |
-| Architecture | MEDIUM-HIGH | Service extension is sound; some edge cases TBD |
-| Pitfalls | HIGH | Recent lawsuits, security research, and GDPR cases provide clear guidance |
+| Stack | HIGH | All recommended tools verified via official npm packages, pub.dev, and vendor documentation. Version compatibility confirmed. Recent updates (Snyk 1.1302.0, Patrol 3.11.0, Sentry 10.34.0) documented. |
+| Features | HIGH | Based on official OWASP Mobile Top 10 2024, GDPR articles, Apple App Store guidelines, Google Play policies. Dating-app-specific requirements verified through enforcement examples (Grindr fine, Match lawsuits). |
+| Architecture | HIGH | Production-readiness ordering based on multiple authoritative sources (O'Reilly "Production-Ready Microservices", Mercari checklist, Martin Fowler domain observability). Dependency ordering well-established. |
+| Pitfalls | HIGH | All critical pitfalls documented with real incidents from 2024-2025 (M.A.D Mobile, Feeld, Grindr, Match Group). Prevention strategies verified against OWASP, GDPR guidance, security research papers. |
 
 **Overall confidence:** HIGH
 
+Research based on official sources (OWASP, GDPR articles, platform guidelines), recent documented incidents (2024-2025 breaches and fines), and verified technology documentation. Dating app-specific risks well-documented through regulatory actions and lawsuits.
+
 ### Gaps to Address
 
-- **iOS background location constraints:** Need practical testing during Phase 6
-- **Moderation scale:** Queue management strategies need validation with launch traffic
-- **Deepfake detection vendor:** Research identified need; specific vendor TBD
-- **Session extension mechanics:** Product decision needed before Phase 5
+**VLVT-specific validations needed during implementation:**
+
+- **After Hours Mode GDPR implications:** Explicit legal review of consent flows and data processing under Article 9 special category data. Research shows pattern (Grindr ruling), but lawyer should validate implementation.
+
+- **AWS Rekognition bias mitigation:** Research documents known bias issues (higher error rates for darker-skinned women). Implementation must include 99%+ confidence threshold + human review pipeline, not default 80% threshold.
+
+- **KYCAid encryption enforcement:** Research recommends requiring encryption key at startup. Verify existing KYCAid integration has encryption enabled and no plaintext storage path remains.
+
+- **Railway database backup restoration testing:** Research confirms backup templates exist. Implementation must include actual restoration test from backup to verify recovery process works.
+
+- **Test user separation from production:** Research flags cold start risk. Verify test accounts (google_test001-020) cannot appear to real users in discovery/matching.
+
+**Technical decisions deferred to implementation:**
+
+- **Winston vs Pino:** Keep Winston (already integrated) unless performance becomes critical. Decision point: if log volume exceeds 1000 events/second, benchmark Pino migration.
+
+- **Certificate pinning timing:** Research recommends post-beta due to rotation complexity. Revisit after infrastructure stabilizes (3-6 months post-launch).
+
+- **Penetration testing vendor:** Research suggests professional pentest before major scale. Decision point: engage after Phase 1 security audit complete, before public beta (not blocking for private beta).
 
 ## Sources
 
 ### Security Research (HIGH confidence)
-- KU Leuven: Dating App Location Leaks (2024)
-- Check Point: Geolocation Risks in Dating Apps
-- Trend Micro: Deepfakes vs eKYC
+- [OWASP Mobile Top 10 2024 - Official](https://owasp.org/www-project-mobile-top-10/2023-risks/)
+- [Snyk npm package](https://www.npmjs.com/package/snyk) — Dependency scanning, version ^1.1302.0
+- [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security) — Static code security
+- [JWT Best Practices 2025](https://jwt.app/blog/jwt-best-practices/) — RS256 migration
+- [Socket.IO Security](https://ably.com/topic/socketio) — Auth middleware patterns
+- [Check Point: Geolocation Risks](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/) — Trilateration attacks
+- [FireTail: Feeld API Vulnerabilities](https://www.firetail.ai/blog/feeld-dating-app-api) — BOLA incidents
+- [Cybernews: Dating Apps Leak Photos](https://cybernews.com/security/ios-dating-apps-leak-private-photos/) — M.A.D Mobile breach
 
-### Legal Cases (HIGH confidence)
-- NPR: Match Group Predator Investigation (Feb 2025)
-- Denver Post: Hinge/Tinder Lawsuit (Dec 2025)
-- Grindr GDPR Fine (Norwegian DPA)
+### Testing Frameworks (HIGH confidence)
+- [Patrol pub.dev](https://pub.dev/packages/patrol) — Flutter E2E testing v3.11.0
+- [Patrol Documentation](https://patrol.leancode.co/) — Native UI interaction
+- [Jest Documentation](https://jestjs.io/) — Node.js testing (already in stack)
+- [testcontainers](https://www.npmjs.com/package/testcontainers) — Integration test containers
+- [Flutter Test Coverage](https://codewithandrea.com/articles/flutter-test-coverage/) — Coverage reporting
 
-### Industry Analysis (HIGH confidence)
-- Grindr "Right Now" product announcements
-- Tinder Face Check expansion (Oct 2025)
-- Pure dating app model
-- Feeld interests/desires system
+### Monitoring & Observability (HIGH confidence)
+- [Sentry Node.js SDK](https://docs.sentry.io/platforms/node/) — Error tracking
+- [@sentry/node npm](https://www.npmjs.com/package/@sentry/node) — Version 10.34.0
+- [Railway Monitoring](https://docs.railway.com/guides/monitoring) — Platform metrics
+- [Railway PostgreSQL Backups](https://blog.railway.com/p/postgre-backup) — Backup templates
+- [Node.js Logging Best Practices](https://betterstack.com/community/guides/logging/nodejs-logging-best-practices/) — Winston configuration
 
-### Technical Documentation (HIGH confidence)
-- BullMQ official docs
-- Socket.IO Redis adapter
-- Android/iOS location services
-- PostGIS vs earthdistance comparisons
+### GDPR Compliance (HIGH confidence)
+- [GDPR Article 9 - Special Category Data](https://gdprhub.eu/Article_9_GDPR) — After Hours risk
+- [GDPR Article 17 - Right to Erasure](https://gdpr-info.eu/art-17-gdpr/) — Deletion requirements
+- [GDPR Subject Rights API (F-Secure)](https://github.com/F-Secure/gdpr-subject-rights-api) — DSAR endpoints
+- [GDPR Compliance for Apps 2025](https://gdprlocal.com/gdpr-compliance-for-apps/) — Implementation guide
+- [Grindr GDPR Fine - TechCrunch](https://techcrunch.com/2021/12/15/grindr-final-gdpr-fine/) — Special category precedent
+- [NOYB: Grindr Fine Upheld](https://noyb.eu/en/norwegian-court-confirms-eu-57-million-fine-grindr) — Appeal confirmation
+
+### App Store Guidelines (HIGH confidence)
+- [App Store Review Guidelines - Apple](https://developer.apple.com/app-store/review/guidelines/) — Official policies
+- [Google Play Developer Policy](https://support.google.com/googleplay/android-developer/answer/16810878) — Platform requirements
+- [Dating Apps Age-Gating - Google Play](https://support.google.com/googleplay/android-developer/answer/16838200) — Age verification
+
+### Industry Incidents (HIGH confidence)
+- [The Markup: Dating App Cover-Up](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up) — Match Group ban evasion
+- [NPR: Match Group Investigation](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault) — Safety failures
+- [Appknox: Tea App Breach](https://www.appknox.com/blog/tea-app-data-breach-security-flaws-analysis-appknox) — Firebase misconfiguration
+- [Sumsub: Deepfakes on Dating Apps](https://sumsub.com/newsroom/one-in-five-single-brits-have-already-been-duped-by-deepfakes-on-dating-apps/) — ID fraud rates
+
+### Architecture Patterns (HIGH confidence)
+- [Production-Ready Microservices (O'Reilly)](https://www.oreilly.com/library/view/production-ready-microservices/9781491965962/app01.html) — Phase ordering
+- [Mercari Production Readiness Checklist](https://github.com/mercari/production-readiness-checklist) — Microservices patterns
+- [Domain-Oriented Observability (Fowler)](https://martinfowler.com/articles/domain-oriented-observability.html) — Monitoring patterns
+- [Working Effectively with Legacy Code](https://booksummaryproject.com/book53) — Incremental testing
+
+### VLVT Codebase Analysis (HIGH confidence)
+- `SECURITY_FINDINGS.md` — Current security state
+- `DATA_PROTECTION_FINDINGS.md` — GDPR compliance gaps
+- `.planning/codebase/CONCERNS.md` — Architectural concerns
+- `BUGS_AND_ISSUES_FINDINGS.md` — Known bugs
+- `INCOMPLETE_FEATURES_FINDINGS.md` — Missing functionality
 
 ---
-*Research completed: 2026-01-22*
-*Ready for roadmap: yes*
+
+**Research completed:** 2026-01-24
+**Ready for roadmap:** Yes
+**Next step:** Roadmap creation using phase structure above
