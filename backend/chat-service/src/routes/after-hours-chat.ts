@@ -6,6 +6,8 @@
  * Endpoints:
  * - GET /after-hours/messages/:matchId - Retrieve message history for an After Hours match
  * - POST /after-hours/matches/:matchId/save - Vote to save an After Hours match as permanent
+ * - POST /after-hours/matches/:matchId/block - Block user and decline match
+ * - POST /after-hours/matches/:matchId/report - Report user, auto-block, and decline match
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
@@ -18,6 +20,12 @@ import {
   sendAfterHoursPartnerSavedNotification,
   sendAfterHoursMutualSaveNotification,
 } from '../services/fcm-service';
+import {
+  blockAfterHoursUser,
+  reportAfterHoursUser,
+  VALID_REPORT_REASONS,
+  ReportReason,
+} from '../services/after-hours-safety-service';
 
 // UUID validation regex
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -280,6 +288,229 @@ export const createAfterHoursChatRouter = (pool: Pool, io?: SocketServer): Route
         res.status(500).json({
           success: false,
           error: 'Failed to save match',
+        });
+      }
+    }
+  );
+
+  /**
+   * POST /after-hours/matches/:matchId/block
+   *
+   * Block a user from After Hours and decline the match.
+   * The block is permanent (same as main app) - blocks affect both
+   * After Hours and regular matching going forward.
+   *
+   * Body:
+   * - reason (optional): string - Reason for blocking
+   *
+   * Returns:
+   * - success: boolean
+   * - message: string
+   */
+  router.post(
+    '/after-hours/matches/:matchId/block',
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { matchId } = req.params;
+        const userId = req.user!.userId;
+        const { reason } = req.body;
+
+        // Validate matchId is UUID format
+        if (!matchId || !UUID_REGEX.test(matchId)) {
+          logger.warn('Invalid matchId format for block', { userId, matchId });
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid match ID format',
+          });
+        }
+
+        // Verify user is part of match and get the other user
+        const matchResult = await pool.query(
+          `SELECT user_id_1, user_id_2
+           FROM after_hours_matches
+           WHERE id = $1`,
+          [matchId]
+        );
+
+        if (matchResult.rows.length === 0) {
+          logger.warn('Match not found for block', { userId, matchId });
+          return res.status(404).json({
+            success: false,
+            error: 'Match not found',
+          });
+        }
+
+        const match = matchResult.rows[0];
+
+        // Check user is user_id_1 or user_id_2
+        if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
+          logger.warn('Unauthorized block attempt', {
+            userId,
+            matchId,
+            reason: 'User not part of match',
+          });
+          return res.status(403).json({
+            success: false,
+            error: 'Forbidden: You are not part of this match',
+          });
+        }
+
+        // Determine who to block (the other user)
+        const blockedUserId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+        // Perform the block
+        const result = await blockAfterHoursUser(pool, userId, blockedUserId, matchId, reason);
+
+        if (!result.success) {
+          return res.status(500).json({
+            success: false,
+            error: result.error || 'Failed to block user',
+          });
+        }
+
+        logger.info('After Hours user blocked via endpoint', {
+          matchId,
+          userId,
+          blockedUserId,
+          blockId: result.blockId,
+        });
+
+        res.json({
+          success: true,
+          message: 'User blocked',
+        });
+      } catch (error) {
+        logger.error('Failed to block After Hours user', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          matchId: req.params.matchId,
+          userId: req.user?.userId,
+        });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to block user',
+        });
+      }
+    }
+  );
+
+  /**
+   * POST /after-hours/matches/:matchId/report
+   *
+   * Report a user from After Hours. This automatically blocks the user
+   * and declines the match.
+   *
+   * Body:
+   * - reason: string (required) - One of: 'inappropriate', 'harassment', 'spam', 'underage', 'other'
+   * - details (optional): string - Additional details about the report
+   *
+   * Returns:
+   * - success: boolean
+   * - message: string
+   */
+  router.post(
+    '/after-hours/matches/:matchId/report',
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { matchId } = req.params;
+        const userId = req.user!.userId;
+        const { reason, details } = req.body;
+
+        // Validate matchId is UUID format
+        if (!matchId || !UUID_REGEX.test(matchId)) {
+          logger.warn('Invalid matchId format for report', { userId, matchId });
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid match ID format',
+          });
+        }
+
+        // Validate reason is required and valid
+        if (!reason) {
+          return res.status(400).json({
+            success: false,
+            error: 'Reason is required',
+          });
+        }
+
+        if (!VALID_REPORT_REASONS.includes(reason as ReportReason)) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid reason. Must be one of: ${VALID_REPORT_REASONS.join(', ')}`,
+          });
+        }
+
+        // Verify user is part of match and get the other user
+        const matchResult = await pool.query(
+          `SELECT user_id_1, user_id_2
+           FROM after_hours_matches
+           WHERE id = $1`,
+          [matchId]
+        );
+
+        if (matchResult.rows.length === 0) {
+          logger.warn('Match not found for report', { userId, matchId });
+          return res.status(404).json({
+            success: false,
+            error: 'Match not found',
+          });
+        }
+
+        const match = matchResult.rows[0];
+
+        // Check user is user_id_1 or user_id_2
+        if (match.user_id_1 !== userId && match.user_id_2 !== userId) {
+          logger.warn('Unauthorized report attempt', {
+            userId,
+            matchId,
+            reason: 'User not part of match',
+          });
+          return res.status(403).json({
+            success: false,
+            error: 'Forbidden: You are not part of this match',
+          });
+        }
+
+        // Determine who to report (the other user)
+        const reportedUserId = match.user_id_1 === userId ? match.user_id_2 : match.user_id_1;
+
+        // Perform the report (auto-blocks and auto-declines)
+        const result = await reportAfterHoursUser(
+          pool,
+          userId,
+          reportedUserId,
+          matchId,
+          reason as ReportReason,
+          details
+        );
+
+        if (!result.success) {
+          return res.status(500).json({
+            success: false,
+            error: result.error || 'Failed to submit report',
+          });
+        }
+
+        logger.info('After Hours user reported via endpoint', {
+          matchId,
+          userId,
+          reportedUserId,
+          reportId: result.reportId,
+          reason,
+        });
+
+        res.json({
+          success: true,
+          message: 'Report submitted',
+        });
+      } catch (error) {
+        logger.error('Failed to report After Hours user', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          matchId: req.params.matchId,
+          userId: req.user?.userId,
+        });
+        res.status(500).json({
+          success: false,
+          error: 'Failed to submit report',
         });
       }
     }

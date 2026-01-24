@@ -181,11 +181,11 @@ export async function reportAfterHoursUser(
   try {
     const reportId = generateReportId();
 
-    // Insert report with source='after_hours'
+    // Insert report (reason includes 'after_hours' prefix for tracking)
     await pool.query(
-      `INSERT INTO reports (id, reporter_id, reported_user_id, reason, details, status, source)
-       VALUES ($1, $2, $3, $4, $5, 'pending', 'after_hours')`,
-      [reportId, userId, reportedUserId, reason, details || null]
+      `INSERT INTO reports (id, reporter_id, reported_user_id, reason, details, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')`,
+      [reportId, userId, reportedUserId, `after_hours:${reason}`, details || null]
     );
 
     logger.info('After Hours report submitted', {
