@@ -418,6 +418,114 @@ class AnalyticsService {
   }
 
   // ============================================================
+  // AFTER HOURS EVENTS
+  // ============================================================
+
+  /// Log when user starts an After Hours session
+  static Future<void> logAfterHoursSessionStarted({
+    required int durationMinutes,
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: 'after_hours_session_started',
+        parameters: {
+          'duration_minutes': durationMinutes,
+        },
+      );
+      debugPrint('Analytics: After Hours session started ($durationMinutes min)');
+    } catch (e) {
+      debugPrint('Analytics error logging AH session start: $e');
+    }
+  }
+
+  /// Log when user receives an After Hours match
+  static Future<void> logAfterHoursMatchReceived({
+    required String matchId,
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: 'after_hours_match_received',
+        parameters: {
+          'match_id': matchId,
+        },
+      );
+      debugPrint('Analytics: After Hours match received ($matchId)');
+    } catch (e) {
+      debugPrint('Analytics error logging AH match received: $e');
+    }
+  }
+
+  /// Log when user accepts match and enters chat
+  static Future<void> logAfterHoursChatStarted({
+    required String matchId,
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: 'after_hours_chat_started',
+        parameters: {
+          'match_id': matchId,
+        },
+      );
+      debugPrint('Analytics: After Hours chat started ($matchId)');
+    } catch (e) {
+      debugPrint('Analytics error logging AH chat start: $e');
+    }
+  }
+
+  /// Log when mutual save converts to permanent match
+  static Future<void> logAfterHoursMatchSaved({
+    required String matchId,
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: 'after_hours_match_saved',
+        parameters: {
+          'match_id': matchId,
+        },
+      );
+      debugPrint('Analytics: After Hours match saved ($matchId)');
+    } catch (e) {
+      debugPrint('Analytics error logging AH match saved: $e');
+    }
+  }
+
+  /// Log when user declines an After Hours match
+  static Future<void> logAfterHoursMatchDeclined({
+    required String matchId,
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: 'after_hours_match_declined',
+        parameters: {
+          'match_id': matchId,
+        },
+      );
+      debugPrint('Analytics: After Hours match declined ($matchId)');
+    } catch (e) {
+      debugPrint('Analytics error logging AH match declined: $e');
+    }
+  }
+
+  /// Log when After Hours session ends (naturally or early)
+  static Future<void> logAfterHoursSessionEnded({
+    required int durationMinutes,
+    required String endReason, // 'expired', 'manual', 'error'
+  }) async {
+    try {
+      await _analytics.logEvent(
+        name: 'after_hours_session_ended',
+        parameters: {
+          'duration_minutes': durationMinutes,
+          'end_reason': endReason,
+        },
+      );
+      debugPrint('Analytics: After Hours session ended ($endReason)');
+    } catch (e) {
+      debugPrint('Analytics error logging AH session end: $e');
+    }
+  }
+
+  // ============================================================
   // CUSTOM EVENTS
   // ============================================================
 
