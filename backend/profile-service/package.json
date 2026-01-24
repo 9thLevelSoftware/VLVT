@@ -46,6 +46,7 @@
     "rate-limit-redis": "^4.2.3",
     "redis": "^4.7.1",
     "sharp": "^0.33.0",
+    "sharp-phash": "^2.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "uuid": "^11.1.0",
