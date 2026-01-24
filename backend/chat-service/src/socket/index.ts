@@ -6,6 +6,8 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import { Pool } from 'pg';
+import { createAdapter } from '@socket.io/redis-adapter';
+import IORedis from 'ioredis';
 import logger from '../utils/logger';
 import { socketAuthMiddleware, SocketWithAuth } from './auth-middleware';
 import { setupMessageHandlers, updateUserStatus } from './message-handler';
@@ -67,6 +69,39 @@ export const initializeSocketIO = (httpServer: HttpServer, pool: Pool): SocketSe
   });
 
   logger.info('Socket.IO server initialized', { corsOrigin });
+
+  // Configure Redis adapter for horizontal scaling (optional, non-blocking)
+  // If Redis is unavailable, Socket.IO works in single-instance mode
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    (async () => {
+      try {
+        const pubClient = new IORedis(redisUrl);
+        const subClient = pubClient.duplicate();
+
+        // Wait for both clients to connect
+        await Promise.all([
+          new Promise<void>((resolve, reject) => {
+            pubClient.once('ready', resolve);
+            pubClient.once('error', reject);
+          }),
+          new Promise<void>((resolve, reject) => {
+            subClient.once('ready', resolve);
+            subClient.once('error', reject);
+          }),
+        ]);
+
+        io.adapter(createAdapter(pubClient, subClient));
+        logger.info('Socket.IO Redis adapter configured for horizontal scaling');
+      } catch (error) {
+        logger.warn('Failed to configure Redis adapter, running in single-instance mode', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    })();
+  } else {
+    logger.info('REDIS_URL not set, Socket.IO running in single-instance mode');
+  }
 
   // Initialize After Hours Redis subscriber (non-blocking)
   // Server continues if Redis unavailable - match events won't be delivered in real-time
