@@ -32,13 +32,16 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. No critical or high severity dependency vulnerabilities remain in npm audit
   4. Users can only access their own resources (no BOLA/IDOR on any endpoint)
   5. Rate limiting prevents brute-force attacks on authentication endpoints
-**Plans**: 4 plans in 2 waves
+**Plans**: 7 plans in 3 waves
 
 Plans:
-- [ ] 01-01-PLAN.md - Fix dependency vulnerabilities across all backend services (SEC-03)
-- [ ] 01-02-PLAN.md - Add location and message content to PII redaction (SEC-07)
-- [ ] 01-03-PLAN.md - Migrate Socket.IO adapter to @socket.io/redis-adapter (SEC-09)
-- [ ] 01-04-PLAN.md - Document TLS limitations and verify secrets handling (SEC-01, SEC-06)
+- [x] 01-01-PLAN.md - Fix dependency vulnerabilities across all backend services (SEC-03)
+- [x] 01-02-PLAN.md - Add location and message content to PII redaction (SEC-07)
+- [x] 01-03-PLAN.md - Migrate Socket.IO adapter to @socket.io/redis-adapter (SEC-09)
+- [x] 01-04-PLAN.md - Document TLS limitations and verify secrets handling (SEC-01, SEC-06)
+- [ ] 01-05-PLAN.md - Enforce KYCAID encryption at rest (SEC-02 gap closure)
+- [ ] 01-06-PLAN.md - Complete BOLA/IDOR audit and tests (SEC-04 gap closure)
+- [ ] 01-07-PLAN.md - Add TLS documentation to utility scripts (SEC-01 gap closure)
 
 ### Phase 2: GDPR Compliance
 **Goal**: EU users can exercise data rights and the app handles special category data lawfully
@@ -136,7 +139,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening | 0/4 | Planned | - |
+| 1. Security Hardening | 4/7 | Gap Closure | - |
 | 2. GDPR Compliance | 0/TBD | Not started | - |
 | 3. Testing Infrastructure | 0/TBD | Not started | - |
 | 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
@@ -147,5 +150,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-24 - Phase 1 planned (4 plans in 2 waves)*
+*Last updated: 2026-01-24 - Phase 1 gap closure plans added (3 plans in Wave 3)*
 *Coverage: 38/38 v1 requirements mapped*
