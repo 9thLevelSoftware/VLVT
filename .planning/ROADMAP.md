@@ -73,10 +73,16 @@ Plans:
   3. Core match/chat flows (swipe, match, message send/receive) have passing tests
   4. Safety flows (block, report, unblock) have passing tests
   5. Security fixes from Phase 1 have regression tests preventing reintroduction
-**Plans**: TBD
+**Plans**: 7 plans in 3 waves
 
 Plans:
-- [ ] 03-01: TBD (planned during phase planning)
+- [ ] 03-01-PLAN.md - Fix Jest configuration conflict blocking all backend tests
+- [ ] 03-02-PLAN.md - Complete authentication flow test coverage (TEST-01)
+- [ ] 03-03-PLAN.md - Add RevenueCat subscription flow tests (TEST-02)
+- [ ] 03-04-PLAN.md - Add swipe and discovery flow tests (TEST-03 partial)
+- [ ] 03-05-PLAN.md - Complete chat and safety flow tests (TEST-03 + TEST-04)
+- [ ] 03-06-PLAN.md - Add After Hours flow tests (TEST-05)
+- [ ] 03-07-PLAN.md - Consolidate security regression tests (TEST-06)
 
 ### Phase 4: Bug Fixes & UI Polish
 **Goal**: Beta users experience a polished, complete, and consistent UI with no broken flows
@@ -146,7 +152,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Security Hardening | 7/7 | Complete | 2026-01-24 |
 | 2. GDPR Compliance | 6/6 | Complete | 2026-01-24 |
-| 3. Testing Infrastructure | 0/TBD | Not started | - |
+| 3. Testing Infrastructure | 0/7 | Not started | - |
 | 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
 | 5. Monitoring & Alerting | 0/TBD | Not started | - |
 | 6. Deployment Infrastructure | 0/TBD | Not started | - |
@@ -155,5 +161,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-24 - Phase 2 complete (6/6 plans verified)*
+*Last updated: 2026-01-24 - Phase 3 planned (7 plans in 3 waves)*
 *Coverage: 38/38 v1 requirements mapped*
