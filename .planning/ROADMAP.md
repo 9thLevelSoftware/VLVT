@@ -32,10 +32,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. No critical or high severity dependency vulnerabilities remain in npm audit
   4. Users can only access their own resources (no BOLA/IDOR on any endpoint)
   5. Rate limiting prevents brute-force attacks on authentication endpoints
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
 
 Plans:
-- [ ] 01-01: TBD (planned during phase planning)
+- [ ] 01-01-PLAN.md - Fix dependency vulnerabilities across all backend services (SEC-03)
+- [ ] 01-02-PLAN.md - Add location and message content to PII redaction (SEC-07)
+- [ ] 01-03-PLAN.md - Migrate Socket.IO adapter to @socket.io/redis-adapter (SEC-09)
+- [ ] 01-04-PLAN.md - Document TLS limitations and verify secrets handling (SEC-01, SEC-06)
 
 ### Phase 2: GDPR Compliance
 **Goal**: EU users can exercise data rights and the app handles special category data lawfully
@@ -133,7 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening | 0/TBD | Not started | - |
+| 1. Security Hardening | 0/4 | Planned | - |
 | 2. GDPR Compliance | 0/TBD | Not started | - |
 | 3. Testing Infrastructure | 0/TBD | Not started | - |
 | 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
@@ -144,5 +147,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-24 - Added Phase 4 (Bug Fixes & UI Polish)*
+*Last updated: 2026-01-24 - Phase 1 planned (4 plans in 2 waves)*
 *Coverage: 38/38 v1 requirements mapped*
