@@ -22,6 +22,7 @@ import { Pool } from 'pg';
 import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 import logger from './utils/logger';
+import rateLimit from 'express-rate-limit';
 import { authLimiter, verifyLimiter, generalLimiter } from './middleware/rate-limiter';
 import { authenticateJWT } from './middleware/auth';
 import { generateVerificationToken, generateResetToken, generateRefreshToken, hashToken, isTokenExpired, verifyToken, timingSafeEqual } from './utils/crypto';
@@ -2116,6 +2117,296 @@ app.delete('/auth/consents/:purpose', generalLimiter, authenticateJWT, async (re
   } catch (error) {
     logger.error('Failed to withdraw consent', { error, userId, purpose });
     res.status(500).json({ success: false, error: 'Failed to withdraw consent' });
+  }
+});
+
+// ===== DATA EXPORT ENDPOINT =====
+// GDPR-03: Right to Access (Article 15)
+
+interface UserDataExport {
+  exportedAt: string;
+  exportVersion: string;
+  user: {
+    id: string;
+    email: string;
+    provider: string;
+    createdAt: string;
+  };
+  profile: {
+    name: string | null;
+    age: number | null;
+    gender: string | null;
+    bio: string | null;
+    interests: string[];
+    photos: string[];
+    location: {
+      latitude: number | null;
+      longitude: number | null;
+    };
+    sexualPreference: string | null;
+    intent: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+  } | null;
+  matches: Array<{
+    matchId: string;
+    matchedUserId: string;
+    createdAt: string;
+  }>;
+  messages: Array<{
+    matchId: string;
+    content: string;
+    sentAt: string;
+    isFromUser: boolean;
+  }>;
+  blocks: Array<{
+    blockedUserId: string;
+    createdAt: string;
+  }>;
+  consents: Array<{
+    purpose: string;
+    granted: boolean;
+    grantedAt: string | null;
+    withdrawnAt: string | null;
+    consentVersion: string | null;
+  }>;
+  afterHours?: {
+    preferences: {
+      seekingGender: string | null;
+      minAge: number | null;
+      maxAge: number | null;
+      maxDistanceKm: number | null;
+      sexualOrientation: string | null;
+    };
+    sessions: Array<{
+      sessionId: string;
+      startedAt: string;
+      expiresAt: string;
+    }>;
+  };
+  subscriptions: Array<{
+    productId: string;
+    purchaseDate: string;
+    expiresAt: string | null;
+    isActive: boolean;
+  }>;
+  verification: {
+    idVerified: boolean;
+    verifiedAt: string | null;
+  } | null;
+}
+
+/**
+ * Rate limiter specifically for data export - more strict to prevent abuse
+ * 2 exports per hour max
+ */
+const exportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 2, // 2 exports per hour max
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Export rate limit exceeded. Please try again later.' },
+  handler: (req, res) => {
+    logger.warn('Export rate limit exceeded', {
+      ip: req.ip,
+      userId: req.user?.userId,
+      path: req.path,
+      limiter: 'export'
+    });
+    res.status(429).json({
+      success: false,
+      error: 'Export rate limit exceeded. Please try again later.'
+    });
+  }
+});
+
+/**
+ * GET /auth/data-export - Export all user data (GDPR Article 15)
+ * Returns a structured JSON object containing all personal data
+ * Rate limited more strictly to prevent abuse
+ */
+app.get('/auth/data-export', exportLimiter, authenticateJWT, async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const client = await pool.connect();
+
+  try {
+    logger.info('Data export requested', { userId });
+
+    // Fetch all user data in parallel for efficiency
+    const [
+      userResult,
+      profileResult,
+      matchesResult,
+      messagesResult,
+      blocksResult,
+      consentsResult,
+      afterHoursPrefsResult,
+      afterHoursSessionsResult,
+      subscriptionsResult
+    ] = await Promise.all([
+      // Core user data
+      client.query(
+        'SELECT id, email, provider, created_at, id_verified, id_verified_at FROM users WHERE id = $1',
+        [userId]
+      ),
+      // Profile data
+      client.query(
+        `SELECT name, age, gender, bio, interests, photos,
+                latitude, longitude, sexual_preference, intent,
+                created_at, updated_at
+         FROM profiles WHERE user_id = $1`,
+        [userId]
+      ),
+      // Matches (only include match metadata, not other user's data)
+      client.query(
+        `SELECT id as match_id,
+                CASE WHEN user_id_1 = $1 THEN user_id_2 ELSE user_id_1 END as matched_user_id,
+                created_at
+         FROM matches
+         WHERE user_id_1 = $1 OR user_id_2 = $1`,
+        [userId]
+      ),
+      // Messages sent by user only (don't include messages sent TO user - that's other user's data)
+      client.query(
+        `SELECT match_id, text as content, created_at as sent_at, TRUE as is_from_user
+         FROM messages WHERE sender_id = $1
+         ORDER BY created_at`,
+        [userId]
+      ),
+      // Blocks
+      client.query(
+        'SELECT blocked_user_id, created_at FROM blocks WHERE user_id = $1',
+        [userId]
+      ),
+      // Consents
+      client.query(
+        `SELECT purpose, granted, granted_at, withdrawn_at, consent_version
+         FROM user_consents WHERE user_id = $1`,
+        [userId]
+      ),
+      // After Hours preferences
+      client.query(
+        `SELECT seeking_gender, min_age, max_age, max_distance_km, sexual_orientation
+         FROM after_hours_preferences WHERE user_id = $1`,
+        [userId]
+      ),
+      // After Hours sessions (last 30 days)
+      client.query(
+        `SELECT id as session_id, started_at, expires_at
+         FROM after_hours_sessions
+         WHERE user_id = $1 AND started_at > NOW() - INTERVAL '30 days'`,
+        [userId]
+      ),
+      // Subscriptions
+      client.query(
+        `SELECT product_id, purchased_at as purchase_date, expires_at, is_active
+         FROM user_subscriptions WHERE user_id = $1`,
+        [userId]
+      )
+    ]);
+
+    const user = userResult.rows[0];
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const profile = profileResult.rows[0];
+    const ahPrefs = afterHoursPrefsResult.rows[0];
+
+    // Build the export object
+    const exportData: UserDataExport = {
+      exportedAt: new Date().toISOString(),
+      exportVersion: '1.0',
+      user: {
+        id: user.id,
+        email: user.email,
+        provider: user.provider,
+        createdAt: user.created_at?.toISOString() || ''
+      },
+      profile: profile ? {
+        name: profile.name,
+        age: profile.age,
+        gender: profile.gender,
+        bio: profile.bio,
+        interests: profile.interests || [],
+        photos: profile.photos || [], // R2 keys only, not full URLs
+        location: {
+          latitude: profile.latitude ? parseFloat(profile.latitude) : null,
+          longitude: profile.longitude ? parseFloat(profile.longitude) : null
+        },
+        sexualPreference: profile.sexual_preference,
+        intent: profile.intent,
+        createdAt: profile.created_at?.toISOString() || null,
+        updatedAt: profile.updated_at?.toISOString() || null
+      } : null,
+      matches: matchesResult.rows.map(m => ({
+        matchId: m.match_id,
+        matchedUserId: m.matched_user_id,
+        createdAt: m.created_at?.toISOString() || ''
+      })),
+      messages: messagesResult.rows.map(m => ({
+        matchId: m.match_id,
+        content: m.content,
+        sentAt: m.sent_at?.toISOString() || '',
+        isFromUser: m.is_from_user
+      })),
+      blocks: blocksResult.rows.map(b => ({
+        blockedUserId: b.blocked_user_id,
+        createdAt: b.created_at?.toISOString() || ''
+      })),
+      consents: consentsResult.rows.map(c => ({
+        purpose: c.purpose,
+        granted: c.granted,
+        grantedAt: c.granted_at?.toISOString() || null,
+        withdrawnAt: c.withdrawn_at?.toISOString() || null,
+        consentVersion: c.consent_version
+      })),
+      subscriptions: subscriptionsResult.rows.map(s => ({
+        productId: s.product_id,
+        purchaseDate: s.purchase_date?.toISOString() || '',
+        expiresAt: s.expires_at?.toISOString() || null,
+        isActive: s.is_active
+      })),
+      verification: {
+        idVerified: user.id_verified || false,
+        verifiedAt: user.id_verified_at?.toISOString() || null
+      }
+    };
+
+    // Add After Hours data if preferences exist
+    if (ahPrefs) {
+      exportData.afterHours = {
+        preferences: {
+          seekingGender: ahPrefs.seeking_gender,
+          minAge: ahPrefs.min_age,
+          maxAge: ahPrefs.max_age,
+          maxDistanceKm: ahPrefs.max_distance_km,
+          sexualOrientation: ahPrefs.sexual_orientation
+        },
+        sessions: afterHoursSessionsResult.rows.map(s => ({
+          sessionId: s.session_id,
+          startedAt: s.started_at?.toISOString() || '',
+          expiresAt: s.expires_at?.toISOString() || ''
+        }))
+      };
+    }
+
+    logger.info('Data export generated', {
+      userId,
+      matchCount: exportData.matches.length,
+      messageCount: exportData.messages.length
+    });
+
+    // Set headers for download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="vlvt-data-export-${new Date().toISOString().split('T')[0]}.json"`);
+
+    res.json(exportData);
+  } catch (error) {
+    logger.error('Data export failed', { error, userId });
+    res.status(500).json({ success: false, error: 'Failed to generate data export' });
+  } finally {
+    client.release();
   }
 });
 
