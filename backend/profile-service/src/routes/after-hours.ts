@@ -57,6 +57,8 @@ import logger from '../utils/logger';
 import sharp from 'sharp';
 import { triggerMatchingForUser, cancelAutoDecline } from '../services/matching-scheduler';
 import { getActiveUserCountNearby } from '../services/matching-engine';
+import { computePhotoHash, checkBannedPhoto } from '../services/photo-hash-service';
+import { storeDeviceFingerprint, DeviceFingerprint } from '../utils/device-fingerprint';
 
 /**
  * Calculate Haversine distance between two points in km
@@ -389,6 +391,37 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
           .withMetadata({}) // Strip all metadata for privacy
           .toBuffer();
 
+        // Compute perceptual hash and check against banned photos
+        let photoHash: string | null = null;
+        try {
+          photoHash = await computePhotoHash(processedBuffer);
+          const banCheck = await checkBannedPhoto(pool, photoHash);
+          if (banCheck.isBanned) {
+            // Clean up temp file
+            if (req.file.path) {
+              try {
+                fs.unlinkSync(req.file.path);
+              } catch (e) {
+                /* ignore cleanup errors */
+              }
+            }
+            logger.warn('Banned photo upload attempt blocked', {
+              userId,
+              matchedHash: banCheck.matchedHash,
+            });
+            return res.status(403).json({
+              success: false,
+              error: 'Photo not allowed',
+            });
+          }
+        } catch (hashError: any) {
+          // Log but continue - fail open to avoid blocking legitimate uploads
+          logger.warn('Failed to compute/check photo hash', {
+            userId,
+            error: hashError.message,
+          });
+        }
+
         // Upload to R2
         await uploadToR2(photoKey, processedBuffer, 'image/jpeg');
 
@@ -401,12 +434,12 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
           }
         }
 
-        // Update After Hours profile with new photo key
+        // Update After Hours profile with new photo key and hash
         await pool.query(
           `UPDATE after_hours_profiles
-           SET photo_url = $2, updated_at = CURRENT_TIMESTAMP
+           SET photo_url = $2, photo_hash = $3, updated_at = CURRENT_TIMESTAMP
            WHERE user_id = $1`,
-          [userId, photoKey]
+          [userId, photoKey, photoHash]
         );
 
         // Get presigned URL for the response
@@ -666,7 +699,7 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
    */
   router.post('/session/start', validateSessionStart, async (req: Request, res: Response) => {
     const userId = req.user!.userId;
-    const { duration, latitude, longitude } = req.body;
+    const { duration, latitude, longitude, deviceFingerprint } = req.body;
 
     const client = await pool.connect();
     try {
@@ -720,6 +753,22 @@ export function createAfterHoursRouter(pool: Pool, upload: multer.Multer): Route
       await client.query('COMMIT');
 
       const session = result.rows[0];
+
+      // Store device fingerprint (fire-and-forget, non-blocking)
+      if (deviceFingerprint) {
+        const fp: DeviceFingerprint = {
+          deviceId: deviceFingerprint.deviceId,
+          deviceModel: deviceFingerprint.deviceModel,
+          platform: deviceFingerprint.platform,
+        };
+        // Fire and forget - don't await, don't block session start
+        storeDeviceFingerprint(pool, userId, session.id, fp).catch((err) => {
+          logger.error('Failed to store device fingerprint', {
+            sessionId: session.id,
+            error: err.message,
+          });
+        });
+      }
 
       // Schedule expiry job (fire-and-forget, session persists regardless)
       scheduleSessionExpiry(session.id, userId, durationMinutes * 60 * 1000).catch((err) => {
