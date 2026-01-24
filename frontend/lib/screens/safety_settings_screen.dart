@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../models/profile.dart';
 import '../theme/vlvt_colors.dart';
 import '../widgets/vlvt_button.dart';
+import 'consent_settings_screen.dart';
 import 'legal_document_viewer.dart';
 
 class SafetySettingsScreen extends StatefulWidget {
@@ -374,6 +375,20 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   builder: (context) => const LegalDocumentViewer(
                     documentType: LegalDocumentType.privacyPolicy,
                   ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.tune_outlined),
+            title: const Text('Privacy Preferences'),
+            subtitle: const Text('Manage your data and consent settings'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConsentSettingsScreen(),
                 ),
               );
             },
