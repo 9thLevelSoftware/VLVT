@@ -5,30 +5,30 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 2 GDPR Compliance - In Progress
+**Current focus:** Phase 2 GDPR Compliance - Complete
 
 ## Current Position
 
 Phase: 2 of 7 (GDPR Compliance)
-Plan: 5 of 6 in current phase
-Status: In progress
-Last activity: 2026-01-24 - Completed 02-05-PLAN.md (Data Export API)
+Plan: 6 of 6 in current phase
+Status: Phase complete
+Last activity: 2026-01-24 - Completed 02-06-PLAN.md (Data Export UI)
 
-Progress: [██████====] 32% (Phase 1 complete, Phase 2 in progress - 5/6 plans)
+Progress: [████████==] 40% (Phase 1 & 2 complete - 13/13 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 40 (29 original + 6 gap closure + 5 GDPR)
-- Average duration: ~12 min
-- Total execution time: ~8.3 hours
+- Total plans completed: 13 (7 security + 6 GDPR)
+- Average duration: ~8 min
+- Total execution time: ~1.8 hours
 
 **By Phase:**
 
 | Phase | Plans | Completed | Status |
 |-------|-------|-----------|--------|
 | 01-security-hardening | 7 | 7 | Complete (verified) |
-| 02-GDPR-compliance | 6 | 5 | In progress |
+| 02-GDPR-compliance | 6 | 6 | Complete (verified) |
 | 03-testing-infrastructure | TBD | 0 | Not started |
 | 04-bug-fixes-ui-polish | TBD | 0 | Not started |
 | 05-monitoring-alerting | TBD | 0 | Not started |
@@ -36,8 +36,8 @@ Progress: [██████====] 32% (Phase 1 complete, Phase 2 in progress - 
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 02-05 (5 min)
-- Trend: Steady
+- Last plan: 02-06 (2 min)
+- Trend: Excellent velocity
 
 *Updated after each plan completion*
 
@@ -79,10 +79,13 @@ Recent decisions affecting current work:
 - [02-05]: Export only user's sent messages (received messages belong to sender per GDPR)
 - [02-05]: Photo keys only in export (not presigned URLs) to prevent data breach via export file
 - [02-05]: After Hours sessions limited to 30 days in export
+- [02-06]: Export saves to app documents directory with ISO date in filename
+- [02-06]: Share dialog shown after successful export for user convenience
+- [02-06]: Rate limit errors handled gracefully with informative message (mentions hourly limit)
 
 ### Pending Todos
 
-Phase 2 GDPR Compliance in progress. Next: 02-06 (DPO contact + request forms).
+Phase 2 GDPR Compliance complete. Ready for Phase 3: Testing Infrastructure.
 
 ### Blockers/Concerns
 
@@ -91,8 +94,8 @@ Phase 2 GDPR Compliance in progress. Next: 02-06 (DPO contact + request forms).
 
 ## Session Continuity
 
-Last session: 2026-01-24T20:11:00Z
-Stopped at: Completed 02-05-PLAN.md (Data Export API)
+Last session: 2026-01-24T20:12:00Z
+Stopped at: Completed 02-06-PLAN.md (Data Export UI) - Phase 2 complete
 Resume file: None
 
 ---
