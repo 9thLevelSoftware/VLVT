@@ -96,14 +96,32 @@ const CORS_ORIGIN = (() => {
 // Initialize Google OAuth2 client
 const googleClient = new OAuth2Client();
 
-// Initialize PostgreSQL connection pool with proper configuration
+// Initialize PostgreSQL connection pool
+//
+// SECURITY NOTE: TLS Configuration for Railway PostgreSQL
+// =========================================================
+// Railway uses self-signed certificates for PostgreSQL connections and does not
+// provide a CA bundle for validation. This means:
+//
+// 1. rejectUnauthorized: false is REQUIRED for Railway connections
+// 2. Connections ARE encrypted with TLS (data in transit is protected)
+// 3. Certificate validation cannot be performed (no MITM detection)
+//
+// Mitigations:
+// - DATABASE_URL uses sslmode=require (enforces TLS, even without cert validation)
+// - Railway internal networking used where possible (private network)
+// - Railway handles certificate rotation automatically
+//
+// When Railway provides a CA bundle, update to:
+//   ssl: { rejectUnauthorized: true, ca: fs.readFileSync('railway-ca.crt') }
+//
+// Reference: https://station.railway.com/questions/postgre-sql-ssl-connection-self-signed-33f0d3b6
+// Decision: SEC-01-DOCUMENTED in .planning/phases/01-foundation-safety/SECURITY-DECISIONS.md
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 20, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
   connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
-  // TODO: Railway uses self-signed certs. See docs/DATABASE_SSL.md for improvement plan.
-  // When Railway provides CA bundle, update to rejectUnauthorized: true with CA.
   ssl: process.env.DATABASE_URL?.includes('railway')
     ? { rejectUnauthorized: false }
     : false,
