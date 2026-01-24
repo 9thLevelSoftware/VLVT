@@ -19,7 +19,7 @@
     "@aws-sdk/client-rekognition": "^3.946.0",
     "@aws-sdk/client-s3": "^3.946.0",
     "@aws-sdk/s3-request-presigner": "^3.946.0",
-    "@sentry/node": "^10.25.0",
+    "@sentry/node": "^10.27.0",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
