@@ -9,8 +9,8 @@
 
 - Phase: 07 of 07 (Safety Systems & Polish)
 - Wave: 1
-- Plans: 2/5 complete
-- Last activity: 2026-01-23 - Completed 07-02-PLAN.md (Ban Enforcement Infrastructure)
+- Plans: 3/5 complete
+- Last activity: 2026-01-24 - Completed 07-03-PLAN.md (Session Cleanup Job)
 
 ## Progress
 
@@ -21,8 +21,8 @@ Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
 Phase 6: [##########] 6/6 plans complete
-Phase 7: [####......] 2/5 plans complete
-Overall:  [#########.] 25/28 plans complete
+Phase 7: [######....] 3/5 plans complete
+Overall:  [#########.] 26/28 plans complete
 ```
 
 ## Accumulated Decisions
@@ -117,6 +117,9 @@ Overall:  [#########.] 25/28 plans complete
 - [07-02] Hamming distance threshold of 10 bits catches edits while avoiding false positives
 - [07-02] Fail-open on hash errors to avoid blocking legitimate uploads
 - [07-02] Device fingerprint storage is non-blocking (fire-and-forget)
+- [07-03] 4 AM UTC schedule runs 1 hour after message cleanup at 3 AM
+- [07-03] 7-day retention for decline records before deletion
+- [07-03] Non-blocking initialization pattern - server starts even if Redis unavailable
 
 ## Current Context
 
@@ -138,21 +141,25 @@ Plan 07-02 complete (Ban Enforcement Infrastructure):
 - Photo upload computes hash, checks against banned list, stores hash
 - Returns 403 for banned photos (Hamming distance < 10)
 
-Key files for 07-02:
-- `backend/migrations/025_ban_enforcement.sql`
-- `backend/profile-service/src/services/photo-hash-service.ts`
-- `backend/profile-service/src/utils/device-fingerprint.ts`
-- `backend/profile-service/src/routes/after-hours.ts`
+Plan 07-03 complete (Session Cleanup Job):
+- BullMQ scheduled job at 4 AM UTC (1 hour after message cleanup)
+- Closes expired sessions (sets ended_at = expires_at)
+- Deletes decline records older than 7 days
+- Removes orphaned device fingerprints
+- Non-blocking initialization maintains server resilience
 
-**Next: 07-03, 07-04, 07-05**
+Key files for 07-03:
+- `backend/profile-service/src/jobs/session-cleanup-job.ts` (BullMQ cleanup job)
+- `backend/profile-service/src/index.ts` (startup/shutdown wiring)
+
+**Next: 07-04 (User Settings & Notification Preferences)**
 
 Remaining in Phase 7:
-- 07-03: Soft/hard ban enforcement
-- 07-04: Session cleanup jobs
-- 07-05: Integration tests
+- 07-04: User Settings & Notification Preferences
+- 07-05: Integration Tests
 
 ## Session Continuity
 
-- Last session: 2026-01-23
-- Stopped at: Completed 07-02-PLAN.md
+- Last session: 2026-01-24
+- Stopped at: Completed 07-03-PLAN.md
 - Resume file: None
