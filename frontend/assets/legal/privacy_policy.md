@@ -183,6 +183,29 @@ If you are in the European Economic Area, you have the right to:
 - Object to processing
 - Lodge a complaint with a supervisory authority
 
+### 12.1 Special Category Data (Article 9)
+
+VLVT processes certain data that may reveal information about your sexual orientation. We are committed to transparency about this processing.
+
+**What data may reveal sexual orientation:**
+- Your gender combined with your gender preferences (e.g., "seeking_gender" settings)
+- Your participation in After Hours Mode, a feature designed for adult dating and intimate connections
+
+**Legal basis for processing:**
+We process this special category data based on your **explicit consent** (Article 9(2)(a) GDPR). You must actively enable After Hours Mode and grant consent before this data is processed. Regular app usage for standard dating does not require this consent.
+
+**Safeguards we implement:**
+- **Encryption at rest:** All After Hours data is encrypted using industry-standard encryption
+- **Access restrictions:** Only premium, ID-verified users can access After Hours features
+- **Ephemeral matching:** After Hours matches and sessions automatically expire (1 hour session + 30 days safety retention)
+- **Minimal data retention:** We retain only what is necessary for safety and legal compliance
+
+**Your rights regarding this data:**
+- You can disable After Hours Mode at any time in your settings
+- Withdrawing consent does not affect your ability to use regular VLVT features
+- You can request deletion of all After Hours data by contacting privacy@getvlvt.vip
+- Disabling After Hours Mode immediately stops future processing of this special category data
+
 ## 13. Changes to This Privacy Policy
 
 We may update this Privacy Policy from time to time. We will notify you of material changes by:
