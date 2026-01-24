@@ -295,6 +295,42 @@ app.get('/health', (req: Request, res: Response) => {
   res.json(addVersionToHealth({ status: 'ok', service: 'profile-service' }));
 });
 
+// ===== INTERNAL ENDPOINTS =====
+// These are called by other services, not directly by clients
+// NOT rate limited - internal network only
+
+/**
+ * Internal endpoint for cleaning up user photos during account deletion
+ * Called by auth-service DELETE /auth/account
+ * GDPR Article 17 - Right to Erasure: Removes photos from R2 storage
+ */
+app.post('/api/internal/cleanup-photos', async (req: Request, res: Response) => {
+  // Verify internal service header - simple shared secret for service-to-service auth
+  const internalHeader = req.headers['x-internal-service'];
+  if (internalHeader !== 'auth-service') {
+    logger.warn('Unauthorized internal endpoint access attempt', {
+      header: internalHeader,
+      ip: req.ip
+    });
+    return res.status(403).json({ success: false, error: 'Internal endpoint only' });
+  }
+
+  const { userId, photoKeys } = req.body;
+
+  if (!userId || !Array.isArray(photoKeys)) {
+    return res.status(400).json({ success: false, error: 'Invalid request body' });
+  }
+
+  try {
+    const result = await deleteUserPhotos(userId, photoKeys);
+    logger.info('Internal photo cleanup completed', { userId, ...result });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    logger.error('Internal photo cleanup failed', { userId, error });
+    res.status(500).json({ success: false, error: 'Photo cleanup failed' });
+  }
+});
+
 // Security.txt endpoint (RFC 9116)
 // Helps security researchers report vulnerabilities responsibly
 // See: https://securitytxt.org/
