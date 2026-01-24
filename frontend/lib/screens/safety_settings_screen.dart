@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/safety_service.dart';
 import '../services/profile_api_service.dart';
@@ -19,6 +20,7 @@ class SafetySettingsScreen extends StatefulWidget {
 
 class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
   bool _isLoading = true;
+  bool _isExporting = false;
   List<Map<String, dynamic>> _blockedUsers = [];
   Map<String, Profile> _profiles = {};
 
@@ -165,6 +167,78 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error opening email: $e')),
         );
+      }
+    }
+  }
+
+  /// Handle data export request
+  Future<void> _handleDataExport() async {
+    setState(() => _isExporting = true);
+
+    try {
+      final authService = context.read<AuthService>();
+      final filePath = await authService.requestDataExport();
+
+      if (!mounted) return;
+
+      if (filePath != null) {
+        // Show success dialog with share option
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Export Complete'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your data has been exported successfully.',
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'File saved to:\n$filePath',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: VlvtColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              VlvtButton.text(
+                label: 'Close',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              VlvtButton.primary(
+                label: 'Share',
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await SharePlus.instance.share(ShareParams(files: [XFile(filePath)]));
+                },
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to export data. You may have reached the hourly limit. Please try again later.'),
+            backgroundColor: VlvtColors.crimson,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export error: $e'),
+            backgroundColor: VlvtColors.crimson,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
       }
     }
   }
@@ -408,6 +482,36 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                 ),
               );
             },
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Your Data',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Download a copy of all your personal data. This includes your profile, matches, messages, and preferences.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: VlvtColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                VlvtButton.secondary(
+                  label: _isExporting ? 'Exporting...' : 'Export My Data',
+                  onPressed: _isExporting ? null : _handleDataExport,
+                  icon: Icons.download,
+                ),
+              ],
+            ),
           ),
           const Divider(),
           Padding(
