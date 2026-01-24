@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../models/profile.dart';
 import '../theme/vlvt_colors.dart';
 import '../widgets/vlvt_button.dart';
+import 'legal_document_viewer.dart';
 
 class SafetySettingsScreen extends StatefulWidget {
   const SafetySettingsScreen({super.key});
@@ -336,6 +337,62 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                 ),
               ],
             ),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Privacy & Legal',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Review our policies and your privacy rights.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: VlvtColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Privacy Policy'),
+            subtitle: const Text('How we collect and use your data'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LegalDocumentViewer(
+                    documentType: LegalDocumentType.privacyPolicy,
+                  ),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('Terms of Service'),
+            subtitle: const Text('Rules and conditions of use'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LegalDocumentViewer(
+                    documentType: LegalDocumentType.termsOfService,
+                  ),
+                ),
+              );
+            },
           ),
           const Divider(),
           Padding(
