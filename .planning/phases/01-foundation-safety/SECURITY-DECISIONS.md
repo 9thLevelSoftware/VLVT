@@ -7,6 +7,7 @@ This document captures security decisions made during Phase 1 (Security Hardenin
 | ID | Decision | Status | Risk Level |
 |----|----------|--------|------------|
 | SEC-01 | TLS Configuration for Railway PostgreSQL | DOCUMENTED | Medium |
+| SEC-02 | Encryption at Rest (KYCAID/Location) | PARTIAL | Medium |
 | SEC-06 | Request Signing Secret Handling | DOCUMENTED | Low |
 | SEC-07 | Dependency Vulnerability Management | IMPLEMENTED | Low |
 | SEC-09 | Sensitive Field Logging Protection | IMPLEMENTED | Low |
@@ -64,6 +65,111 @@ ssl: { rejectUnauthorized: true, ca: fs.readFileSync('railway-ca.crt') }
 
 - [Railway PostgreSQL SSL Issue](https://station.railway.com/questions/postgre-sql-ssl-connection-self-signed-33f0d3b6)
 - Code locations: `backend/*/src/index.ts` (Pool initialization)
+
+---
+
+## SEC-02: Encryption at Rest
+
+**Status:** PARTIALLY IMPLEMENTED
+**Risk Level:** Medium
+**Date:** 2026-01-24
+
+### Context
+
+The Phase 1 success criteria states: "Sensitive data fields are encrypted at rest (KYCAID verification data, exact locations)"
+
+This requirement covers two distinct data categories:
+1. **KYCAID verification data** - Government ID details (name, DOB, document numbers)
+2. **User location coordinates** - Latitude/longitude from GPS
+
+### Decision
+
+Implement encryption for KYCAID PII data immediately; defer location encryption to v2.
+
+### KYCAID Data - IMPLEMENTED
+
+KYCAID PII is the highest-priority encryption target:
+- Contains government-issued ID information
+- Includes personal details (full name, date of birth, document numbers)
+- Highest regulatory and liability risk if breached
+
+**Implementation:**
+
+1. **Database schema** (migration 014_encrypt_kycaid_pii.sql):
+   - `encrypt_kycaid_pii(jsonb, text)` - AES-256 encryption function
+   - `decrypt_kycaid_pii(bytea, text)` - Decryption function
+   - `encrypted_pii` column on kycaid_verifications table
+
+2. **Application code** (kycaid-service.ts):
+   - `prepareEncryptedPii()` - Generates SQL for encrypted INSERT/UPDATE
+   - `prepareDecryptedPii()` - Generates SQL for decrypted SELECT
+   - `extractVerifiedUserData()` returns `piiForStorage` for encryption
+
+3. **Data migration** (scripts/migrate-kycaid-encryption.ts):
+   - Migrates existing plaintext data to encrypted_pii
+   - Supports `--dry-run` for safe preview
+   - Clears plaintext columns after encryption
+
+**Environment Variables:**
+```bash
+# Required in production (throws error if missing)
+# Generate with: openssl rand -base64 32
+KYCAID_ENCRYPTION_KEY=<32-byte-base64-key>
+```
+
+### Location Data - DEFERRED TO v2
+
+Location encryption requires significant architectural changes that would delay v1 launch:
+
+**Technical challenges:**
+1. **Distance calculations** - Matching requires calculating distance between users. Encrypted coordinates require either:
+   - Homomorphic encryption (computationally expensive, complex)
+   - Trusted compute enclaves (infrastructure not available)
+   - Decrypt-in-memory for every query (performance impact)
+
+2. **Geospatial indexes** - PostGIS spatial indexes cannot operate on encrypted data. Every discovery query would need to:
+   - Decrypt all profiles within max radius
+   - Calculate distances in application code
+   - Re-filter and sort results
+
+3. **Query patterns** - Discovery, nearby users, distance display all depend on coordinate access
+
+**Mitigations in place:**
+- Location coordinates redacted from logs (SEC-09 - IMPLEMENTED)
+- Location obfuscated to ~500m precision in API responses to other users
+- Exact coordinates never exposed to other users
+- Database access restricted to application service accounts
+
+**v2 research items:**
+- Evaluate geospatial encryption libraries
+- Consider coordinate bucketing/hashing approaches
+- Assess trusted execution environment options (SGX, etc.)
+
+### Rationale
+
+KYCAID data encryption provides the highest security value with minimal architectural impact:
+- High-value target (government IDs)
+- Low query frequency (only during verification, rare reads)
+- Straightforward implementation (encrypt on write, decrypt on read)
+
+Location encryption would require fundamental redesign of discovery system for marginal security gain given existing mitigations.
+
+### Security Implications
+
+**What IS protected:**
+- All KYCAID PII encrypted with AES-256
+- Encryption key stored separately from database
+- Plaintext cleared after migration
+
+**What is NOT protected (accepted risk):**
+- Location coordinates stored in plaintext
+- Mitigated by: logging redaction, API obfuscation, access controls
+
+### References
+
+- Database schema: `backend/migrations/014_encrypt_kycaid_pii.sql`
+- Service code: `backend/auth-service/src/services/kycaid-service.ts`
+- Migration script: `backend/auth-service/scripts/migrate-kycaid-encryption.ts`
 
 ---
 
