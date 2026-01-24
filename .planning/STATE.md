@@ -9,8 +9,8 @@
 
 - Phase: 07 of 07 (Safety Systems & Polish)
 - Wave: 1
-- Plans: 1/5 complete
-- Last activity: 2026-01-24 - Completed 07-01-PLAN.md (After Hours Block/Report)
+- Plans: 2/5 complete
+- Last activity: 2026-01-23 - Completed 07-02-PLAN.md (Ban Enforcement Infrastructure)
 
 ## Progress
 
@@ -21,8 +21,8 @@ Phase 3: [##########] 4/4 plans complete
 Phase 4: [##########] 4/4 plans complete
 Phase 5: [##########] 3/3 plans complete
 Phase 6: [##########] 6/6 plans complete
-Phase 7: [##........] 1/5 plans complete
-Overall:  [#########.] 24/28 plans complete
+Phase 7: [####......] 2/5 plans complete
+Overall:  [#########.] 25/28 plans complete
 ```
 
 ## Accumulated Decisions
@@ -112,6 +112,11 @@ Overall:  [#########.] 24/28 plans complete
 - [07-01] Reason prefix after_hours: instead of source column for report tracking
 - [07-01] Fire-and-forget pattern for match decline after block
 - [07-01] Permanent blocks (same as main app) for After Hours
+- [07-02] Migration numbered 025 (not 007) following existing sequential convention
+- [07-02] sharp-phash returns binary string, converted to hex for compact 16-char storage
+- [07-02] Hamming distance threshold of 10 bits catches edits while avoiding false positives
+- [07-02] Fail-open on hash errors to avoid blocking legitimate uploads
+- [07-02] Device fingerprint storage is non-blocking (fire-and-forget)
 
 ## Current Context
 
@@ -125,20 +130,29 @@ Plan 07-01 complete (After Hours Block/Report):
 - Both block and report auto-decline the After Hours match
 - Verified block synchronization already works in matching engine
 
-Key files for 07-01:
-- `backend/chat-service/src/services/after-hours-safety-service.ts` (block/report logic)
-- `backend/chat-service/src/routes/after-hours-chat.ts` (block/report endpoints)
+Plan 07-02 complete (Ban Enforcement Infrastructure):
+- Migration 025 adds device_fingerprints and banned_photo_hashes tables
+- photo-hash-service.ts computes perceptual hashes using sharp-phash
+- device-fingerprint.ts stores fingerprints non-blocking
+- Session start accepts optional deviceFingerprint body parameter
+- Photo upload computes hash, checks against banned list, stores hash
+- Returns 403 for banned photos (Hamming distance < 10)
 
-**Next: 07-02 (Photo Perceptual Hashing)**
+Key files for 07-02:
+- `backend/migrations/025_ban_enforcement.sql`
+- `backend/profile-service/src/services/photo-hash-service.ts`
+- `backend/profile-service/src/utils/device-fingerprint.ts`
+- `backend/profile-service/src/routes/after-hours.ts`
+
+**Next: 07-03, 07-04, 07-05**
 
 Remaining in Phase 7:
-- 07-02: Photo perceptual hashing for content moderation
 - 07-03: Soft/hard ban enforcement
 - 07-04: Session cleanup jobs
 - 07-05: Integration tests
 
 ## Session Continuity
 
-- Last session: 2026-01-24
-- Stopped at: Completed 07-01-PLAN.md
+- Last session: 2026-01-23
+- Stopped at: Completed 07-02-PLAN.md
 - Resume file: None
