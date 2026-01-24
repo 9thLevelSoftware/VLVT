@@ -18,6 +18,7 @@ import '../services/theme_service.dart';
 import '../services/after_hours_service.dart';
 import '../services/after_hours_chat_service.dart';
 import '../services/after_hours_profile_service.dart';
+import '../services/after_hours_safety_service.dart';
 
 /// Centralized provider configuration for VLVT
 /// Organizes providers into feature-based groups for better scoping
@@ -124,6 +125,13 @@ class ProviderTree {
           ),
           update: (context, auth, socket, previous) =>
               previous ?? AfterHoursChatService(auth, socket),
+        ),
+        // Safety service for block and report
+        ChangeNotifierProxyProvider<AuthService, AfterHoursSafetyService>(
+          create: (context) =>
+              AfterHoursSafetyService(context.read<AuthService>()),
+          update: (context, auth, previous) =>
+              previous ?? AfterHoursSafetyService(auth),
         ),
       ];
 

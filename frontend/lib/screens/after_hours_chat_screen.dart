@@ -10,12 +10,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../services/auth_service.dart';
 import '../services/after_hours_service.dart';
 import '../services/after_hours_chat_service.dart';
+import '../services/after_hours_safety_service.dart';
 import '../services/socket_service.dart';
 import '../models/message.dart';
 import '../utils/date_utils.dart';
 import '../widgets/after_hours/session_timer.dart';
 import '../widgets/after_hours/session_expiry_banner.dart';
 import '../widgets/save_match_button.dart';
+import '../widgets/quick_report_dialog.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
@@ -418,6 +420,76 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
     );
   }
 
+  Future<void> _handleReport() async {
+    final safetyService = context.read<AfterHoursSafetyService>();
+    final matchId = widget.match.id;
+
+    final reported = await showQuickReportDialog(
+      context,
+      matchId: matchId,
+      onReport: (reason, details) async {
+        await safetyService.reportUser(
+          matchId: matchId,
+          reason: reason,
+          details: details,
+        );
+      },
+    );
+
+    if (reported == true && mounted) {
+      // Exit chat and return to After Hours tab
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User reported and blocked')),
+      );
+    }
+  }
+
+  Future<void> _handleBlock() async {
+    // Capture service before async gap
+    final safetyService = context.read<AfterHoursSafetyService>();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: VlvtColors.surface,
+        title: const Text('Block User?'),
+        content: const Text(
+          'This will permanently block this user. You won\'t see them again in After Hours or the main app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Block'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await safetyService.blockUser(widget.match.id);
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User blocked')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to block user: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _markMessagesAsRead() async {
     final socketService = context.read<SocketService>();
     if (socketService.isConnected) {
@@ -494,6 +566,38 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
                 ),
               ),
             ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'report') {
+                await _handleReport();
+              } else if (value == 'block') {
+                await _handleBlock();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'report',
+                child: Row(
+                  children: [
+                    Icon(Icons.flag, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Report User'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'block',
+                child: Row(
+                  children: [
+                    Icon(Icons.block, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Block User'),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: Column(
