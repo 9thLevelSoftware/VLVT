@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 3 of 7 (Testing Infrastructure)
-Plan: 8 of 12 in current phase (gap closure wave 1)
-Status: Executing gap closure plans
-Last activity: 2026-01-25 - Completed 03-08-PLAN.md (Auth Middleware Test Fix)
+Plan: 12 of 12 in current phase (gap closure complete)
+Status: Phase 3 gap closure complete
+Last activity: 2026-01-25 - Completed 03-12-PLAN.md (Profile Service Test Fix)
 
-Progress: [█████████=] 62% (Phase 1, 2, & 3 complete - 21 plans)
+Progress: [█████████=] 62% (Phase 1, 2, & 3 complete - 22 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21 (7 security + 6 GDPR + 8 testing)
+- Total plans completed: 22 (7 security + 6 GDPR + 9 testing)
 - Average duration: ~7 min
-- Total execution time: ~3.0 hours
+- Total execution time: ~3.1 hours
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [█████████=] 62% (Phase 1, 2, & 3 complete - 21 plan
 |-------|-------|-----------|--------|
 | 01-security-hardening | 7 | 7 | Complete (verified) |
 | 02-GDPR-compliance | 6 | 6 | Complete (verified) |
-| 03-testing-infrastructure | 7 | 7 | Complete (verified) |
+| 03-testing-infrastructure | 12 | 12 | Complete (gap closure done) |
 | 04-bug-fixes-ui-polish | TBD | 0 | Not started |
 | 05-monitoring-alerting | TBD | 0 | Not started |
 | 06-deployment-infrastructure | TBD | 0 | Not started |
@@ -95,10 +95,13 @@ Recent decisions affecting current work:
 - [03-07]: Input validation rejects emails containing SQL keywords like 'user' (defense in depth)
 - [03-08]: Top-level import for middleware tests (pure function, no state to reset)
 - [03-08]: TokenExpiredError checked before JsonWebTokenError (inheritance order)
+- [03-12]: Single app import at module level for profile tests (no jest.resetModules)
+- [03-12]: createAfterHoursAuthMiddleware must be mocked for profile-service tests
+- [03-12]: Photo validation requires valid URLs (https://), not bare filenames
 
 ### Pending Todos
 
-Phase 3 Testing Infrastructure COMPLETE. Ready for Phase 4.
+Phase 3 Testing Infrastructure COMPLETE (including gap closure). Ready for Phase 4.
 
 ### Blockers/Concerns
 
@@ -106,8 +109,8 @@ None - all Phase 3 testing requirements satisfied.
 
 ## Session Continuity
 
-Last session: 2026-01-25T03:43:27Z
-Stopped at: Completed 03-08-PLAN.md (Auth Middleware Test Fix)
+Last session: 2026-01-25T03:46:24Z
+Stopped at: Completed 03-12-PLAN.md (Profile Service Test Fix)
 Resume file: None
 
 ---
