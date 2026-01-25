@@ -53,6 +53,8 @@ Requirements for beta launch. Each maps to roadmap phases.
 - [ ] **DEP-02**: Environment variable audit completed (all services, all environments)
 - [ ] **DEP-03**: Secrets management reviewed (no secrets in code, proper Railway configuration)
 - [ ] **DEP-04**: Backup restoration tested and documented
+- [ ] **DEP-05**: Email service configured (Resend/SendGrid/SMTP) for verification and password reset emails
+- [ ] **DEP-06**: Apple Sign-In web flow configured for Android support (Services ID, callback URL, client secret)
 
 ### Bug Fixes & UI Polish
 
@@ -155,14 +157,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEP-02 | Phase 6 | Pending |
 | DEP-03 | Phase 6 | Pending |
 | DEP-04 | Phase 6 | Pending |
+| DEP-05 | Phase 6 | Pending |
+| DEP-06 | Phase 6 | Pending |
 | SAF-01 | Phase 7 | Pending |
 | SAF-02 | Phase 7 | Pending |
 | SAF-03 | Phase 7 | Pending |
 | SAF-04 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 38 total
-- Mapped to phases: 38
+- v1 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0 ✓
 
 ---
