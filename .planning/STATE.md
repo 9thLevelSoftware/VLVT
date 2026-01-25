@@ -5,21 +5,21 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 4 Bug Fixes & UI Polish - IN PROGRESS
+**Current focus:** Phase 4 Bug Fixes & UI Polish - COMPLETE
 
 ## Current Position
 
 Phase: 4 of 7 (Bug Fixes & UI Polish)
-Plan: 4 of 5 complete in current phase
-Status: In progress (Wave 3 - 04-05 complete)
-Last activity: 2026-01-25 - Completed 04-05 Backend Placeholder Cleanup
+Plan: 5 of 5 complete in current phase
+Status: Phase complete
+Last activity: 2026-01-25 - Completed 04-04 Navigation & Flow Issues
 
-Progress: [██████████] 51% (Phase 1, 2, 3 complete + 04-01, 04-02, 04-03, 04-05 - 29 plans)
+Progress: [██████████████] 53% (Phase 1, 2, 3, 4 complete - 30 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 29 (7 security + 6 GDPR + 12 testing + 4 UI polish)
+- Total plans completed: 30 (7 security + 6 GDPR + 12 testing + 5 UI polish)
 - Average duration: ~7 min
 - Total execution time: ~3.5 hours
 
@@ -30,14 +30,14 @@ Progress: [██████████] 51% (Phase 1, 2, 3 complete + 04-01, 
 | 01-security-hardening | 7 | 7 | Complete (verified) |
 | 02-GDPR-compliance | 6 | 6 | Complete (verified) |
 | 03-testing-infrastructure | 12 | 12 | Complete (verified) |
-| 04-bug-fixes-ui-polish | 5 | 4 | In progress (80%) |
+| 04-bug-fixes-ui-polish | 5 | 5 | Complete (verified) |
 | 05-save-mechanism-conversion | TBD | 0 | Not started |
 | 06-monitoring-alerting | TBD | 0 | Not started |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 04-05 (3 min)
-- Trend: Excellent velocity (quick security.txt updates)
+- Last plan: 04-04 (15 min)
+- Trend: Phase 4 complete, human verification checkpoint passed
 
 *Updated after each plan completion*
 
@@ -112,24 +112,27 @@ Recent decisions affecting current work:
 - [04-02]: debugPrint() raw errors acceptable (developer logging, not user-facing)
 - [04-05]: Security.txt Policy URL updated to vlvtapp.com/.well-known/security-policy (production URL)
 - [04-05]: Security.txt Expires date set to 1 year from current date per RFC 9116 recommendation
+- [04-04]: Password validation synced with backend (12+ chars, special char)
+- [04-04]: AutovalidateMode.onUserInteraction for all auth forms
+- [04-04]: Apple Sign-In on Android shows dismissible info message (tracked as DEP-06)
+- [04-04]: Email verification blocked tracked as DEP-05 for Phase 6
 
 ### Pending Todos
 
-Phase 4 Bug Fixes & UI Polish IN PROGRESS. 04-05 Backend Placeholder Cleanup complete.
-Remaining: 04-04 Navigation & Flow Issues (Wave 2).
+Phase 4 Bug Fixes & UI Polish COMPLETE. Ready for Phase 5.
 
 ### Blockers/Concerns
 
-None - 04-05 completed, security.txt production-ready across all services.
+None - Phase 4 complete. DEP-05 (email service) and DEP-06 (Apple Sign-In) tracked for Phase 6.
 
 ## Session Continuity
 
 Last session: 2026-01-25
-Stopped at: Completed 04-05-PLAN.md
+Stopped at: Completed 04-04-PLAN.md (Phase 4 complete)
 Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (Phase 4 in progress - 28 plans total)*
+*Current milestone: Production Readiness (Phase 4 complete - 30 plans total)*
