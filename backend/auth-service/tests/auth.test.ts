@@ -1141,4 +1141,133 @@ describe('Auth Service', () => {
       expect(response.body.message).toBe('Logged out successfully');
     });
   });
+
+  describe('POST /auth/refresh', () => {
+    const mockTokenFamily = 'test-family-uuid-1234';
+
+    it('should refresh token with valid refresh token', async () => {
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+      // Mock SELECT query for refresh token lookup
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          id: 'token-id-1',
+          user_id: 'test_user_123',
+          expires_at: futureDate,
+          revoked_at: null,
+          token_family: mockTokenFamily,
+          rotated_at: null,
+          device_info: 'Mozilla/5.0',
+          ip_address: '127.0.0.1',
+          provider: 'google',
+          email: 'test@example.com'
+        }]
+      });
+      // Mock BEGIN transaction
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock UPDATE old token (mark as rotated)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock INSERT new token
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock COMMIT transaction
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .send({ refreshToken: 'valid_refresh_token' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body).toHaveProperty('accessToken');
+      expect(response.body).toHaveProperty('refreshToken');
+      expect(response.body).toHaveProperty('expiresIn');
+
+      // Verify the access token is valid
+      const decoded = jwt.verify(response.body.accessToken, JWT_SECRET) as any;
+      expect(decoded.userId).toBe('test_user_123');
+      expect(decoded.provider).toBe('google');
+      expect(decoded.email).toBe('test@example.com');
+    });
+
+    it('should return 400 for missing refresh token', async () => {
+      const response = await request(app)
+        .post('/auth/refresh')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Refresh token is required');
+    });
+
+    it('should return 401 for invalid/unknown refresh token', async () => {
+      // Mock SELECT query returning empty rows (token not found)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+      // Mock superseded_by check - also not found (not a rotated token)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .send({ refreshToken: 'invalid_token_abc123' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Invalid refresh token');
+    });
+
+    it('should return 401 for expired refresh token', async () => {
+      const pastDate = new Date(Date.now() - 1000); // 1 second ago
+
+      // Mock SELECT query for refresh token lookup - token is expired
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          id: 'token-id-2',
+          user_id: 'test_user_123',
+          expires_at: pastDate,
+          revoked_at: null,
+          token_family: mockTokenFamily,
+          rotated_at: null,
+          device_info: null,
+          ip_address: null,
+          provider: 'email',
+          email: 'test@example.com'
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .send({ refreshToken: 'expired_refresh_token' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Refresh token has expired');
+    });
+
+    it('should return 401 for revoked refresh token', async () => {
+      const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+      // Mock SELECT query for refresh token lookup - token is revoked
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          id: 'token-id-3',
+          user_id: 'test_user_123',
+          expires_at: futureDate,
+          revoked_at: new Date(), // Token has been revoked
+          token_family: mockTokenFamily,
+          rotated_at: null,
+          device_info: null,
+          ip_address: null,
+          provider: 'apple',
+          email: 'test@example.com'
+        }]
+      });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .send({ refreshToken: 'revoked_refresh_token' })
+        .expect(401);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBe('Refresh token has been revoked');
+    });
+  });
 });
