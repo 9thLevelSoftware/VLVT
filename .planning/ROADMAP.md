@@ -99,10 +99,14 @@ Plans:
   3. All features are complete or intentionally disabled (no half-working functionality)
   4. Visual design is consistent across all screens (typography, spacing, colors, components)
   5. Error and loading states are properly implemented throughout the app
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
 
 Plans:
-- [ ] 04-01: TBD (planned during phase planning)
+- [ ] 04-01-PLAN.md - Comprehensive UI audit of all frontend screens (UI-01)
+- [ ] 04-02-PLAN.md - Fix loading, error, and empty state handling (UI-05, UI-06)
+- [ ] 04-03-PLAN.md - Enforce design system consistency (UI-04)
+- [ ] 04-04-PLAN.md - Fix navigation issues and verify UX flows (UI-02)
+- [ ] 04-05-PLAN.md - Clean up backend placeholders (UI-03)
 
 ### Phase 5: Monitoring & Alerting
 **Goal**: Production issues are detected and surfaced before users report them
@@ -158,7 +162,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 1. Security Hardening | 7/7 | Complete | 2026-01-24 |
 | 2. GDPR Compliance | 6/6 | Complete | 2026-01-24 |
 | 3. Testing Infrastructure | 12/12 | Complete | 2026-01-25 |
-| 4. Bug Fixes & UI Polish | 0/TBD | Not started | - |
+| 4. Bug Fixes & UI Polish | 0/5 | Ready | - |
 | 5. Monitoring & Alerting | 0/TBD | Not started | - |
 | 6. Deployment Infrastructure | 0/TBD | Not started | - |
 | 7. Safety Systems | 0/TBD | Not started | - |
@@ -166,5 +170,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-25 - Phase 3 complete (12 plans, all tests passing)*
+*Last updated: 2026-01-25 - Phase 4 planned (5 plans in 3 waves)*
 *Coverage: 38/38 v1 requirements mapped*
