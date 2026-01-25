@@ -21,6 +21,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'discovery_filters_screen.dart';
 import 'matches_screen.dart';
+import '../utils/error_handler.dart';
 import 'dart:async';
 
 class DiscoveryScreen extends StatefulWidget {
@@ -187,8 +188,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
       // Pre-cache upcoming profile images for smoother swiping
       _precacheNextProfiles();
     } catch (e) {
+      final friendlyError = ErrorHandler.handleError(e);
       setState(() {
-        _errorMessage = 'Failed to load profiles: $e';
+        _errorMessage = friendlyError.message;
         _isLoading = false;
       });
     }
@@ -332,8 +334,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
       }
     } catch (e) {
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to like: $e')),
+          SnackBar(content: Text(friendlyError.message)),
         );
       }
     }

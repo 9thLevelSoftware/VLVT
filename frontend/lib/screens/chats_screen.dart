@@ -18,6 +18,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'chat_screen.dart';
 import 'main_screen.dart';
+import '../utils/error_handler.dart';
 
 enum ChatsSortOption { recentActivity, newestMatches, nameAZ }
 
@@ -370,9 +371,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
     } catch (e) {
       // If API call fails, show error and restore the match
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to unmatch: $e'),
+            content: Text(friendlyError.message),
             backgroundColor: VlvtColors.crimson,
           ),
         );

@@ -23,6 +23,7 @@ import '../widgets/date_card.dart';
 import '../widgets/message_status_indicator.dart';
 import '../services/date_proposal_service.dart';
 import '../theme/vlvt_colors.dart';
+import '../utils/error_handler.dart';
 import 'profile_edit_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -290,7 +291,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _markMessagesAsRead();
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     } catch (e) {
-      setState(() => _errorMessage = 'Failed to load chat: $e');
+      final friendlyError = ErrorHandler.handleError(e);
+      setState(() => _errorMessage = friendlyError.message);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -305,8 +307,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (mounted) setState(() => _messages = messages);
     } catch (e) {
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed to refresh: $e')));
+            .showSnackBar(SnackBar(content: Text(friendlyError.message)));
       }
     } finally {
       if (mounted) setState(() => _isRefreshing = false);

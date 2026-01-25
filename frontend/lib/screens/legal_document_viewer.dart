@@ -5,6 +5,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
+import '../utils/error_handler.dart';
 
 enum LegalDocumentType {
   termsOfService,
@@ -47,8 +48,9 @@ class _LegalDocumentViewerState extends State<LegalDocumentViewer> {
         _isLoading = false;
       });
     } catch (e) {
+      final friendlyError = ErrorHandler.handleError(e);
       setState(() {
-        _error = 'Failed to load document: $e';
+        _error = friendlyError.message;
         _isLoading = false;
       });
     }
