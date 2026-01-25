@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 2 GDPR Compliance - Complete
+**Current focus:** Phase 3 Testing Infrastructure - In Progress
 
 ## Current Position
 
-Phase: 2 of 7 (GDPR Compliance)
-Plan: 6 of 6 in current phase
-Status: Phase complete
-Last activity: 2026-01-24 - Completed 02-06-PLAN.md (Data Export UI)
+Phase: 3 of 7 (Testing Infrastructure)
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-01-24 - Completed 03-01-PLAN.md (Jest Config Fix)
 
-Progress: [████████==] 40% (Phase 1 & 2 complete - 13/13 plans)
+Progress: [████████==] 41% (Phase 1 & 2 complete, Phase 3 started - 14 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13 (7 security + 6 GDPR)
+- Total plans completed: 14 (7 security + 6 GDPR + 1 testing)
 - Average duration: ~8 min
-- Total execution time: ~1.8 hours
+- Total execution time: ~1.9 hours
 
 **By Phase:**
 
@@ -29,14 +29,14 @@ Progress: [████████==] 40% (Phase 1 & 2 complete - 13/13 plans)
 |-------|-------|-----------|--------|
 | 01-security-hardening | 7 | 7 | Complete (verified) |
 | 02-GDPR-compliance | 6 | 6 | Complete (verified) |
-| 03-testing-infrastructure | TBD | 0 | Not started |
+| 03-testing-infrastructure | TBD | 1 | In progress |
 | 04-bug-fixes-ui-polish | TBD | 0 | Not started |
 | 05-monitoring-alerting | TBD | 0 | Not started |
 | 06-deployment-infrastructure | TBD | 0 | Not started |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 02-06 (2 min)
+- Last plan: 03-01 (3 min)
 - Trend: Excellent velocity
 
 *Updated after each plan completion*
@@ -82,24 +82,25 @@ Recent decisions affecting current work:
 - [02-06]: Export saves to app documents directory with ISO date in filename
 - [02-06]: Share dialog shown after successful export for user convenience
 - [02-06]: Rate limit errors handled gracefully with informative message (mentions hourly limit)
+- [03-01]: Jest config only in jest.config.js, never in package.json (prevents config conflicts)
+- [03-01]: jest.config.js is authoritative (30% coverage thresholds, setupFilesAfterEnv)
 
 ### Pending Todos
 
-Phase 2 GDPR Compliance complete. Ready for Phase 3: Testing Infrastructure.
+Phase 3 Testing Infrastructure in progress. Jest config conflicts resolved.
 
 ### Blockers/Concerns
 
-- Pre-existing test failures in auth-service, profile-service, chat-service (unrelated to security hardening work)
-- Jest config conflicts in services (both jest.config.js and package.json jest key)
+- Pre-existing test failures in auth-service, profile-service, chat-service (to be addressed in subsequent 03-XX plans)
 
 ## Session Continuity
 
-Last session: 2026-01-24T20:12:00Z
-Stopped at: Completed 02-06-PLAN.md (Data Export UI) - Phase 2 complete
+Last session: 2026-01-24T21:03:00Z
+Stopped at: Completed 03-01-PLAN.md (Jest Config Fix)
 Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (Phase 2 of 7 in progress - 5/6 plans complete)*
+*Current milestone: Production Readiness (Phase 3 of 7 in progress - 1 plan complete)*
