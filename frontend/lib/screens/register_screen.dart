@@ -478,11 +478,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           Spacing.verticalMd,
                           // Sign in link
-                          Center(
-                            child: VlvtButton.text(
-                              label: 'Already have an account? Sign in',
-                              onPressed: () => Navigator.pop(context),
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Already have an account? ',
+                                style: VlvtTextStyles.bodyMedium.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => Navigator.pop(context),
+                                child: Text(
+                                  'Sign in',
+                                  style: VlvtTextStyles.bodyMedium.copyWith(
+                                    color: VlvtColors.gold,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           Spacing.verticalXl,
                         ],
