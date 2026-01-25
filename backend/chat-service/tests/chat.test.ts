@@ -217,6 +217,17 @@ describe('Chat Service', () => {
   });
 
   describe('GET /messages/:matchId', () => {
+    it('should return error without authentication', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const response = await request(app)
+        .get('/messages/match_123');
+
+      // Accept 401 (auth required) as GET doesn't trigger CSRF
+      expect(response.status).toBe(401);
+    });
+
     it('should retrieve messages for own match', async () => {
       const appModule = require('../src/index');
       app = appModule.default || appModule;
@@ -265,6 +276,44 @@ describe('Chat Service', () => {
   });
 
   describe('POST /messages', () => {
+    it('should return error without authentication', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Without auth, request fails with either 401 (no token) or 403 (CSRF)
+      const response = await request(app)
+        .post('/messages')
+        .send({
+          matchId: 'match_123',
+          senderId: 'user_1',
+          text: 'Hello',
+        });
+
+      // Accept either 401 (auth) or 403 (CSRF) as both indicate auth failure
+      expect([401, 403]).toContain(response.status);
+    });
+
+    it('should return 403 when sending to match user is not part of', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Mock no match found for this user
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const response = await request(app)
+        .post('/messages')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          matchId: 'match_456',
+          senderId: 'user_1',
+          text: 'Hello',
+        })
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('not part of this match');
+    });
+
     it('should send message in own match', async () => {
       const appModule = require('../src/index');
       app = appModule.default || appModule;
@@ -538,6 +587,80 @@ describe('Chat Service', () => {
 
       expect(response.body.success).toBe(false);
     });
+
+    it('should return error without authentication', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Without auth, request fails with either 401 (no token) or 403 (CSRF)
+      const response = await request(app)
+        .post('/blocks')
+        .send({
+          userId: 'user_1',
+          blockedUserId: 'user_2',
+        });
+
+      expect([401, 403]).toContain(response.status);
+    });
+  });
+
+  describe('DELETE /blocks/:userId/:blockedUserId', () => {
+    it('should unblock a blocked user', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Mock successful unblock - block exists and is deleted
+      mockPool.query.mockResolvedValue({
+        rows: [{ id: 'block_1' }],
+      });
+
+      const response = await request(app)
+        .delete('/blocks/user_1/user_2')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toContain('unblocked');
+    });
+
+    it('should return 404 for non-blocked user', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Mock no block found
+      mockPool.query.mockResolvedValue({ rows: [] });
+
+      const response = await request(app)
+        .delete('/blocks/user_1/user_2')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('not found');
+    });
+
+    it('should return 403 when unblocking for another user', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const response = await request(app)
+        .delete('/blocks/user_2/user_3')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(403);
+
+      expect(response.body.success).toBe(false);
+    });
+
+    it('should return error without authentication', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const response = await request(app)
+        .delete('/blocks/user_1/user_2');
+
+      // Accept either 401 (auth) or 403 (CSRF/forbidden) as both indicate auth failure
+      expect([401, 403]).toContain(response.status);
+    });
   });
 
   describe('POST /reports', () => {
@@ -611,6 +734,41 @@ describe('Chat Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+    });
+
+    it('should return 400 for invalid reason value', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      const response = await request(app)
+        .post('/reports')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          reporterId: 'user_1',
+          reportedUserId: 'user_2',
+          reason: 'invalid_reason_not_in_enum',
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      // Validation error should mention valid reasons
+      expect(response.body.errors).toBeDefined();
+    });
+
+    it('should return error without authentication', async () => {
+      const appModule = require('../src/index');
+      app = appModule.default || appModule;
+
+      // Without auth, request fails with either 401 (no token) or 403 (CSRF)
+      const response = await request(app)
+        .post('/reports')
+        .send({
+          reporterId: 'user_1',
+          reportedUserId: 'user_2',
+          reason: 'spam',
+        });
+
+      expect([401, 403]).toContain(response.status);
     });
   });
 
