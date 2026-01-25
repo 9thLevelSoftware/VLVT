@@ -699,9 +699,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
         ),
         child: Text(
           '...',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+          style: VlvtTextStyles.h2.copyWith(
             color: VlvtColors.textMuted,
             letterSpacing: 2,
           ),
@@ -747,8 +745,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
             children: [
               Text(
                 message.text,
-                style: TextStyle(
-                  fontSize: 16,
+                style: VlvtTextStyles.bodyMedium.copyWith(
                   color: isFailed
                       ? VlvtColors.error
                       : (isCurrentUser ? VlvtColors.chatTextSent : VlvtColors.chatTextReceived),
@@ -757,8 +754,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
               const SizedBox(height: 4),
               Text(
                 formatTimestamp(message.timestamp),
-                style: TextStyle(
-                  fontSize: 11,
+                style: VlvtTextStyles.overline.copyWith(
                   color: isFailed
                       ? VlvtColors.error.withValues(alpha: 0.8)
                       : (isCurrentUser ? VlvtColors.chatTimestampSent : VlvtColors.chatTimestampReceived),
@@ -767,7 +763,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
               if (isFailed)
                 Text(
                   'Failed to send - tap to retry',
-                  style: TextStyle(fontSize: 11, color: VlvtColors.error, fontWeight: FontWeight.bold),
+                  style: VlvtTextStyles.overline.copyWith(color: VlvtColors.error, fontWeight: FontWeight.bold),
                 ),
             ],
           ),
@@ -808,11 +804,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
             IconButton(
               onPressed: _sendMessage,
               icon: _isSending
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const VlvtProgressIndicator(size: 24, strokeWidth: 2)
                   : const Icon(Icons.send),
               color: VlvtColors.gold,
               iconSize: 28,

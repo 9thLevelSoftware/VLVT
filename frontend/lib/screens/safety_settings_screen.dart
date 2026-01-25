@@ -7,7 +7,10 @@ import '../services/profile_api_service.dart';
 import '../services/auth_service.dart';
 import '../models/profile.dart';
 import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
+import '../utils/error_handler.dart';
 import 'consent_settings_screen.dart';
 import 'legal_document_viewer.dart';
 
@@ -62,8 +65,9 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         _isLoading = false;
       });
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load blocked users: $e')),
+          SnackBar(content: Text(friendlyError.message)),
         );
       }
     }
@@ -101,8 +105,9 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         }
       } catch (e) {
         if (mounted) {
+          final friendlyError = ErrorHandler.handleError(e);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to unblock user: $e')),
+            SnackBar(content: Text(friendlyError.message)),
           );
         }
       }
@@ -129,26 +134,25 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Contact Support'),
-              content: const Column(
+              content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Please email us at:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: VlvtTextStyles.labelMedium,
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   SelectableText(
                     supportEmail,
-                    style: TextStyle(
-                      color: Colors.deepPurple,
-                      fontSize: 16,
+                    style: VlvtTextStyles.bodyMedium.copyWith(
+                      color: VlvtColors.primary,
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text(
                     'We typically respond within 24 hours.',
-                    style: TextStyle(color: VlvtColors.textMuted),
+                    style: VlvtTextStyles.bodySmall.copyWith(color: VlvtColors.textMuted),
                   ),
                 ],
               ),
@@ -164,8 +168,9 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening email: $e')),
+          SnackBar(content: Text(friendlyError.message)),
         );
       }
     }
@@ -197,8 +202,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                 const SizedBox(height: 8),
                 Text(
                   'File saved to:\n$filePath',
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: VlvtTextStyles.caption.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                 ),
@@ -229,9 +233,10 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Export error: $e'),
+            content: Text(friendlyError.message),
             backgroundColor: VlvtColors.crimson,
           ),
         );
@@ -251,23 +256,19 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
       ),
       body: ListView(
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Blocked Users',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: VlvtTextStyles.h2,
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   'Blocked users cannot see your profile or send you messages.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: VlvtTextStyles.bodySmall.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                 ),
@@ -279,34 +280,31 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             const Padding(
               padding: EdgeInsets.all(32.0),
               child: Center(
-                child: CircularProgressIndicator(),
+                child: VlvtProgressIndicator(size: 32),
               ),
             )
           else if (_blockedUsers.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32.0),
+            Padding(
+              padding: const EdgeInsets.all(32.0),
               child: Center(
                 child: Column(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.check_circle_outline,
                       size: 80,
-                      color: Colors.green,
+                      color: VlvtColors.success,
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Text(
                       'No blocked users',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      style: VlvtTextStyles.h3.copyWith(
                         color: VlvtColors.textMuted,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'You have not blocked anyone yet.',
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: VlvtTextStyles.bodySmall.copyWith(
                         color: VlvtColors.textMuted,
                       ),
                     ),
@@ -340,41 +338,38 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
               );
             })),
           const Divider(),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Safety Tips',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: VlvtTextStyles.h2,
                 ),
-                SizedBox(height: 16),
-                _SafetyTip(
+                const SizedBox(height: 16),
+                const _SafetyTip(
                   icon: Icons.shield,
                   title: 'Protect Your Personal Information',
                   description:
                       'Never share personal information like your address, financial details, or social security number.',
                 ),
-                SizedBox(height: 12),
-                _SafetyTip(
+                const SizedBox(height: 12),
+                const _SafetyTip(
                   icon: Icons.group,
                   title: 'Meet in Public Places',
                   description:
                       'Always meet in public places for first dates and tell a friend or family member where you\'re going.',
                 ),
-                SizedBox(height: 12),
-                _SafetyTip(
+                const SizedBox(height: 12),
+                const _SafetyTip(
                   icon: Icons.flag,
                   title: 'Report Suspicious Behavior',
                   description:
                       'If someone makes you uncomfortable or exhibits suspicious behavior, report them immediately.',
                 ),
-                SizedBox(height: 12),
-                _SafetyTip(
+                const SizedBox(height: 12),
+                const _SafetyTip(
                   icon: Icons.block,
                   title: 'Trust Your Instincts',
                   description:
@@ -389,18 +384,14 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Need Help?',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: VlvtTextStyles.h2,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'If you\'re experiencing harassment or feel unsafe, please contact our support team.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: VlvtTextStyles.bodySmall.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                 ),
@@ -419,18 +410,14 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Privacy & Legal',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: VlvtTextStyles.h2,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Review our policies and your privacy rights.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: VlvtTextStyles.bodySmall.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                 ),
@@ -489,18 +476,14 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Your Data',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: VlvtTextStyles.h2,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Download a copy of all your personal data. This includes your profile, matches, messages, and preferences.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: VlvtTextStyles.bodySmall.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                 ),
@@ -519,19 +502,16 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Delete Account',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  style: VlvtTextStyles.h2.copyWith(
                     color: VlvtColors.crimson,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Permanently delete your account and all associated data. This action cannot be undone.',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: VlvtTextStyles.bodySmall.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                 ),
@@ -609,7 +589,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(),
+        child: VlvtLoader(),
       ),
     );
 
@@ -640,9 +620,10 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
     } catch (e) {
       if (!mounted) return;
       Navigator.of(context).pop(); // Dismiss loading
+      final friendlyError = ErrorHandler.handleError(e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(friendlyError.message),
           backgroundColor: VlvtColors.crimson,
         ),
       );
@@ -680,7 +661,7 @@ class _SafetyTip extends StatelessWidget {
       children: [
         Icon(
           icon,
-          color: Colors.deepPurple,
+          color: VlvtColors.primary,
           size: 24,
         ),
         const SizedBox(width: 12),
@@ -690,16 +671,12 @@ class _SafetyTip extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: VlvtTextStyles.h4,
               ),
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 14,
+                style: VlvtTextStyles.bodySmall.copyWith(
                   color: VlvtColors.textMuted,
                 ),
               ),

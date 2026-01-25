@@ -8,6 +8,7 @@ import '../services/verification_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 
 class VerificationScreen extends StatefulWidget {
   const VerificationScreen({super.key});
@@ -311,7 +312,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     // Show camera preview
     if (!_isCameraReady || _cameraController == null) {
       return const Center(
-        child: CircularProgressIndicator(color: VlvtColors.gold),
+        child: VlvtProgressIndicator(),
       );
     }
 
@@ -396,7 +397,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           Container(
             color: Colors.black.withValues(alpha: 0.5),
             child: const Center(
-              child: CircularProgressIndicator(color: VlvtColors.gold),
+              child: VlvtProgressIndicator(),
             ),
           ),
       ],
@@ -449,7 +450,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     return Column(
       children: [
         if (_prompt == null)
-          const CircularProgressIndicator(color: VlvtColors.gold)
+          const VlvtProgressIndicator()
         else
           VlvtButton.primary(
             label: 'Start Verification',

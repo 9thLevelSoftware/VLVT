@@ -4,6 +4,7 @@ import '../services/profile_api_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../utils/error_handler.dart';
 import 'search_results_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -144,8 +145,9 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Search failed: $e')),
+          SnackBar(content: Text(friendlyError.message)),
         );
       }
     } finally {

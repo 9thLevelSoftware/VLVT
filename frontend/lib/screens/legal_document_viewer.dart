@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 
 enum LegalDocumentType {
   termsOfService,
@@ -65,7 +68,7 @@ class _LegalDocumentViewerState extends State<LegalDocumentViewer> {
         elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: VlvtProgressIndicator(size: 32))
           : _error != null
               ? Center(
                   child: Padding(
@@ -76,13 +79,13 @@ class _LegalDocumentViewerState extends State<LegalDocumentViewer> {
                         const Icon(
                           Icons.error_outline,
                           size: 64,
-                          color: Colors.red,
+                          color: VlvtColors.error,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           _error!,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16),
+                          style: VlvtTextStyles.bodyMedium,
                         ),
                         const SizedBox(height: 24),
                         VlvtButton.primary(
@@ -97,29 +100,11 @@ class _LegalDocumentViewerState extends State<LegalDocumentViewer> {
                   data: _content,
                   selectable: true,
                   styleSheet: MarkdownStyleSheet(
-                    h1: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      height: 1.5,
-                    ),
-                    h2: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      height: 1.4,
-                    ),
-                    h3: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
-                    ),
-                    p: const TextStyle(
-                      fontSize: 14,
-                      height: 1.6,
-                    ),
-                    listBullet: const TextStyle(
-                      fontSize: 14,
-                      height: 1.4,
-                    ),
+                    h1: VlvtTextStyles.h1.copyWith(height: 1.5),
+                    h2: VlvtTextStyles.h2.copyWith(height: 1.4),
+                    h3: VlvtTextStyles.h3.copyWith(height: 1.3),
+                    p: VlvtTextStyles.bodySmall.copyWith(height: 1.6),
+                    listBullet: VlvtTextStyles.bodySmall.copyWith(height: 1.4),
                     blockSpacing: 12.0,
                     listIndent: 24.0,
                   ),

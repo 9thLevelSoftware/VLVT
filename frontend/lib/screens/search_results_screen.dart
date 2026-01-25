@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import 'paywall_screen.dart';
 
@@ -51,17 +52,15 @@ class SearchResultsScreen extends StatelessWidget {
               // Count display
               Text(
                 count.toString(),
-                style: TextStyle(
+                style: VlvtTextStyles.displayLarge.copyWith(
                   fontSize: 72,
-                  fontWeight: FontWeight.bold,
                   color: VlvtColors.gold,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 count == 1 ? 'person matches your criteria' : 'people match your criteria',
-                style: TextStyle(
-                  fontSize: 18,
+                style: VlvtTextStyles.bodyLarge.copyWith(
                   color: VlvtColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
@@ -69,8 +68,7 @@ class SearchResultsScreen extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'within ${criteria['maxDistance']} miles',
-                style: TextStyle(
-                  fontSize: 14,
+                style: VlvtTextStyles.bodySmall.copyWith(
                   color: VlvtColors.textMuted,
                 ),
               ),
@@ -130,13 +128,10 @@ class WhyWeChargeDialog extends StatelessWidget {
                     color: VlvtColors.primary,
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'We swiped left on modern dating apps.',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: VlvtTextStyles.h3,
                     ),
                   ),
                 ],
@@ -146,8 +141,7 @@ class WhyWeChargeDialog extends StatelessWidget {
               // Introduction
               Text(
                 'We got tired of "freemium" apps that treat your love life like a slot machine, monetizing every swipe and click. So, we built the antidote.',
-                style: TextStyle(
-                  fontSize: 14,
+                style: VlvtTextStyles.bodySmall.copyWith(
                   color: VlvtColors.textSecondary,
                   height: 1.5,
                 ),
@@ -250,16 +244,12 @@ class WhyWeChargeDialog extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: VlvtTextStyles.labelMedium,
               ),
               const SizedBox(height: 4),
               Text(
                 content,
-                style: TextStyle(
-                  fontSize: 13,
+                style: VlvtTextStyles.bodySmall.copyWith(
                   color: VlvtColors.textSecondary,
                   height: 1.4,
                 ),

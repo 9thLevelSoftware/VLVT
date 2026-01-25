@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
+import '../utils/error_handler.dart';
 
 /// Screen for managing GDPR consent preferences.
 ///
@@ -39,8 +42,9 @@ class _ConsentSettingsScreenState extends State<ConsentSettingsScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load consent settings: $e')),
+          SnackBar(content: Text(friendlyError.message)),
         );
       }
     }
@@ -111,7 +115,7 @@ class _ConsentSettingsScreenState extends State<ConsentSettingsScreen> {
         title: const Text('Privacy Preferences'),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: VlvtProgressIndicator())
           : ListView(
               children: [
                 Padding(
@@ -119,18 +123,14 @@ class _ConsentSettingsScreenState extends State<ConsentSettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Manage Your Data',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: VlvtTextStyles.h2,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Control how VLVT uses your data. You can withdraw consent at any time without affecting your account.',
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: VlvtTextStyles.bodySmall.copyWith(
                           color: VlvtColors.textMuted,
                         ),
                       ),
@@ -145,8 +145,7 @@ class _ConsentSettingsScreenState extends State<ConsentSettingsScreen> {
                   child: Text(
                     'These settings help us provide a better experience while respecting your privacy. '
                     'Some features may require certain consents to function properly.',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: VlvtTextStyles.caption.copyWith(
                       color: VlvtColors.textMuted,
                     ),
                   ),

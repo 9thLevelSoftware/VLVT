@@ -386,14 +386,7 @@ class _AfterHoursProfileScreenState extends State<AfterHoursProfileScreen> {
           TextButton(
             onPressed: _isSaving ? null : _saveProfile,
             child: _isSaving
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: VlvtColors.gold,
-                    ),
-                  )
+                ? const VlvtProgressIndicator(size: 20, strokeWidth: 2)
                 : Text(
                     'Save',
                     style: VlvtTextStyles.labelLarge.copyWith(

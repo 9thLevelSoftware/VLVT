@@ -16,6 +16,7 @@ import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
+import '../utils/error_handler.dart';
 import 'after_hours_profile_screen.dart';
 import 'after_hours_preferences_screen.dart';
 import 'after_hours_chat_screen.dart';
@@ -203,9 +204,10 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
       HapticFeedback.mediumImpact();
     } catch (e) {
       if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start session: $e'),
+            content: Text(friendlyError.message),
             backgroundColor: VlvtColors.error,
           ),
         );

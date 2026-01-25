@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 
 /// ID Verification Screen using KYCAID
 ///
@@ -246,7 +247,7 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
       body: SafeArea(
         child: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: VlvtColors.gold),
+                child: VlvtProgressIndicator(),
               )
             : _buildContent(),
       ),
@@ -437,13 +438,9 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Animated loading indicator
-          const SizedBox(
-            width: 80,
-            height: 80,
-            child: CircularProgressIndicator(
-              color: VlvtColors.gold,
-              strokeWidth: 4,
-            ),
+          const VlvtProgressIndicator(
+            size: 80,
+            strokeWidth: 4,
           ),
 
           const SizedBox(height: 32),

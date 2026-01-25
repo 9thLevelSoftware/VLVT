@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/discovery_preferences_service.dart';
 import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_card.dart';
 
@@ -112,9 +113,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Age Range Section
-              const Text(
+              Text(
                 'Age Range',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: VlvtTextStyles.h3,
               ),
               const SizedBox(height: 8),
               VlvtSurfaceCard(
@@ -125,10 +126,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                       children: [
                         Text(
                           '$_minAge - $_maxAge years',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: VlvtTextStyles.labelLarge,
                         ),
                       ],
                     ),
@@ -159,9 +157,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
               const SizedBox(height: 24),
 
               // Distance Section
-              const Text(
+              Text(
                 'Maximum Distance',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: VlvtTextStyles.h3,
               ),
               const SizedBox(height: 8),
               VlvtSurfaceCard(
@@ -172,10 +170,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                       children: [
                         Text(
                           '${_maxDistance.round()} km',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: VlvtTextStyles.labelLarge,
                         ),
                       ],
                     ),
@@ -199,9 +194,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
               const SizedBox(height: 24),
 
               // Verified Only Section
-              const Text(
+              Text(
                 'Verification',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: VlvtTextStyles.h3,
               ),
               const SizedBox(height: 8),
               VlvtSurfaceCard(
@@ -220,12 +215,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
-                              const Text(
+                              Text(
                                 'Verified Users Only',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: VlvtTextStyles.labelLarge,
                               ),
                             ],
                           ),
@@ -257,9 +249,9 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
               const SizedBox(height: 24),
 
               // Interests Section
-              const Text(
+              Text(
                 'Interests',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: VlvtTextStyles.h3,
               ),
               const SizedBox(height: 8),
               VlvtSurfaceCard(
