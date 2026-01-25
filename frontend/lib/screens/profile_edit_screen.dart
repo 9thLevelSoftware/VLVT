@@ -203,6 +203,38 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return true;
   }
 
+  Future<void> _showLogoutConfirmation() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: VlvtColors.surface,
+        title: Text(
+          'Log Out?',
+          style: VlvtTextStyles.h3.copyWith(color: VlvtColors.textPrimary),
+        ),
+        content: Text(
+          'Are you sure you want to log out? You can always come back and complete your profile later.',
+          style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: VlvtColors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Log Out', style: TextStyle(color: VlvtColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      final authService = context.read<AuthService>();
+      await authService.signOut();
+    }
+  }
+
   Future<bool> _confirmDiscard() async {
     if (!_hasUnsavedChanges()) return true;
 
@@ -263,6 +295,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               }
             },
           ),
+          actions: widget.isFirstTimeSetup ? [
+            TextButton(
+              onPressed: () => _showLogoutConfirmation(),
+              child: Text(
+                'Log out',
+                style: VlvtTextStyles.bodyMedium.copyWith(
+                  color: VlvtColors.textSecondary,
+                ),
+              ),
+            ),
+          ] : null,
         ),
         body: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
