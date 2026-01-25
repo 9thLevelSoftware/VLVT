@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 3 of 7 (Testing Infrastructure)
-Plan: 11 of 12 in current phase (gap closure wave 1)
+Plan: 8 of 12 in current phase (gap closure wave 1)
 Status: Executing gap closure plans
-Last activity: 2026-01-25 - Completed 03-11-PLAN.md (Socket Handler Test Fix)
+Last activity: 2026-01-25 - Completed 03-08-PLAN.md (Auth Middleware Test Fix)
 
 Progress: [█████████=] 62% (Phase 1, 2, & 3 complete - 21 plans)
 
@@ -93,7 +93,8 @@ Recent decisions affecting current work:
 - [03-06]: Isolated Express app pattern used for reliable After Hours flow testing
 - [03-07]: Document-style tests for BOLA protection with cross-references to authorization.test.ts
 - [03-07]: Input validation rejects emails containing SQL keywords like 'user' (defense in depth)
-- [03-11]: Mock socket requires handshake.address for auth failure logging in message handlers
+- [03-08]: Top-level import for middleware tests (pure function, no state to reset)
+- [03-08]: TokenExpiredError checked before JsonWebTokenError (inheritance order)
 
 ### Pending Todos
 
@@ -105,8 +106,8 @@ None - all Phase 3 testing requirements satisfied.
 
 ## Session Continuity
 
-Last session: 2026-01-25T03:45:00Z
-Stopped at: Completed 03-11-PLAN.md (Socket Handler Test Fix)
+Last session: 2026-01-25T03:43:27Z
+Stopped at: Completed 03-08-PLAN.md (Auth Middleware Test Fix)
 Resume file: None
 
 ---

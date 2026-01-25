@@ -1,4 +1,6 @@
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 
 // Mock dependencies before importing the app
 jest.mock('pg', () => {
@@ -14,13 +16,154 @@ jest.mock('@sentry/node', () => ({
   setupExpressErrorHandler: jest.fn(),
 }));
 
+// Mock @vlvt/shared to bypass CSRF middleware and provide stubs
+jest.mock('@vlvt/shared', () => ({
+  createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+  createAuditLogger: jest.fn(() => ({
+    logAction: jest.fn().mockResolvedValue(undefined),
+    logDataChange: jest.fn().mockResolvedValue(undefined),
+  })),
+  AuditAction: {},
+  AuditResourceType: {},
+  addVersionToHealth: jest.fn((obj: any) => ({
+    ...obj,
+    api: {
+      currentVersion: 1,
+      minimumVersion: 1,
+      supportedVersions: [1, 2],
+      deprecatedVersions: [],
+    },
+  })),
+  createVersionMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  API_VERSIONS: { V1: 'v1' },
+  CURRENT_API_VERSION: 'v1',
+  // After Hours auth middleware (requires premium subscription + ID verification + consent)
+  createAfterHoursAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+}));
+
+// Mock R2/S3 client for photo operations
+jest.mock('@aws-sdk/client-s3', () => ({
+  S3Client: jest.fn(() => ({
+    send: jest.fn().mockResolvedValue({}),
+  })),
+  PutObjectCommand: jest.fn(),
+  DeleteObjectCommand: jest.fn(),
+  GetObjectCommand: jest.fn(),
+  HeadObjectCommand: jest.fn(),
+}));
+
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest.fn().mockResolvedValue('https://mock-presigned-url.example.com/photo.jpg'),
+}));
+
+// Mock AWS Rekognition for face verification
+jest.mock('@aws-sdk/client-rekognition', () => ({
+  RekognitionClient: jest.fn(() => ({
+    send: jest.fn().mockResolvedValue({
+      FaceMatches: [{ Similarity: 95 }],
+    }),
+  })),
+  CompareFacesCommand: jest.fn(),
+}));
+
+// Mock Firebase Admin for push notifications
+jest.mock('firebase-admin', () => ({
+  initializeApp: jest.fn(),
+  credential: {
+    cert: jest.fn(),
+  },
+  messaging: jest.fn(() => ({
+    send: jest.fn().mockResolvedValue('message-id'),
+    sendEachForMulticast: jest.fn().mockResolvedValue({
+      successCount: 1,
+      failureCount: 0,
+      responses: [{ success: true }],
+    }),
+  })),
+}));
+
+// Mock Sharp for image processing
+jest.mock('sharp', () => {
+  return jest.fn(() => ({
+    resize: jest.fn().mockReturnThis(),
+    webp: jest.fn().mockReturnThis(),
+    toBuffer: jest.fn().mockResolvedValue(Buffer.from('mock-image')),
+    metadata: jest.fn().mockResolvedValue({ width: 800, height: 600 }),
+  }));
+});
+
+// Mock rate limiters to not interfere with tests
+jest.mock('../src/middleware/rate-limiter', () => ({
+  generalLimiter: (req: any, res: any, next: any) => next(),
+  profileCreationLimiter: (req: any, res: any, next: any) => next(),
+  discoveryLimiter: (req: any, res: any, next: any) => next(),
+}));
+
+// Mock FCM service
+jest.mock('../src/services/fcm-service', () => ({
+  initializeFirebase: jest.fn(),
+  isFirebaseReady: jest.fn().mockReturnValue(false),
+  sendMatchNotification: jest.fn().mockResolvedValue(undefined),
+  sendMessageNotification: jest.fn().mockResolvedValue(undefined),
+  registerFCMToken: jest.fn().mockResolvedValue(undefined),
+  unregisterFCMToken: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock session scheduler
+jest.mock('../src/services/session-scheduler', () => ({
+  initializeSessionWorker: jest.fn().mockResolvedValue(undefined),
+  closeSessionScheduler: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock matching scheduler
+jest.mock('../src/services/matching-scheduler', () => ({
+  initializeMatchingScheduler: jest.fn().mockResolvedValue(undefined),
+  closeMatchingScheduler: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock session cleanup job
+jest.mock('../src/jobs/session-cleanup-job', () => ({
+  initializeSessionCleanupJob: jest.fn().mockResolvedValue(undefined),
+  closeSessionCleanupJob: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock image handler to avoid file system operations
+jest.mock('../src/utils/image-handler', () => ({
+  initializeUploadDirectory: jest.fn().mockResolvedValue(undefined),
+  validateImage: jest.fn().mockReturnValue({ valid: true }),
+  validateImageMagicBytes: jest.fn().mockResolvedValue({ valid: true }),
+  processImage: jest.fn().mockResolvedValue({
+    key: 'photos/test_user_123/photo.webp',
+    thumbnailKey: 'photos/test_user_123/photo_thumb.webp',
+  }),
+  deleteImage: jest.fn().mockResolvedValue(undefined),
+  getPhotoIdFromUrl: jest.fn().mockReturnValue('photo-id'),
+  canUploadMorePhotos: jest.fn().mockReturnValue(true),
+  MAX_PHOTOS_PER_PROFILE: 6,
+}));
+
+// Mock R2 client
+jest.mock('../src/utils/r2-client', () => ({
+  resolvePhotoUrls: jest.fn().mockImplementation((photos: string[]) =>
+    Promise.resolve(photos.map((p) => `https://mock-presigned-url.example.com/${p}`))
+  ),
+  resolvePhotoUrl: jest.fn().mockImplementation((photo: string) =>
+    Promise.resolve(`https://mock-presigned-url.example.com/${photo}`)
+  ),
+  uploadToR2: jest.fn().mockResolvedValue('uploaded-key'),
+  getPresignedUrl: jest.fn().mockResolvedValue('https://mock-presigned-url.example.com/photo.jpg'),
+  deleteUserPhotos: jest.fn().mockResolvedValue({ deleted: 0, failed: 0 }),
+  R2_BUCKET_NAME: 'vlvt-images',
+}));
+
 import request from 'supertest';
 import { Pool } from 'pg';
+import app from '../src/index';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 describe('Profile Service', () => {
-  let app: any;
   let mockPool: any;
   let validToken: string;
 
@@ -46,42 +189,51 @@ describe('Profile Service', () => {
         bio: 'Test bio',
         photos: ['photo1.jpg', 'photo2.jpg'],
         interests: ['hiking', 'reading'],
+        is_verified: false,
+        verified_at: null,
         created_at: new Date(),
         updated_at: new Date(),
       }],
     });
-
-    // Re-import app to get fresh instance with mocks
-    jest.resetModules();
-    delete require.cache[require.resolve('../src/index')];
   });
 
   describe('Health Check', () => {
     it('should return health status', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/health')
         .expect(200);
 
-      expect(response.body).toEqual({
+      expect(response.body).toMatchObject({
         status: 'ok',
         service: 'profile-service',
       });
+      // API versioning info is added by addVersionToHealth
+      expect(response.body).toHaveProperty('api');
     });
   });
 
   describe('POST /profile', () => {
     it('should create profile with valid data', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      // Mock INSERT query returning the created profile
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'test_user_123',
+          name: 'John Doe',
+          age: 28,
+          bio: 'Love hiking and coffee',
+          photos: ['https://example.com/photo1.jpg'],
+          interests: ['hiking', 'coffee'],
+          created_at: new Date(),
+          updated_at: new Date(),
+        }],
+      });
 
+      // Note: photos must be valid URLs per validation middleware
       const profileData = {
         name: 'John Doe',
         age: 28,
         bio: 'Love hiking and coffee',
-        photos: ['photo1.jpg'],
+        photos: ['https://example.com/photo1.jpg'],
         interests: ['hiking', 'coffee'],
       };
 
@@ -93,13 +245,10 @@ describe('Profile Service', () => {
 
       expect(response.body.success).toBe(true);
       expect(response.body.profile).toHaveProperty('userId');
-      expect(response.body.profile.name).toBe('Test User');
+      expect(response.body.profile.name).toBe('John Doe');
     });
 
     it('should return 401 without authentication token', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/profile')
         .send({ name: 'Test', age: 25 })
@@ -109,9 +258,6 @@ describe('Profile Service', () => {
     });
 
     it('should validate age is 18 or older', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/profile')
         .set('Authorization', `Bearer ${validToken}`)
@@ -122,9 +268,6 @@ describe('Profile Service', () => {
     });
 
     it('should validate required fields', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/profile')
         .set('Authorization', `Bearer ${validToken}`)
@@ -135,8 +278,19 @@ describe('Profile Service', () => {
     });
 
     it('should use userId from JWT token, not request body', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      // Mock INSERT query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'test_user_123',
+          name: 'Test',
+          age: 25,
+          bio: 'Test bio',
+          photos: [],
+          interests: [],
+          created_at: new Date(),
+          updated_at: new Date(),
+        }],
+      });
 
       await request(app)
         .post('/profile')
@@ -158,9 +312,6 @@ describe('Profile Service', () => {
 
   describe('GET /profile/:userId', () => {
     it('should retrieve own profile', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/profile/test_user_123')
         .set('Authorization', `Bearer ${validToken}`)
@@ -169,26 +320,38 @@ describe('Profile Service', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.profile).toHaveProperty('userId');
       expect(response.body.profile).toHaveProperty('name');
+      expect(response.body.isOwnProfile).toBe(true);
     });
 
-    it('should return 403 when accessing other user profile', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+    it('should allow viewing other user profiles (public data)', async () => {
+      // GET /profile/:userId is intentionally public for discovery
+      // The endpoint returns public profile data for matching
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'different_user_id',
+          name: 'Other User',
+          age: 30,
+          bio: 'Another bio',
+          photos: ['photo.jpg'],
+          interests: ['music'],
+          is_verified: false,
+          verified_at: null,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }],
+      });
 
       const response = await request(app)
         .get('/profile/different_user_id')
         .set('Authorization', `Bearer ${validToken}`)
-        .expect(403);
+        .expect(200);
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('Forbidden');
+      expect(response.body.success).toBe(true);
+      expect(response.body.isOwnProfile).toBe(false);
     });
 
     it('should return 404 when profile not found', async () => {
-      mockPool.query.mockResolvedValue({ rows: [] });
-
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
         .get('/profile/test_user_123')
@@ -200,9 +363,6 @@ describe('Profile Service', () => {
     });
 
     it('should return 401 without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/profile/test_user_123')
         .expect(401);
@@ -213,8 +373,19 @@ describe('Profile Service', () => {
 
   describe('PUT /profile/:userId', () => {
     it('should update own profile', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      // Mock UPDATE query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'test_user_123',
+          name: 'Updated Name',
+          age: 25,
+          bio: 'Updated bio',
+          photos: ['photo1.jpg'],
+          interests: ['hiking'],
+          created_at: new Date(),
+          updated_at: new Date(),
+        }],
+      });
 
       const updateData = {
         name: 'Updated Name',
@@ -232,9 +403,6 @@ describe('Profile Service', () => {
     });
 
     it('should return 403 when updating other user profile', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .put('/profile/different_user_id')
         .set('Authorization', `Bearer ${validToken}`)
@@ -246,9 +414,6 @@ describe('Profile Service', () => {
     });
 
     it('should validate age on update', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .put('/profile/test_user_123')
         .set('Authorization', `Bearer ${validToken}`)
@@ -259,8 +424,19 @@ describe('Profile Service', () => {
     });
 
     it('should handle partial updates', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      // Mock UPDATE query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{
+          user_id: 'test_user_123',
+          name: 'Test User',
+          age: 25,
+          bio: 'Just updating bio',
+          photos: ['photo1.jpg'],
+          interests: ['hiking'],
+          created_at: new Date(),
+          updated_at: new Date(),
+        }],
+      });
 
       const response = await request(app)
         .put('/profile/test_user_123')
@@ -274,8 +450,14 @@ describe('Profile Service', () => {
 
   describe('DELETE /profile/:userId', () => {
     it('should delete own profile', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      // Mock SELECT photos query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ photos: ['photo1.jpg'] }],
+      });
+      // Mock DELETE query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ user_id: 'test_user_123' }],
+      });
 
       const response = await request(app)
         .delete('/profile/test_user_123')
@@ -287,9 +469,6 @@ describe('Profile Service', () => {
     });
 
     it('should return 403 when deleting other user profile', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .delete('/profile/different_user_id')
         .set('Authorization', `Bearer ${validToken}`)
@@ -299,10 +478,14 @@ describe('Profile Service', () => {
     });
 
     it('should return 404 when profile not found', async () => {
-      mockPool.query.mockResolvedValue({ rows: [] });
-
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
+      // Mock SELECT photos query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [],
+      });
+      // Mock DELETE query returns no rows
+      mockPool.query.mockResolvedValueOnce({
+        rows: [],
+      });
 
       const response = await request(app)
         .delete('/profile/test_user_123')
@@ -315,7 +498,12 @@ describe('Profile Service', () => {
 
   describe('GET /profiles/discover', () => {
     it('should return random profiles excluding own', async () => {
-      mockPool.query.mockResolvedValue({
+      // Mock count query
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ count: '2' }],
+      });
+      // Mock discovery query
+      mockPool.query.mockResolvedValueOnce({
         rows: [
           {
             user_id: 'user_1',
@@ -324,6 +512,8 @@ describe('Profile Service', () => {
             bio: 'Bio 1',
             photos: ['photo1.jpg'],
             interests: ['hiking'],
+            is_verified: false,
+            created_at: new Date(),
           },
           {
             user_id: 'user_2',
@@ -332,12 +522,11 @@ describe('Profile Service', () => {
             bio: 'Bio 2',
             photos: ['photo2.jpg'],
             interests: ['reading'],
+            is_verified: true,
+            created_at: new Date(),
           },
         ],
       });
-
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
 
       const response = await request(app)
         .get('/profiles/discover')
@@ -350,9 +539,6 @@ describe('Profile Service', () => {
     });
 
     it('should require authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/profiles/discover')
         .expect(401);
@@ -364,9 +550,6 @@ describe('Profile Service', () => {
       // This test verifies the discovery query includes RANDOM() for tiebreaker ordering
       // by reading the source code directly, since the mock setup for the full
       // endpoint is complex and prone to 500 errors
-
-      const fs = require('fs');
-      const path = require('path');
 
       // Read the source file
       const sourceFile = path.join(__dirname, '../src/index.ts');
