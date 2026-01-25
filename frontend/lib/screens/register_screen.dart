@@ -301,6 +301,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   else
                     Form(
                       key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
