@@ -101,6 +101,9 @@ Recent decisions affecting current work:
 - [03-10]: Mock profile-check utility to avoid dynamic import issues in tests
 - [03-10]: Single app import pattern: Import app ONCE after all jest.mock() calls
 - [03-10]: Use errors array assertion for validation middleware tests (not error string)
+- [03-09]: Mock input validation middleware in tests to avoid SQL injection pattern false positives
+- [03-09]: Update error message expectations to match new ErrorCodes system
+- [03-09]: Access tokens now 15 minutes (not 7 days) with refresh token support
 
 ### Pending Todos
 
@@ -113,7 +116,7 @@ None - all Phase 3 testing requirements satisfied.
 ## Session Continuity
 
 Last session: 2026-01-25T03:55:00Z
-Stopped at: Completed 03-10-PLAN.md (Chat Service Test Fix)
+Stopped at: Completed 03-09-PLAN.md (Auth Test Fixes)
 Resume file: None
 
 ---
