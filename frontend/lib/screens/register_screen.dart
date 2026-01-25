@@ -78,8 +78,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _validatePassword(String password) {
-    // Must be at least 8 characters
-    if (password.length < 8) return false;
+    // Must be at least 12 characters
+    if (password.length < 12) return false;
 
     // Must contain at least one letter
     if (!password.contains(RegExp(r'[a-zA-Z]'))) return false;
@@ -87,20 +87,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Must contain at least one number
     if (!password.contains(RegExp(r'[0-9]'))) return false;
 
+    // Must contain at least one special character
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) return false;
+
     return true;
   }
 
   String _getPasswordRequirements(String password) {
     final requirements = <String>[];
 
-    if (password.length < 8) {
-      requirements.add('At least 8 characters');
+    if (password.length < 12) {
+      requirements.add('At least 12 characters');
     }
     if (!password.contains(RegExp(r'[a-zA-Z]'))) {
       requirements.add('At least one letter');
     }
     if (!password.contains(RegExp(r'[0-9]'))) {
       requirements.add('At least one number');
+    }
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      requirements.add('At least one special character (!@#\$%^&* etc.)');
     }
 
     if (requirements.isEmpty) {
