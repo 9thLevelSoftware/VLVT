@@ -98,6 +98,9 @@ Recent decisions affecting current work:
 - [03-12]: Single app import at module level for profile tests (no jest.resetModules)
 - [03-12]: createAfterHoursAuthMiddleware must be mocked for profile-service tests
 - [03-12]: Photo validation requires valid URLs (https://), not bare filenames
+- [03-10]: Mock profile-check utility to avoid dynamic import issues in tests
+- [03-10]: Single app import pattern: Import app ONCE after all jest.mock() calls
+- [03-10]: Use errors array assertion for validation middleware tests (not error string)
 
 ### Pending Todos
 
@@ -109,8 +112,8 @@ None - all Phase 3 testing requirements satisfied.
 
 ## Session Continuity
 
-Last session: 2026-01-25T03:46:24Z
-Stopped at: Completed 03-12-PLAN.md (Profile Service Test Fix)
+Last session: 2026-01-25T03:55:00Z
+Stopped at: Completed 03-10-PLAN.md (Chat Service Test Fix)
 Resume file: None
 
 ---
