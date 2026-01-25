@@ -215,14 +215,7 @@ class _AfterHoursPreferencesScreenState
           TextButton(
             onPressed: _isSaving ? null : _savePreferences,
             child: _isSaving
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: VlvtColors.gold,
-                    ),
-                  )
+                ? const VlvtProgressIndicator(size: 20, strokeWidth: 2)
                 : Text(
                     'Save',
                     style: VlvtTextStyles.labelLarge.copyWith(

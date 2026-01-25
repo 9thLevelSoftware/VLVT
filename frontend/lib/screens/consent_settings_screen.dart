@@ -170,9 +170,9 @@ class _ConsentSettingsScreenState extends State<ConsentSettingsScreen> {
                 color: VlvtColors.warning,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
+              child: Text(
                 'Update Required',
-                style: TextStyle(fontSize: 10, color: Colors.white),
+                style: VlvtTextStyles.overline.copyWith(color: VlvtColors.textOnGold),
               ),
             ),
           ],
@@ -187,8 +187,7 @@ class _ConsentSettingsScreenState extends State<ConsentSettingsScreen> {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Granted on ${_formatDate(consent.grantedAt!)}',
-                style: TextStyle(
-                  fontSize: 11,
+                style: VlvtTextStyles.overline.copyWith(
                   color: VlvtColors.textMuted,
                 ),
               ),

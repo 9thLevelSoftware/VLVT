@@ -478,16 +478,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              ElevatedButton.icon(
+              VlvtButton.secondary(
+                label: 'Retry',
+                icon: Icons.refresh,
                 onPressed: () {
                   // Retry by re-checking subscription status
                   subscriptionService.checkSubscriptionStatus();
                 },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                ),
               ),
             ],
           ),

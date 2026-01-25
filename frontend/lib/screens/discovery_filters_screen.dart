@@ -5,6 +5,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_card.dart';
+import '../utils/error_handler.dart';
 
 class DiscoveryFiltersScreen extends StatefulWidget {
   const DiscoveryFiltersScreen({super.key});
@@ -67,30 +68,54 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
       verifiedOnly: _verifiedOnly,
     );
 
-    await prefsService.updateFilters(newFilters);
+    try {
+      await prefsService.updateFilters(newFilters);
 
-    if (mounted) {
-      Navigator.pop(context, true); // Return true to indicate filters changed
+      if (mounted) {
+        Navigator.pop(context, true); // Return true to indicate filters changed
+      }
+    } catch (e) {
+      if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(friendlyError.message),
+            backgroundColor: VlvtColors.error,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _clearFilters() async {
-    final prefsService = context.read<DiscoveryPreferencesService>();
-    await prefsService.clearFilters();
+    try {
+      final prefsService = context.read<DiscoveryPreferencesService>();
+      await prefsService.clearFilters();
 
-    setState(() {
-      _minAge = 18;
-      _maxAge = 99;
-      _maxDistance = 50.0;
-      _selectedInterests.clear();
-      _verifiedOnly = false;
-    });
+      setState(() {
+        _minAge = 18;
+        _maxAge = 99;
+        _maxDistance = 50.0;
+        _selectedInterests.clear();
+        _verifiedOnly = false;
+      });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Filters cleared')),
-      );
-      Navigator.pop(context, true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Filters cleared')),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        final friendlyError = ErrorHandler.handleError(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(friendlyError.message),
+            backgroundColor: VlvtColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -286,7 +311,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                             });
                           },
                           selectedColor: VlvtColors.gold.withValues(alpha: 0.3),
-                          checkmarkColor: Colors.white,
+                          checkmarkColor: VlvtColors.textOnGold,
                         );
                       }).toList(),
                     ),

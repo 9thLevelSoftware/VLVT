@@ -18,6 +18,7 @@ import '../widgets/after_hours/session_timer.dart';
 import '../widgets/after_hours/session_expiry_banner.dart';
 import '../widgets/save_match_button.dart';
 import '../widgets/quick_report_dialog.dart';
+import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
@@ -458,14 +459,13 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
           'This will permanently block this user. You won\'t see them again in After Hours or the main app.',
         ),
         actions: [
-          TextButton(
+          VlvtButton.text(
+            label: 'Cancel',
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          VlvtButton.primary(
+            label: 'Block',
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Block'),
           ),
         ],
       ),
