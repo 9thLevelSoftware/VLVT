@@ -38,6 +38,39 @@ jest.mock('bcrypt', () => ({
   compare: jest.fn(),
 }));
 
+// Mock @vlvt/shared to bypass CSRF middleware and provide audit logger
+jest.mock('@vlvt/shared', () => ({
+  createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+  createAuditLogger: jest.fn(() => ({
+    logAction: jest.fn().mockResolvedValue(undefined),
+    logAuthEvent: jest.fn().mockResolvedValue(undefined),
+    logDataChange: jest.fn().mockResolvedValue(undefined),
+  })),
+  AuditAction: {
+    LOGIN: 'LOGIN',
+    LOGOUT: 'LOGOUT',
+    REGISTER: 'REGISTER',
+    PASSWORD_CHANGE: 'PASSWORD_CHANGE',
+    PASSWORD_RESET: 'PASSWORD_RESET',
+    TOKEN_REFRESH: 'TOKEN_REFRESH',
+    VERIFICATION_REQUEST: 'VERIFICATION_REQUEST',
+    VERIFICATION_COMPLETE: 'VERIFICATION_COMPLETE',
+  },
+  AuditResourceType: {
+    USER: 'USER',
+    SESSION: 'SESSION',
+    VERIFICATION: 'VERIFICATION',
+  },
+  addVersionToHealth: jest.fn((obj: any) => obj),
+  createVersionMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  API_VERSIONS: { V1: 'v1' },
+  CURRENT_API_VERSION: 'v1',
+  ErrorCodes: {},
+  sendErrorResponse: jest.fn(),
+  createErrorResponseSender: jest.fn(() => jest.fn()),
+}));
+
 import request from 'supertest';
 import { Pool } from 'pg';
 import app from '../src/index';
@@ -1045,6 +1078,67 @@ describe('Auth Service', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toBe('Email is required');
+    });
+  });
+
+  describe('POST /auth/logout', () => {
+    it('should logout successfully without refresh token', async () => {
+      const response = await request(app)
+        .post('/auth/logout')
+        .send({})
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logged out successfully');
+    });
+
+    it('should logout successfully with valid refresh token', async () => {
+      // Mock UPDATE query for token revocation - token found and revoked
+      mockPool.query.mockResolvedValueOnce({
+        rows: [{ user_id: 'test_user_123' }]
+      });
+
+      const response = await request(app)
+        .post('/auth/logout')
+        .send({ refreshToken: 'valid_refresh_token_abc123' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logged out successfully');
+
+      // Verify token revocation query was called
+      expect(mockPool.query).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE refresh_tokens'),
+        expect.any(Array)
+      );
+    });
+
+    it('should handle non-existent refresh token gracefully', async () => {
+      // Mock UPDATE query returning empty rows (token not found)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/logout')
+        .send({ refreshToken: 'nonexistent_token' })
+        .expect(200);
+
+      // Logout should still succeed (idempotent operation)
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logged out successfully');
+    });
+
+    it('should handle already-revoked refresh token gracefully', async () => {
+      // Mock UPDATE query returning empty rows (token already revoked, WHERE condition not met)
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/logout')
+        .send({ refreshToken: 'already_revoked_token' })
+        .expect(200);
+
+      // Logout should still succeed
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('Logged out successfully');
     });
   });
 });
