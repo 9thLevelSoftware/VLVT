@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../constants/spacing.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -260,9 +261,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
+                                const VlvtProgressIndicator(),
                                 Spacing.verticalMd,
                                 Text(
                                   'Sending reset link...',

@@ -8,6 +8,7 @@ import '../services/safety_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 import '../widgets/verified_badge.dart';
 
 /// Screen for viewing another user's profile in detail
@@ -231,7 +232,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                               placeholder: (context, url) => Container(
                                 color: VlvtColors.surfaceElevated,
                                 child: const Center(
-                                  child: CircularProgressIndicator(color: VlvtColors.gold),
+                                  child: VlvtProgressIndicator(size: 24),
                                 ),
                               ),
                               errorWidget: (context, url, error) => Container(

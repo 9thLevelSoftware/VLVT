@@ -6,6 +6,7 @@ import '../services/auth_service.dart';
 import '../services/analytics_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../widgets/vlvt_button.dart';
+import '../widgets/vlvt_loader.dart';
 
 class PaywallScreen extends StatefulWidget {
   final bool showBackButton;
@@ -163,7 +164,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
               // CTA Buttons
               if (subscriptionService.isLoading)
-                const Center(child: CircularProgressIndicator())
+                const Center(child: VlvtProgressIndicator())
               else ...[
                 VlvtButton.primary(
                   label: 'Subscribe Now',

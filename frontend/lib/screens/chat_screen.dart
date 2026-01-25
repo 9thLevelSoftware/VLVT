@@ -1107,10 +1107,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             IconButton(
               onPressed: isDisabled ? null : _sendMessage,
               icon: _isSending
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const VlvtProgressIndicator(size: 24, strokeWidth: 2)
                   : const Icon(Icons.send),
               color: isDisabled ? VlvtColors.textMuted : VlvtColors.gold,
               iconSize: 28,

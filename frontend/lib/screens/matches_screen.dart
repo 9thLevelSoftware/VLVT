@@ -475,7 +475,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 placeholder: (context, url) => Container(
                   color: VlvtColors.surfaceElevated,
                   child: const Center(
-                    child: CircularProgressIndicator(color: VlvtColors.gold),
+                    child: VlvtProgressIndicator(size: 24),
                   ),
                 ),
                 errorWidget: (context, url, error) => Container(
