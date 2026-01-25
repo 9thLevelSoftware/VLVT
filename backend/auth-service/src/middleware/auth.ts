@@ -65,12 +65,13 @@ export const authenticateJWT = (req: Request, res: Response, next: NextFunction)
     // Continue to next middleware or route handler
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      res.status(401).json({ success: false, error: 'Invalid token' });
-      return;
-    }
+    // Check TokenExpiredError first since it extends JsonWebTokenError
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({ success: false, error: 'Token expired' });
+      return;
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      res.status(401).json({ success: false, error: 'Invalid token' });
       return;
     }
     logger.error('Authentication error', { error });

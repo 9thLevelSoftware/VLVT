@@ -1,11 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { authenticateJWT } from '../src/middleware/auth';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-// Mock the auth middleware by importing it after setting up environment
 describe('Auth Middleware', () => {
-  let authMiddleware: any;
   let mockRequest: Partial<Request>;
   let mockResponse: Partial<Response>;
   let nextFunction: NextFunction;
@@ -13,13 +12,7 @@ describe('Auth Middleware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Reset modules to get fresh middleware
-    jest.resetModules();
-
-    // Import middleware
-    const middlewareModule = require('../src/middleware/auth');
-    authMiddleware = middlewareModule.authMiddleware;
-
+    // Reset mock objects only, not modules
     mockRequest = {
       headers: {},
       user: undefined,
@@ -44,7 +37,7 @@ describe('Auth Middleware', () => {
       authorization: `Bearer ${token}`,
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(nextFunction).toHaveBeenCalled();
     expect(mockRequest.user).toBeDefined();
@@ -52,7 +45,7 @@ describe('Auth Middleware', () => {
   });
 
   it('should return 401 when no authorization header', () => {
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
     expect(mockResponse.json).toHaveBeenCalledWith({
@@ -67,12 +60,12 @@ describe('Auth Middleware', () => {
       authorization: 'InvalidFormat token',
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
     expect(mockResponse.json).toHaveBeenCalledWith({
       success: false,
-      error: 'Invalid authorization header format',
+      error: 'Invalid authorization header format. Use: Bearer <token>',
     });
     expect(nextFunction).not.toHaveBeenCalled();
   });
@@ -82,9 +75,13 @@ describe('Auth Middleware', () => {
       authorization: 'Bearer ',
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      success: false,
+      error: 'No token provided',
+    });
     expect(nextFunction).not.toHaveBeenCalled();
   });
 
@@ -93,12 +90,12 @@ describe('Auth Middleware', () => {
       authorization: 'Bearer invalid_token',
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
     expect(mockResponse.json).toHaveBeenCalledWith({
       success: false,
-      error: 'Invalid or expired token',
+      error: 'Invalid token',
     });
     expect(nextFunction).not.toHaveBeenCalled();
   });
@@ -114,9 +111,13 @@ describe('Auth Middleware', () => {
       authorization: `Bearer ${expiredToken}`,
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      success: false,
+      error: 'Token expired',
+    });
     expect(nextFunction).not.toHaveBeenCalled();
   });
 
@@ -131,7 +132,7 @@ describe('Auth Middleware', () => {
       authorization: `Bearer ${token}`,
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockRequest.user).toEqual(
       expect.objectContaining({
@@ -154,7 +155,7 @@ describe('Auth Middleware', () => {
       authorization: `Bearer ${token}`,
     };
 
-    authMiddleware(mockRequest as Request, mockResponse as Response, nextFunction);
+    authenticateJWT(mockRequest as Request, mockResponse as Response, nextFunction);
 
     expect(mockResponse.status).toHaveBeenCalledWith(401);
     expect(nextFunction).not.toHaveBeenCalled();
