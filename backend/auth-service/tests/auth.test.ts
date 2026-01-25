@@ -26,6 +26,14 @@ jest.mock('../src/middleware/rate-limiter', () => ({
   generalLimiter: (req: any, res: any, next: any) => next(),
 }));
 
+// Mock input validation to pass through (validation is tested separately)
+jest.mock('../src/utils/input-validation', () => ({
+  validateInputMiddleware: (req: any, res: any, next: any) => next(),
+  validateEmail: (email: string) => email,
+  validateUserId: (userId: string) => userId,
+  validateArray: (arr: any[]) => arr,
+}));
+
 jest.mock('../src/services/email-service', () => ({
   emailService: {
     sendVerificationEmail: jest.fn().mockResolvedValue(true),
@@ -37,6 +45,34 @@ jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password'),
   compare: jest.fn(),
 }));
+
+// Mock error codes to match the actual structure
+const mockErrorCodes = {
+  VAL_MISSING_FIELDS: {
+    code: 'VAL_002',
+    httpStatus: 400,
+    publicMessage: 'Missing required fields',
+    internalMessage: 'One or more required fields are missing',
+  },
+  AUTH_INVALID_CREDENTIALS: {
+    code: 'AUTH_001',
+    httpStatus: 401,
+    publicMessage: 'Authentication failed',
+    internalMessage: 'Invalid credentials provided',
+  },
+  AUTH_EMAIL_NOT_VERIFIED: {
+    code: 'AUTH_009',
+    httpStatus: 403,
+    publicMessage: 'Email not verified',
+    internalMessage: 'Email address has not been verified',
+  },
+  AUTH_ACCOUNT_LOCKED: {
+    code: 'AUTH_007',
+    httpStatus: 429,
+    publicMessage: 'Account temporarily locked',
+    internalMessage: 'Account locked due to failed login attempts',
+  },
+};
 
 // Mock @vlvt/shared to bypass CSRF middleware and provide audit logger
 jest.mock('@vlvt/shared', () => ({
@@ -56,6 +92,9 @@ jest.mock('@vlvt/shared', () => ({
     TOKEN_REFRESH: 'TOKEN_REFRESH',
     VERIFICATION_REQUEST: 'VERIFICATION_REQUEST',
     VERIFICATION_COMPLETE: 'VERIFICATION_COMPLETE',
+    LOGIN_FAILURE: 'LOGIN_FAILURE',
+    LOGIN_SUCCESS: 'LOGIN_SUCCESS',
+    ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
   },
   AuditResourceType: {
     USER: 'USER',
@@ -66,9 +105,22 @@ jest.mock('@vlvt/shared', () => ({
   createVersionMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   API_VERSIONS: { V1: 'v1' },
   CURRENT_API_VERSION: 'v1',
-  ErrorCodes: {},
-  sendErrorResponse: jest.fn(),
-  createErrorResponseSender: jest.fn(() => jest.fn()),
+  ErrorCodes: mockErrorCodes,
+  sendErrorResponse: jest.fn((res: any, errorDef: any) => {
+    return res.status(errorDef.httpStatus).json({
+      success: false,
+      error: errorDef.publicMessage,
+      code: errorDef.code,
+    });
+  }),
+  // createErrorResponseSender returns a function that sends error responses
+  createErrorResponseSender: jest.fn(() => (res: any, errorDef: any) => {
+    return res.status(errorDef.httpStatus).json({
+      success: false,
+      error: errorDef.publicMessage,
+      code: errorDef.code,
+    });
+  }),
 }));
 
 import request from 'supertest';
@@ -449,8 +501,9 @@ describe('Auth Service', () => {
       const decoded = jwt.verify(response.body.token, JWT_SECRET) as any;
       const expiresIn = decoded.exp - decoded.iat;
 
-      // 7 days = 604800 seconds
-      expect(expiresIn).toBe(604800);
+      // Access tokens are now short-lived: 15 minutes = 900 seconds
+      // Refresh tokens handle long-lived sessions
+      expect(expiresIn).toBe(900);
     });
   });
 
@@ -514,7 +567,10 @@ describe('Auth Service', () => {
 
       expect(response.body.success).toBe(false);
       expect(response.body.error).toContain('Password does not meet requirements');
-      expect(response.body.details).toContain('Password must contain at least one letter');
+      // Password validation now requires uppercase AND lowercase letters
+      expect(response.body.details).toEqual(expect.arrayContaining([
+        expect.stringMatching(/uppercase|lowercase|letter/)
+      ]));
     });
 
     it('should reject weak password - missing number', async () => {
@@ -548,7 +604,7 @@ describe('Auth Service', () => {
       expect(response.body.message).toContain('check your email');
     });
 
-    it('should accept password with only lowercase and numbers', async () => {
+    it('should accept password meeting all requirements', async () => {
       // Mock no existing user
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
@@ -559,9 +615,10 @@ describe('Auth Service', () => {
       };
       mockPool.connect = jest.fn().mockResolvedValue(mockClient);
 
+      // Password now requires: 12+ chars, uppercase, lowercase, number, special char
       const response = await request(app)
         .post('/auth/email/register')
-        .send({ email: 'test@example.com', password: 'validpass123' })
+        .send({ email: 'test@example.com', password: 'ValidPassword123!' })
         .expect(200);
 
       expect(response.body.success).toBe(true);
@@ -769,7 +826,8 @@ describe('Auth Service', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Invalid email or password');
+      // New error system uses 'Authentication failed' for invalid credentials
+      expect(response.body.error).toBe('Authentication failed');
     });
 
     it('should reject unverified email', async () => {
@@ -799,8 +857,9 @@ describe('Auth Service', () => {
         .expect(403);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('verify your email');
-      expect(response.body.code).toBe('EMAIL_NOT_VERIFIED');
+      // New error system uses 'Email not verified' message
+      expect(response.body.error).toBe('Email not verified');
+      expect(response.body.code).toBe('AUTH_009');
     });
 
     it('should reject non-existent email', async () => {
@@ -817,7 +876,8 @@ describe('Auth Service', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Invalid email or password');
+      // New error system uses 'Authentication failed' for invalid credentials
+      expect(response.body.error).toBe('Authentication failed');
     });
 
     it('should reject missing email', async () => {
@@ -827,7 +887,8 @@ describe('Auth Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Email and password are required');
+      // New error system uses 'Missing required fields' message
+      expect(response.body.error).toBe('Missing required fields');
     });
 
     it('should reject missing password', async () => {
@@ -837,7 +898,8 @@ describe('Auth Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Email and password are required');
+      // New error system uses 'Missing required fields' message
+      expect(response.body.error).toBe('Missing required fields');
     });
   });
 
@@ -907,12 +969,15 @@ describe('Auth Service', () => {
     it('should reset password with valid token', async () => {
       const futureDate = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
+      // Mock SELECT for token lookup
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_user123',
           reset_expires: futureDate
         }]
       });
+      // Mock UPDATE for password reset
+      mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
         .post('/auth/email/reset')
@@ -928,6 +993,7 @@ describe('Auth Service', () => {
     });
 
     it('should reject invalid token', async () => {
+      // Mock SELECT returning no rows (token not found)
       mockPool.query.mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
@@ -942,6 +1008,7 @@ describe('Auth Service', () => {
     it('should reject expired token', async () => {
       const pastDate = new Date(Date.now() - 1000); // 1 second ago
 
+      // Mock SELECT returning row with expired token
       mockPool.query.mockResolvedValueOnce({
         rows: [{
           user_id: 'email_user123',
@@ -955,6 +1022,7 @@ describe('Auth Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
+      // The implementation returns 'Reset token has expired' for expired tokens
       expect(response.body.error).toBe('Reset token has expired');
     });
 
