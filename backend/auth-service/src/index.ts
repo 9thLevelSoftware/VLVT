@@ -299,9 +299,10 @@ app.get('/.well-known/security.txt', (req: Request, res: Response) => {
 # See https://securitytxt.org/ for format specification (RFC 9116)
 
 Contact: mailto:security@getvlvt.vip
-Expires: 2026-12-27T23:59:59.000Z
+Expires: 2027-01-25T00:00:00.000Z
 Preferred-Languages: en
 Canonical: https://api.getvlvt.vip/.well-known/security.txt
+Policy: https://vlvtapp.com/.well-known/security-policy
 
 # Security Policy
 # We take security seriously. If you discover a vulnerability, please report it
@@ -318,8 +319,6 @@ Canonical: https://api.getvlvt.vip/.well-known/security.txt
 # - Providing regular updates on our progress
 # - Notifying you when the issue is resolved
 # - Crediting you (if desired) for responsible disclosure
-
-Policy: https://github.com/dasblitz/vlvt/blob/main/docs/SECURITY_POLICY.md
 `;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.send(securityTxt);
