@@ -139,21 +139,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               opacity: _fadeAnimation,
               child: SlideTransition(
                 position: _slideAnimation,
-                child: Padding(
-                  padding: Spacing.paddingLg,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Back button
-                      Align(
+                child: Column(
+                  children: [
+                    // Back button - fixed at top
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, top: 8),
+                      child: Align(
                         alignment: Alignment.topLeft,
                         child: IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
-                      const Spacer(),
+                    ),
+                    // Scrollable content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: Spacing.paddingLg,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Spacing.verticalLg,
                       // Icon
                       Container(
                         padding: Spacing.paddingXl,
@@ -307,15 +313,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                             ],
                           ),
                         ),
-                      Spacing.verticalXxl,
-                      // Back to login link
-                      VlvtButton.text(
-                        label: 'Back to login',
-                        onPressed: () => Navigator.of(context).pop(),
+                            Spacing.verticalXxl,
+                            // Back to login link
+                            VlvtButton.text(
+                              label: 'Back to login',
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            Spacing.verticalLg,
+                          ],
+                        ),
                       ),
-                      const Spacer(),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

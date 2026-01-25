@@ -137,14 +137,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
           ),
           child: SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: Spacing.paddingLg,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Spacer(),
-                  // Title
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
+                      MediaQuery.of(context).padding.bottom -
+                      48, // Account for padding
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Title
                   Text(
                     _resetSuccessful ? 'Password Reset!' : 'Reset Password',
                     textAlign: TextAlign.center,
@@ -354,8 +360,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ],
                       ),
                     ),
-                  const Spacer(),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
