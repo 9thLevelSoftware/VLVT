@@ -14,13 +14,78 @@ jest.mock('@sentry/node', () => ({
   setupExpressErrorHandler: jest.fn(),
 }));
 
+// Mock @vlvt/shared for CSRF middleware and version utilities
+jest.mock('@vlvt/shared', () => ({
+  createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+  createAuditLogger: jest.fn(() => ({
+    logAction: jest.fn().mockResolvedValue(undefined),
+    logAuthEvent: jest.fn().mockResolvedValue(undefined),
+    logDataChange: jest.fn().mockResolvedValue(undefined),
+  })),
+  AuditAction: {},
+  AuditResourceType: {},
+  addVersionToHealth: jest.fn((obj: any) => obj),
+  createVersionMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  API_VERSIONS: { V1: 'v1' },
+  CURRENT_API_VERSION: 1,
+  ErrorCodes: {},
+  sendErrorResponse: jest.fn(),
+  createErrorResponseSender: jest.fn(() => jest.fn()),
+}));
+
+// Mock rate-limiter to avoid actual rate limiting in tests
+jest.mock('../src/middleware/rate-limiter', () => ({
+  generalLimiter: (req: any, res: any, next: any) => next(),
+  matchLimiter: (req: any, res: any, next: any) => next(),
+  messageLimiter: (req: any, res: any, next: any) => next(),
+  reportLimiter: (req: any, res: any, next: any) => next(),
+  verifyLimiter: (req: any, res: any, next: any) => next(),
+}));
+
+// Mock Firebase to avoid initialization errors
+jest.mock('../src/services/fcm-service', () => ({
+  initializeFirebase: jest.fn(),
+  registerFCMToken: jest.fn().mockResolvedValue(undefined),
+  unregisterFCMToken: jest.fn().mockResolvedValue(undefined),
+  sendMatchNotification: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock Socket.io to avoid initialization errors
+jest.mock('../src/socket', () => ({
+  initializeSocketIO: jest.fn().mockReturnValue({
+    on: jest.fn(),
+    emit: jest.fn(),
+    to: jest.fn().mockReturnValue({ emit: jest.fn() }),
+  }),
+}));
+
+// Mock message cleanup job
+jest.mock('../src/jobs/message-cleanup-job', () => ({
+  initializeMessageCleanupJob: jest.fn().mockResolvedValue(undefined),
+  closeMessageCleanupJob: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Mock after hours chat router
+jest.mock('../src/routes/after-hours-chat', () => ({
+  createAfterHoursChatRouter: jest.fn(() => (req: any, res: any, next: any) => next()),
+}));
+
+// Mock profile-check utility
+jest.mock('../src/utils/profile-check', () => ({
+  isProfileComplete: jest.fn().mockResolvedValue({ isComplete: true, message: '', missingFields: [] }),
+}));
+
 import request from 'supertest';
 import { Pool } from 'pg';
+
+// Import app ONCE after all mocks are set up
+// This ensures the app uses mocked dependencies
+import app from '../src/index';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 describe('Chat Service', () => {
-  let app: any;
   let mockPool: any;
   let validToken: string;
   let user2Token: string;
@@ -53,33 +118,21 @@ describe('Chat Service', () => {
         created_at: new Date(),
       }],
     });
-
-    // Re-import app to get fresh instance with mocks
-    jest.resetModules();
-    delete require.cache[require.resolve('../src/index')];
   });
 
   describe('Health Check', () => {
     it('should return health status', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/health')
         .expect(200);
 
-      expect(response.body).toEqual({
-        status: 'ok',
-        service: 'chat-service',
-      });
+      expect(response.body).toHaveProperty('status', 'ok');
+      expect(response.body).toHaveProperty('service', 'chat-service');
     });
   });
 
   describe('GET /matches/:userId', () => {
     it('should retrieve own matches', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/matches/user_1')
         .set('Authorization', `Bearer ${validToken}`)
@@ -90,9 +143,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when accessing other user matches', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/matches/user_2')
         .set('Authorization', `Bearer ${validToken}`)
@@ -103,9 +153,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 401 without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       await request(app)
         .get('/matches/user_1')
         .expect(401);
@@ -114,9 +161,6 @@ describe('Chat Service', () => {
 
   describe('POST /matches', () => {
     it('should create match between two users', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock users exist, then no existing match, then create new match
       mockPool.query
         .mockResolvedValueOnce({ rows: [{ id: 'user_1' }] }) // User 1 exists
@@ -129,7 +173,8 @@ describe('Chat Service', () => {
             user_id_2: 'user_2',
             created_at: new Date(),
           }],
-        });
+        })
+        .mockResolvedValueOnce({ rows: [] }); // Get profiles for notification (empty is ok)
 
       const response = await request(app)
         .post('/matches')
@@ -144,9 +189,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when creating match not involving self', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/matches')
         .set('Authorization', `Bearer ${validToken}`)
@@ -158,9 +200,6 @@ describe('Chat Service', () => {
     });
 
     it('should return existing match if already exists', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock users exist, then existing match found
       mockPool.query
         .mockResolvedValueOnce({ rows: [{ id: 'user_1' }] }) // User 1 exists
@@ -185,9 +224,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 404 when a user does not exist', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       mockPool.query
         .mockResolvedValueOnce({ rows: [] }) // User 1 missing
         .mockResolvedValueOnce({ rows: [{ id: 'user_2' }] }); // User 2 exists
@@ -203,9 +239,6 @@ describe('Chat Service', () => {
     });
 
     it('should validate required fields', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/matches')
         .set('Authorization', `Bearer ${validToken}`)
@@ -218,9 +251,6 @@ describe('Chat Service', () => {
 
   describe('GET /messages/:matchId', () => {
     it('should return error without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/messages/match_123');
 
@@ -229,9 +259,6 @@ describe('Chat Service', () => {
     });
 
     it('should retrieve messages for own match', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock match verification
       mockPool.query
         .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify user is in match
@@ -259,9 +286,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when accessing messages for match not part of', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock no match found for this user
       mockPool.query.mockResolvedValue({ rows: [] });
 
@@ -277,9 +301,6 @@ describe('Chat Service', () => {
 
   describe('POST /messages', () => {
     it('should return error without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Without auth, request fails with either 401 (no token) or 403 (CSRF)
       const response = await request(app)
         .post('/messages')
@@ -294,9 +315,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when sending to match user is not part of', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock no match found for this user
       mockPool.query.mockResolvedValue({ rows: [] });
 
@@ -315,12 +333,10 @@ describe('Chat Service', () => {
     });
 
     it('should send message in own match', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock match verification and message creation
       mockPool.query
-        .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: [{ id: 'match_123', user_id_1: 'user_1', user_id_2: 'user_2' }] }) // Verify match
+        .mockResolvedValueOnce({ rows: [] }) // Block check - no blocks
         .mockResolvedValueOnce({ // Create message
           rows: [{
             id: 'msg_1',
@@ -346,9 +362,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when senderId does not match authenticated user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/messages')
         .set('Authorization', `Bearer ${validToken}`)
@@ -364,9 +377,6 @@ describe('Chat Service', () => {
     });
 
     it('should validate required fields', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/messages')
         .set('Authorization', `Bearer ${validToken}`)
@@ -377,9 +387,6 @@ describe('Chat Service', () => {
     });
 
     it('should validate text is not empty', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/messages')
         .set('Authorization', `Bearer ${validToken}`)
@@ -394,9 +401,6 @@ describe('Chat Service', () => {
     });
 
     it('should reject messages when sender is blocked by recipient', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock sequence:
       // 1. Match check with user details
       // 2. Block check - block exists (recipient blocked sender)
@@ -419,9 +423,6 @@ describe('Chat Service', () => {
     });
 
     it('should reject messages when recipient is blocked by sender', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Block check should be bidirectional - even if sender blocked recipient,
       // messaging should be prevented
       mockPool.query
@@ -443,22 +444,11 @@ describe('Chat Service', () => {
     });
 
     it('should allow messages when no block exists', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
-      // Mock sequence - no block exists, profile complete, insert succeeds
+      // Mock sequence - no block exists, insert succeeds
+      // Note: isProfileComplete is mocked to return { isComplete: true }
       mockPool.query
         .mockResolvedValueOnce({ rows: [{ id: 'match_123', user_id_1: 'user_1', user_id_2: 'user_2' }] }) // Match check
         .mockResolvedValueOnce({ rows: [] }) // Block check - no blocks
-        .mockResolvedValueOnce({ // Profile check - complete profile
-          rows: [{
-            name: 'Test User',
-            age: 25,
-            bio: 'Test bio',
-            photos: ['photo1.jpg'],
-            id_verified: true,
-          }],
-        })
         .mockResolvedValueOnce({ // Insert message
           rows: [{
             id: 'msg_1',
@@ -486,9 +476,6 @@ describe('Chat Service', () => {
 
   describe('DELETE /matches/:matchId', () => {
     it('should delete own match', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock match verification and deletion
       mockPool.query
         .mockResolvedValueOnce({ rows: [{ id: 'match_123' }] }) // Verify match
@@ -504,9 +491,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when deleting match not part of', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       mockPool.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app)
@@ -520,9 +504,6 @@ describe('Chat Service', () => {
 
   describe('POST /blocks', () => {
     it('should block a user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock no existing block, then create block, then delete matches
       mockPool.query
         .mockResolvedValueOnce({ rows: [] }) // Check existing block
@@ -543,9 +524,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when userId does not match authenticated user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/blocks')
         .set('Authorization', `Bearer ${validToken}`)
@@ -559,9 +537,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 400 when trying to block self', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/blocks')
         .set('Authorization', `Bearer ${validToken}`)
@@ -572,13 +547,12 @@ describe('Chat Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('Cannot block yourself');
+      // Validation middleware returns errors array
+      expect(response.body.errors).toBeDefined();
+      expect(response.body.errors.some((e: any) => e.message.includes('Cannot block yourself'))).toBe(true);
     });
 
     it('should validate required fields', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/blocks')
         .set('Authorization', `Bearer ${validToken}`)
@@ -589,9 +563,6 @@ describe('Chat Service', () => {
     });
 
     it('should return error without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Without auth, request fails with either 401 (no token) or 403 (CSRF)
       const response = await request(app)
         .post('/blocks')
@@ -606,9 +577,6 @@ describe('Chat Service', () => {
 
   describe('DELETE /blocks/:userId/:blockedUserId', () => {
     it('should unblock a blocked user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock successful unblock - block exists and is deleted
       mockPool.query.mockResolvedValue({
         rows: [{ id: 'block_1' }],
@@ -624,9 +592,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 404 for non-blocked user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Mock no block found
       mockPool.query.mockResolvedValue({ rows: [] });
 
@@ -640,9 +605,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when unblocking for another user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .delete('/blocks/user_2/user_3')
         .set('Authorization', `Bearer ${validToken}`)
@@ -652,9 +614,6 @@ describe('Chat Service', () => {
     });
 
     it('should return error without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .delete('/blocks/user_1/user_2');
 
@@ -665,9 +624,6 @@ describe('Chat Service', () => {
 
   describe('POST /reports', () => {
     it('should submit a report', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       mockPool.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app)
@@ -686,9 +642,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when reporterId does not match authenticated user', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/reports')
         .set('Authorization', `Bearer ${validToken}`)
@@ -703,9 +656,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 400 when trying to report self', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/reports')
         .set('Authorization', `Bearer ${validToken}`)
@@ -717,13 +667,12 @@ describe('Chat Service', () => {
         .expect(400);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toContain('Cannot report yourself');
+      // Validation middleware returns errors array
+      expect(response.body.errors).toBeDefined();
+      expect(response.body.errors.some((e: any) => e.message.includes('Cannot report yourself'))).toBe(true);
     });
 
     it('should validate required fields', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/reports')
         .set('Authorization', `Bearer ${validToken}`)
@@ -737,9 +686,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 400 for invalid reason value', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .post('/reports')
         .set('Authorization', `Bearer ${validToken}`)
@@ -756,9 +702,6 @@ describe('Chat Service', () => {
     });
 
     it('should return error without authentication', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Without auth, request fails with either 401 (no token) or 403 (CSRF)
       const response = await request(app)
         .post('/reports')
@@ -774,9 +717,6 @@ describe('Chat Service', () => {
 
   describe('Message Pagination', () => {
     it('should limit results to specified page size', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Generate 25 messages
       const messages = Array.from({ length: 25 }, (_, i) => ({
         id: `msg_${i}`,
@@ -801,9 +741,6 @@ describe('Chat Service', () => {
     });
 
     it('should support cursor-based pagination with before param', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const beforeDate = '2024-01-15T12:00:00Z';
       const messages = Array.from({ length: 10 }, (_, i) => ({
         id: `msg_${i}`,
@@ -827,9 +764,6 @@ describe('Chat Service', () => {
     });
 
     it('should return hasMore indicator', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Return 11 messages when asking for 10 (to indicate hasMore)
       const messages = Array.from({ length: 11 }, (_, i) => ({
         id: `msg_${i}`,
@@ -854,9 +788,6 @@ describe('Chat Service', () => {
     });
 
     it('should default limit to 50 when not specified', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Return 30 messages (less than default limit)
       const messages = Array.from({ length: 30 }, (_, i) => ({
         id: `msg_${i}`,
@@ -881,9 +812,6 @@ describe('Chat Service', () => {
     });
 
     it('should cap limit at 100 maximum', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       // Return 101 messages
       const messages = Array.from({ length: 101 }, (_, i) => ({
         id: `msg_${i}`,
@@ -908,9 +836,6 @@ describe('Chat Service', () => {
     });
 
     it('should return pagination timestamps', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const oldestTime = new Date('2024-01-01T10:00:00Z');
       const newestTime = new Date('2024-01-01T12:00:00Z');
 
@@ -946,9 +871,6 @@ describe('Chat Service', () => {
     });
 
     it('should support after param for newer messages', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const afterDate = '2024-01-01T00:00:00Z';
       const messages = Array.from({ length: 5 }, (_, i) => ({
         id: `msg_${i}`,
@@ -974,9 +896,6 @@ describe('Chat Service', () => {
 
   describe('GET /blocks/:userId', () => {
     it('should retrieve own blocked users', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       mockPool.query.mockResolvedValue({
         rows: [{
           id: 'block_1',
@@ -997,9 +916,6 @@ describe('Chat Service', () => {
     });
 
     it('should return 403 when accessing other user blocks', async () => {
-      const appModule = require('../src/index');
-      app = appModule.default || appModule;
-
       const response = await request(app)
         .get('/blocks/user_2')
         .set('Authorization', `Bearer ${validToken}`)
