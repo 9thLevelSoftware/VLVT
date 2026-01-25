@@ -249,8 +249,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                           const SizedBox(height: 4),
                           Text(
                             'Show only profiles with verified selfies',
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: VlvtTextStyles.caption.copyWith(
                               color: VlvtColors.textMuted,
                             ),
                           ),
@@ -287,8 +286,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
                       _selectedInterests.isEmpty
                           ? 'No interests selected'
                           : '${_selectedInterests.length} selected',
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: VlvtTextStyles.bodySmall.copyWith(
                         color: VlvtColors.textMuted,
                       ),
                     ),
@@ -334,8 +332,7 @@ class _DiscoveryFiltersScreenState extends State<DiscoveryFiltersScreen> {
               Center(
                 child: Text(
                   'Filters help you find more compatible matches',
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: VlvtTextStyles.bodySmall.copyWith(
                     color: VlvtColors.textMuted,
                   ),
                   textAlign: TextAlign.center,

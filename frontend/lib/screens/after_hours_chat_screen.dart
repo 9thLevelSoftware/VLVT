@@ -23,6 +23,7 @@ import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
+import '../utils/error_handler.dart';
 
 /// Chat screen for After Hours ephemeral conversations.
 ///
@@ -482,8 +483,9 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
         }
       } catch (e) {
         if (mounted) {
+          final friendlyError = ErrorHandler.handleError(e);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to block user: $e')),
+            SnackBar(content: Text(friendlyError.message)),
           );
         }
       }
