@@ -201,6 +201,9 @@ describe('Socket.io Message Handlers', () => {
     mockSocket = {
       id: 'socket_123',
       userId: 'user_1',
+      handshake: {
+        address: '127.0.0.1',
+      },
       on: jest.fn(function(this: any, event: string, handler: Function) {
         socketEventHandlers[event] = handler;
         return this;
