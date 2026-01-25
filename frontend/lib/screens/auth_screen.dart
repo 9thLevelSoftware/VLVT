@@ -138,36 +138,32 @@ class _AuthScreenState extends State<AuthScreen>
       final success = await authService.signInWithApple();
 
       if (!success && mounted) {
-        final error = ErrorHandler.handleError('Failed to sign in with Apple');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(error.message),
+            content: const Text('Apple Sign-In failed. Please try again or use another method.'),
             backgroundColor: VlvtColors.error,
-            duration: const Duration(seconds: 6),
-            action: SnackBarAction(
-              label: 'Retry',
-              textColor: Colors.white,
-              onPressed: _signInWithApple,
-            ),
+            duration: const Duration(seconds: 4),
+            showCloseIcon: true,
+            closeIconColor: Colors.white,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        final error = ErrorHandler.handleError(e);
+        // Check if user cancelled the sign-in
+        final errorString = e.toString().toLowerCase();
+        if (errorString.contains('cancel') || errorString.contains('user denied')) {
+          // User cancelled - no error message needed
+          return;
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(error.message, style: VlvtTextStyles.labelMedium),
-                const SizedBox(height: 4),
-                Text(error.guidance, style: VlvtTextStyles.caption),
-              ],
-            ),
+            content: const Text('Apple Sign-In is not available. Please use email or Google sign-in.'),
             backgroundColor: VlvtColors.error,
-            duration: const Duration(seconds: 6),
+            duration: const Duration(seconds: 4),
+            showCloseIcon: true,
+            closeIconColor: Colors.white,
           ),
         );
       }
