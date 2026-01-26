@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 4 Bug Fixes & UI Polish - COMPLETE
+**Current focus:** Phase 5 Monitoring & Alerting - IN PROGRESS
 
 ## Current Position
 
-Phase: 4 of 7 (Bug Fixes & UI Polish)
-Plan: 5 of 5 complete in current phase
-Status: Phase complete
-Last activity: 2026-01-25 - Completed 04-04 Navigation & Flow Issues
+Phase: 5 of 7 (Monitoring & Alerting)
+Plan: 3 of TBD complete in current phase
+Status: In progress
+Last activity: 2026-01-26 - Completed 05-03 Brute Force Alerting
 
-Progress: [██████████████] 53% (Phase 1, 2, 3, 4 complete - 30 plans)
+Progress: [██████████████] 55% (Phase 1, 2, 3, 4 complete + 3 Phase 5 plans - 33 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 30 (7 security + 6 GDPR + 12 testing + 5 UI polish)
+- Total plans completed: 33 (7 security + 6 GDPR + 12 testing + 5 UI polish + 3 monitoring)
 - Average duration: ~7 min
-- Total execution time: ~3.5 hours
+- Total execution time: ~3.8 hours
 
 **By Phase:**
 
@@ -31,13 +31,13 @@ Progress: [██████████████] 53% (Phase 1, 2, 3, 4 com
 | 02-GDPR-compliance | 6 | 6 | Complete (verified) |
 | 03-testing-infrastructure | 12 | 12 | Complete (verified) |
 | 04-bug-fixes-ui-polish | 5 | 5 | Complete (verified) |
-| 05-save-mechanism-conversion | TBD | 0 | Not started |
-| 06-monitoring-alerting | TBD | 0 | Not started |
+| 05-monitoring-alerting | TBD | 3 | In progress |
+| 06-save-mechanism-conversion | TBD | 0 | Not started |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 04-04 (15 min)
-- Trend: Phase 4 complete, human verification checkpoint passed
+- Last plan: 05-03 (3 min)
+- Trend: Phase 5 in progress, brute force alerting complete
 
 *Updated after each plan completion*
 
@@ -116,23 +116,25 @@ Recent decisions affecting current work:
 - [04-04]: AutovalidateMode.onUserInteraction for all auth forms
 - [04-04]: Apple Sign-In on Android shows dismissible info message (tracked as DEP-06)
 - [04-04]: Email verification blocked tracked as DEP-05 for Phase 6
+- [05-03]: Only capture to Sentry when SENTRY_DSN is set (conditional alerting)
+- [05-03]: Both shared and auth-service rate limiters enhanced (auth-service has Redis support)
 
 ### Pending Todos
 
-Phase 4 Bug Fixes & UI Polish COMPLETE. Ready for Phase 5.
+Phase 5 Monitoring & Alerting IN PROGRESS. 05-03 complete, continuing with Wave 1.
 
 ### Blockers/Concerns
 
-None - Phase 4 complete. DEP-05 (email service) and DEP-06 (Apple Sign-In) tracked for Phase 6.
+None - Phase 5 proceeding normally. DEP-05 (email service) and DEP-06 (Apple Sign-In) tracked for Phase 6.
 
 ## Session Continuity
 
-Last session: 2026-01-25
-Stopped at: Completed 04-04-PLAN.md (Phase 4 complete)
+Last session: 2026-01-26
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (Phase 4 complete - 30 plans total)*
+*Current milestone: Production Readiness (Phase 5 in progress - 33 plans complete)*
