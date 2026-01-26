@@ -55,3 +55,6 @@ export type { SignatureMiddlewareOptions, SignatureVerificationResult } from './
 
 // Correlation ID (MON-05)
 export { correlationMiddleware } from './correlation-id';
+
+// Request logging with correlation ID (MON-05)
+export { createRequestLoggerMiddleware, createRequestLogger } from './request-logger';

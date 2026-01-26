@@ -75,6 +75,12 @@ export {
   correlationMiddleware,
 } from './middleware/correlation-id';
 
+// Request logging middleware (MON-05)
+export {
+  createRequestLoggerMiddleware,
+  createRequestLogger,
+} from './middleware/request-logger';
+
 // Utilities
 export {
   createLogger,
