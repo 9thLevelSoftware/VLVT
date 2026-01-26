@@ -2166,7 +2166,7 @@ app.post('/auth/consents', generalLimiter, authenticateJWT, async (req: Request,
  */
 app.delete('/auth/consents/:purpose', generalLimiter, authenticateJWT, async (req: Request, res: Response) => {
   const userId = req.user!.userId;
-  const { purpose } = req.params;
+  const purpose = req.params.purpose as string;
 
   const validPurposes = ['location_discovery', 'marketing', 'analytics', 'after_hours'];
   if (!validPurposes.includes(purpose)) {
