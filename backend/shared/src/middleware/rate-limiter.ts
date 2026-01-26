@@ -4,10 +4,23 @@
  *
  * Security: Implements per-user rate limiting to prevent authenticated attackers
  * from bypassing IP-based rate limits using multiple IPs or VPNs.
+ *
+ * Monitoring (MON-03): Auth rate limiter includes Sentry alerting for brute force detection.
  */
 
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import rateLimit, { RateLimitRequestHandler, Options } from 'express-rate-limit';
+import * as Sentry from '@sentry/node';
+
+/**
+ * Simple logger for rate limiter events (services can override with Winston)
+ * Outputs structured JSON for log aggregation systems.
+ */
+const rateLimitLogger = {
+  warn: (message: string, meta?: Record<string, unknown>) => {
+    console.warn(JSON.stringify({ level: 'warn', message, ...meta, timestamp: new Date().toISOString() }));
+  },
+};
 
 export interface RateLimiterOptions {
   /** Window duration in milliseconds */
@@ -121,12 +134,52 @@ export const strictLimiter = createRateLimiter({
 });
 
 /**
- * Auth rate limiter - 5 attempts per 15 minutes
+ * Auth rate limiter with brute force detection alerting (MON-03)
+ * 5 attempts per 15 minutes - sends alerts to Sentry when triggered.
+ *
+ * When rate limit is exceeded:
+ * 1. Logs the event with warning level (IP, path, userAgent)
+ * 2. Sends alert to Sentry tagged as potential brute force attempt
+ * 3. Returns standard 429 response
  */
-export const authLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
-  message: 'Too many authentication attempts, please try again after 15 minutes',
+  message: { success: false, error: 'Too many authentication attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req: Request, res: Response, next, options) => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Log rate limit hit for investigation
+    rateLimitLogger.warn('Auth rate limit exceeded - potential brute force attempt', {
+      ip,
+      path: req.path,
+      method: req.method,
+      userAgent,
+    });
+
+    // Send to Sentry for alerting (MON-03)
+    // Only capture if Sentry is initialized (SENTRY_DSN is set)
+    if (process.env.SENTRY_DSN) {
+      Sentry.captureMessage('Auth rate limit exceeded - potential brute force', {
+        level: 'warning',
+        tags: {
+          type: 'brute_force_attempt',
+          path: req.path,
+        },
+        extra: {
+          ip,
+          userAgent,
+          method: req.method,
+        },
+      });
+    }
+
+    // Send standard rate limit response
+    res.status(options.statusCode).json(options.message);
+  },
 });
 
 /**
