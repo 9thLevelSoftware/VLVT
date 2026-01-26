@@ -29,6 +29,15 @@ const SENSITIVE_FIELDS = [
   'bearer', 'jwt', 'code', 'clientSecret', 'client_secret',
   'privateKey', 'private_key', 'creditCard', 'ssn',
 
+  // Personal Identifiers (GDPR PII) - MON-06 verification
+  'phone', 'phoneNumber', 'phone_number', 'mobileNumber', 'mobile_number',
+  'dob', 'dateOfBirth', 'date_of_birth', 'birthDate', 'birth_date',
+
+  // Device/Network Identifiers (GDPR PII under certain contexts)
+  'ip', 'ipAddress', 'ip_address', 'remoteAddress', 'clientIp', 'client_ip',
+  'deviceId', 'device_id', 'deviceIdentifier', 'device_identifier',
+  'fcmToken', 'fcm_token', 'pushToken', 'push_token', 'apnsToken', 'apns_token',
+
   // Location PII - exact coordinates must never appear in logs (SEC-07)
   'latitude', 'longitude', 'lat', 'lng', 'location',
   'coordinates', 'coords', 'geoLocation', 'geo_location',

@@ -127,27 +127,33 @@ export interface AuditLoggerOptions {
 }
 
 // List of sensitive field names that should be redacted in audit logs
+// NOTE: This list should stay in sync with logger.ts SENSITIVE_FIELDS
 const SENSITIVE_FIELDS = [
-  'password',
-  'passwordHash',
-  'password_hash',
-  'newPassword',
-  'currentPassword',
-  'token',
-  'accessToken',
-  'refreshToken',
-  'idToken',
-  'identityToken',
-  'resetToken',
-  'verificationToken',
-  'secret',
-  'apiKey',
-  'api_key',
-  'privateKey',
-  'private_key',
-  'creditCard',
-  'ssn',
-  'nonce',
+  // Authentication/Secrets
+  'password', 'passwordHash', 'password_hash', 'newPassword', 'currentPassword',
+  'token', 'accessToken', 'refreshToken', 'idToken', 'identityToken',
+  'resetToken', 'verificationToken', 'tempToken',
+  'secret', 'apiKey', 'api_key', 'privateKey', 'private_key',
+  'clientSecret', 'client_secret', 'nonce', 'jwt', 'bearer', 'code',
+  'creditCard', 'ssn',
+
+  // Personal Identifiers (GDPR PII)
+  'phone', 'phoneNumber', 'phone_number', 'mobileNumber', 'mobile_number',
+  'dob', 'dateOfBirth', 'date_of_birth', 'birthDate', 'birth_date',
+
+  // Device/Network Identifiers
+  'deviceId', 'device_id', 'deviceIdentifier', 'device_identifier',
+  'fcmToken', 'fcm_token', 'pushToken', 'push_token', 'apnsToken', 'apns_token',
+
+  // Location PII (SEC-07)
+  'latitude', 'longitude', 'lat', 'lng', 'location',
+  'coordinates', 'coords', 'geoLocation', 'geo_location',
+
+  // Message Content (SEC-07)
+  'text', 'messageText', 'message_text',
+  'content', 'messageContent', 'message_content',
+  'body', 'messageBody', 'message_body',
+  'chatMessage', 'chat_message',
 ];
 
 /**
