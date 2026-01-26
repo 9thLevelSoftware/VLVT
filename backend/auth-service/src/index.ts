@@ -10,6 +10,46 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
+
+    // Service identification for dashboard grouping (MON-05)
+    initialScope: {
+      tags: {
+        service: 'auth-service',
+      },
+    },
+
+    // Release tracking (use RAILWAY_GIT_COMMIT_SHA in production, or npm version)
+    release: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.npm_package_version || 'development',
+
+    // PII scrubbing before events reach Sentry (MON-05)
+    beforeSend(event) {
+      // Scrub request body (may contain passwords, tokens, messages)
+      if (event.request?.data) {
+        event.request.data = '[REDACTED]';
+      }
+
+      // Scrub query strings (may contain tokens)
+      if (event.request?.query_string) {
+        event.request.query_string = '[REDACTED]';
+      }
+
+      // Scrub cookies (contain session tokens)
+      if (event.request?.cookies) {
+        event.request.cookies = {};
+      }
+
+      // Scrub authorization headers
+      if (event.request?.headers) {
+        const sensitiveHeaders = ['authorization', 'cookie', 'x-csrf-token'];
+        for (const header of sensitiveHeaders) {
+          if (event.request.headers[header]) {
+            event.request.headers[header] = '[REDACTED]';
+          }
+        }
+      }
+
+      return event;
+    },
   });
 }
 
@@ -49,6 +89,8 @@ import {
   ErrorCodes,
   sendErrorResponse,
   createErrorResponseSender,
+  // Correlation ID middleware (MON-05)
+  correlationMiddleware,
 } from '@vlvt/shared';
 
 const app = express();
@@ -249,6 +291,9 @@ app.use(cors({
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
+// Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
+app.use(correlationMiddleware);
+
 // CSRF Protection Configuration
 // Note: Versioned routes (/api/v1/*) are rewritten to legacy paths before CSRF check
 const csrfMiddleware = createCsrfMiddleware({
@@ -286,9 +331,48 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 const csrfTokenHandler = createCsrfTokenHandler();
 
-// Health check endpoint (at root - not versioned)
-app.get('/health', (req: Request, res: Response) => {
-  res.json(addVersionToHealth({ status: 'ok', service: 'auth-service' }));
+// Health check endpoint with dependency status (MON-02)
+app.get('/health', async (req: Request, res: Response): Promise<void> => {
+  const health: {
+    status: 'ok' | 'degraded' | 'unhealthy';
+    service: string;
+    timestamp: string;
+    checks: {
+      database: { status: string; latencyMs: number };
+    };
+    [key: string]: unknown;
+  } = {
+    status: 'ok',
+    service: 'auth-service',
+    timestamp: new Date().toISOString(),
+    checks: {
+      database: { status: 'unknown', latencyMs: -1 },
+    },
+  };
+
+  // Check database connectivity
+  try {
+    const dbStart = Date.now();
+    await pool.query('SELECT 1');
+    health.checks.database = {
+      status: 'ok',
+      latencyMs: Date.now() - dbStart,
+    };
+  } catch (err) {
+    health.checks.database = {
+      status: 'error',
+      latencyMs: -1,
+    };
+    health.status = 'degraded';
+    // Log but don't expose error details
+    logger.error('Health check: database connectivity failed', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+
+  // Return appropriate status code
+  const httpStatus = health.status === 'ok' ? 200 : 503;
+  res.status(httpStatus).json(addVersionToHealth(health));
 });
 
 // Security.txt endpoint (RFC 9116)

@@ -200,9 +200,48 @@ pool.on('error', (err, client) => {
 // Initialize Firebase for push notifications
 initializeFirebase();
 
-// Health check endpoint (at root - not versioned)
-app.get('/health', (req: Request, res: Response) => {
-  res.json(addVersionToHealth({ status: 'ok', service: 'chat-service' }));
+// Health check endpoint with dependency status (MON-02)
+app.get('/health', async (req: Request, res: Response): Promise<void> => {
+  const health: {
+    status: 'ok' | 'degraded' | 'unhealthy';
+    service: string;
+    timestamp: string;
+    checks: {
+      database: { status: string; latencyMs: number };
+    };
+    [key: string]: unknown;
+  } = {
+    status: 'ok',
+    service: 'chat-service',
+    timestamp: new Date().toISOString(),
+    checks: {
+      database: { status: 'unknown', latencyMs: -1 },
+    },
+  };
+
+  // Check database connectivity
+  try {
+    const dbStart = Date.now();
+    await pool.query('SELECT 1');
+    health.checks.database = {
+      status: 'ok',
+      latencyMs: Date.now() - dbStart,
+    };
+  } catch (err) {
+    health.checks.database = {
+      status: 'error',
+      latencyMs: -1,
+    };
+    health.status = 'degraded';
+    // Log but don't expose error details
+    logger.error('Health check: database connectivity failed', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
+  }
+
+  // Return appropriate status code
+  const httpStatus = health.status === 'ok' ? 200 : 503;
+  res.status(httpStatus).json(addVersionToHealth(health));
 });
 
 // Security.txt endpoint (RFC 9116)
