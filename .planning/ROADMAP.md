@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: GDPR Compliance** - Establish legal compliance for EU users and special category data
 - [x] **Phase 3: Testing Infrastructure** - Enable safe code changes with regression protection
 - [x] **Phase 4: Bug Fixes & UI Polish** - Fix UI bugs and polish user experience for beta quality
-- [ ] **Phase 5: Monitoring & Alerting** - Gain production visibility after hardening
+- [x] **Phase 5: Monitoring & Alerting** - Gain production visibility after hardening
 - [ ] **Phase 6: Deployment Infrastructure** - Ensure operational resilience and recovery capability
 - [ ] **Phase 7: Safety Systems** - Protect users from harassment and enable effective moderation
 
@@ -125,7 +125,7 @@ Plans:
 - [x] 05-02-PLAN.md - Enrich health check endpoints with dependency status (MON-02)
 - [x] 05-03-PLAN.md - Add brute force alerting via rate limiter (MON-03)
 - [x] 05-04-PLAN.md - Configure external uptime monitoring and verify PII redaction (MON-04, MON-06)
-- [ ] 05-05-PLAN.md - Wire correlation IDs into log output (MON-05 gap closure)
+- [x] 05-05-PLAN.md - Wire correlation IDs into log output (MON-05 gap closure)
 
 ### Phase 6: Deployment Infrastructure
 **Goal**: Data can be recovered and deployments are auditable
@@ -167,12 +167,12 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. GDPR Compliance | 6/6 | Complete | 2026-01-24 |
 | 3. Testing Infrastructure | 12/12 | Complete | 2026-01-25 |
 | 4. Bug Fixes & UI Polish | 5/5 | Complete | 2026-01-25 |
-| 5. Monitoring & Alerting | 4/5 | In progress | - |
+| 5. Monitoring & Alerting | 5/5 | Complete | 2026-01-26 |
 | 6. Deployment Infrastructure | 0/TBD | Not started | - |
 | 7. Safety Systems | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-26 - Added 05-05 gap closure plan for correlation IDs in logs*
+*Last updated: 2026-01-26 - Phase 5 complete (5/5 plans including 05-05 gap closure)*
 *Coverage: 38/38 v1 requirements mapped*

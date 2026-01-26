@@ -40,12 +40,12 @@ Requirements for beta launch. Each maps to roadmap phases.
 
 ### Monitoring & Alerting
 
-- [ ] **MON-01**: Sentry configured for production error tracking across all services
-- [ ] **MON-02**: Health check endpoints on all services returning service status
-- [ ] **MON-03**: Authentication failure alerting configured (brute force detection)
-- [ ] **MON-04**: Uptime monitoring configured for all production endpoints
-- [ ] **MON-05**: Structured logging with correlation IDs across services
-- [ ] **MON-06**: PII redaction verified in all log outputs
+- [x] **MON-01**: Sentry configured for production error tracking across all services
+- [x] **MON-02**: Health check endpoints on all services returning service status
+- [x] **MON-03**: Authentication failure alerting configured (brute force detection)
+- [x] **MON-04**: Uptime monitoring configured for all production endpoints
+- [x] **MON-05**: Structured logging with correlation IDs across services
+- [x] **MON-06**: PII redaction verified in all log outputs
 
 ### Deployment Infrastructure
 
@@ -147,12 +147,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-04 | Phase 4 | Complete |
 | UI-05 | Phase 4 | Complete |
 | UI-06 | Phase 4 | Complete |
-| MON-01 | Phase 5 | Pending |
-| MON-02 | Phase 5 | Pending |
-| MON-03 | Phase 5 | Pending |
-| MON-04 | Phase 5 | Pending |
-| MON-05 | Phase 5 | Pending |
-| MON-06 | Phase 5 | Pending |
+| MON-01 | Phase 5 | Complete |
+| MON-02 | Phase 5 | Complete |
+| MON-03 | Phase 5 | Complete |
+| MON-04 | Phase 5 | Complete |
+| MON-05 | Phase 5 | Complete |
+| MON-06 | Phase 5 | Complete |
 | DEP-01 | Phase 6 | Pending |
 | DEP-02 | Phase 6 | Pending |
 | DEP-03 | Phase 6 | Pending |
@@ -171,4 +171,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-25 - Phase 4 (Bug Fixes & UI Polish) complete*
+*Last updated: 2026-01-26 - Phase 5 (Monitoring & Alerting) complete*
