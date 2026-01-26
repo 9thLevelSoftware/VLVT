@@ -98,6 +98,8 @@ import {
   CURRENT_API_VERSION,
   // Correlation ID middleware (MON-05)
   correlationMiddleware,
+  // Request logger middleware (MON-05)
+  createRequestLoggerMiddleware,
 } from '@vlvt/shared';
 import { createAfterHoursRouter } from './routes/after-hours';
 
@@ -172,6 +174,10 @@ app.use(cookieParser());
 
 // Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
 app.use(correlationMiddleware);
+
+// Request logger middleware - attaches child logger with correlationId (MON-05)
+const requestLoggerMiddleware = createRequestLoggerMiddleware(logger);
+app.use(requestLoggerMiddleware);
 
 // CSRF Protection Configuration
 const csrfMiddleware = createCsrfMiddleware({

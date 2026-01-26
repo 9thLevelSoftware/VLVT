@@ -91,6 +91,8 @@ import {
   createErrorResponseSender,
   // Correlation ID middleware (MON-05)
   correlationMiddleware,
+  // Request logger middleware (MON-05)
+  createRequestLoggerMiddleware,
 } from '@vlvt/shared';
 
 const app = express();
@@ -293,6 +295,10 @@ app.use(cookieParser());
 
 // Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
 app.use(correlationMiddleware);
+
+// Request logger middleware - attaches child logger with correlationId (MON-05)
+const requestLoggerMiddleware = createRequestLoggerMiddleware(logger);
+app.use(requestLoggerMiddleware);
 
 // CSRF Protection Configuration
 // Note: Versioned routes (/api/v1/*) are rewritten to legacy paths before CSRF check
