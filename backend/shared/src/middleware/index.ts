@@ -52,3 +52,6 @@ export type { SocketRateLimiterConfig, EventRateLimitConfig, SocketRateLimiter }
 // Request signing
 export { createSignatureMiddleware, verifySignature, signRequest, signatureMiddleware, signatureMutationMiddleware, computeHash, computeSignature, getSigningSecret } from './request-signing';
 export type { SignatureMiddlewareOptions, SignatureVerificationResult } from './request-signing';
+
+// Correlation ID (MON-05)
+export { correlationMiddleware } from './correlation-id';
