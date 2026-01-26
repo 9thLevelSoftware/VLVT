@@ -2,6 +2,7 @@ import { Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import { createClient } from 'redis';
+import * as Sentry from '@sentry/node';
 import logger from '../utils/logger';
 
 // Performance optimization: Implement Redis-based rate limiting for production
@@ -90,7 +91,15 @@ export const generalLimiter = rateLimit({
   }
 });
 
-// Authentication rate limiter (10 requests per 15 minutes per IP)
+/**
+ * Authentication rate limiter with brute force detection alerting (MON-03)
+ * 10 requests per 15 minutes per IP - sends alerts to Sentry when triggered.
+ *
+ * When rate limit is exceeded:
+ * 1. Logs the event with warning level (IP, path, userAgent)
+ * 2. Sends alert to Sentry tagged as potential brute force attempt
+ * 3. Returns standard 429 response
+ */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
@@ -99,11 +108,35 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   store: rateLimitStore, // Use Redis store if available
   handler: (req, res) => {
-    logger.warn('Auth rate limit exceeded', {
-      ip: req.ip,
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Log rate limit hit for investigation
+    logger.warn('Auth rate limit exceeded - potential brute force attempt', {
+      ip,
       path: req.path,
+      method: req.method,
+      userAgent,
       limiter: 'auth'
     });
+
+    // Send to Sentry for alerting (MON-03)
+    // Only capture if Sentry is initialized (SENTRY_DSN is set)
+    if (process.env.SENTRY_DSN) {
+      Sentry.captureMessage('Auth rate limit exceeded - potential brute force', {
+        level: 'warning',
+        tags: {
+          type: 'brute_force_attempt',
+          path: req.path,
+        },
+        extra: {
+          ip,
+          userAgent,
+          method: req.method,
+        },
+      });
+    }
+
     res.status(429).json({
       success: false,
       error: 'Too many authentication attempts, please try again later'
