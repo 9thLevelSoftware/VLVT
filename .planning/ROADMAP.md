@@ -118,10 +118,13 @@ Plans:
   3. Authentication failure spikes trigger alerts (brute force detection)
   4. All production endpoints have uptime monitoring with downtime alerts
   5. Logs use structured JSON format with correlation IDs and verified PII redaction
-**Plans**: TBD
+**Plans**: 4 plans in 2 waves
 
 Plans:
-- [ ] 05-01: TBD (planned during phase planning)
+- [ ] 05-01-PLAN.md - Enhance Sentry configuration and add correlation ID middleware (MON-01, MON-05)
+- [ ] 05-02-PLAN.md - Enrich health check endpoints with dependency status (MON-02)
+- [ ] 05-03-PLAN.md - Add brute force alerting via rate limiter (MON-03)
+- [ ] 05-04-PLAN.md - Configure external uptime monitoring and verify PII redaction (MON-04, MON-06)
 
 ### Phase 6: Deployment Infrastructure
 **Goal**: Data can be recovered and deployments are auditable
@@ -163,12 +166,12 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. GDPR Compliance | 6/6 | Complete | 2026-01-24 |
 | 3. Testing Infrastructure | 12/12 | Complete | 2026-01-25 |
 | 4. Bug Fixes & UI Polish | 5/5 | Complete | 2026-01-25 |
-| 5. Monitoring & Alerting | 0/TBD | Not started | - |
+| 5. Monitoring & Alerting | 0/4 | Planned | - |
 | 6. Deployment Infrastructure | 0/TBD | Not started | - |
 | 7. Safety Systems | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-25 - Phase 4 complete (5 plans, human verification checkpoint passed)*
+*Last updated: 2026-01-25 - Phase 5 planned (4 plans in 2 waves)*
 *Coverage: 38/38 v1 requirements mapped*
