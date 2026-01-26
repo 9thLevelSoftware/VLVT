@@ -130,16 +130,20 @@ Plans:
 ### Phase 6: Deployment Infrastructure
 **Goal**: Data can be recovered and deployments are auditable
 **Depends on**: Phase 5 (monitoring verifies backup success)
-**Requirements**: DEP-01, DEP-02, DEP-03, DEP-04
+**Requirements**: DEP-01, DEP-02, DEP-03, DEP-04, DEP-05, DEP-06
 **Success Criteria** (what must be TRUE):
   1. PostgreSQL database is backed up daily to R2 with 30-day retention
   2. All environment variables are documented and consistent across services/environments
   3. No secrets exist in source code (all in Railway environment variables)
   4. Database can be restored from backup to a test environment within 1 hour
-**Plans**: TBD
+**Plans**: 5 plans in 2 waves
 
 Plans:
-- [ ] 06-01: TBD (planned during phase planning)
+- [ ] 06-01-PLAN.md - Environment variable audit and secrets management documentation (DEP-02, DEP-03)
+- [ ] 06-02-PLAN.md - Email service configuration for Resend (DEP-05)
+- [ ] 06-03-PLAN.md - Apple Sign-In web flow for Android support (DEP-06)
+- [ ] 06-04-PLAN.md - PostgreSQL backup automation to R2 (DEP-01)
+- [ ] 06-05-PLAN.md - Backup restore procedure and verification (DEP-04)
 
 ### Phase 7: Safety Systems
 **Goal**: Reported users can be investigated and moderated even after unmatch
@@ -168,11 +172,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Testing Infrastructure | 12/12 | Complete | 2026-01-25 |
 | 4. Bug Fixes & UI Polish | 5/5 | Complete | 2026-01-25 |
 | 5. Monitoring & Alerting | 5/5 | Complete | 2026-01-26 |
-| 6. Deployment Infrastructure | 0/TBD | Not started | - |
+| 6. Deployment Infrastructure | 0/5 | Planned | - |
 | 7. Safety Systems | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-26 - Phase 5 complete (5/5 plans including 05-05 gap closure)*
+*Last updated: 2026-01-26 - Phase 6 planned (5 plans in 2 waves)*
 *Coverage: 38/38 v1 requirements mapped*
