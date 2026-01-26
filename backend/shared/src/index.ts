@@ -71,6 +71,10 @@ export {
   type SignatureVerificationResult,
 } from './middleware/request-signing';
 
+export {
+  correlationMiddleware,
+} from './middleware/correlation-id';
+
 // Utilities
 export {
   createLogger,

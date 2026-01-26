@@ -10,6 +10,46 @@ if (process.env.SENTRY_DSN) {
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: 0.1, // 10% of transactions
+
+    // Service identification for dashboard grouping (MON-05)
+    initialScope: {
+      tags: {
+        service: 'chat-service',
+      },
+    },
+
+    // Release tracking (use RAILWAY_GIT_COMMIT_SHA in production, or npm version)
+    release: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.npm_package_version || 'development',
+
+    // PII scrubbing before events reach Sentry (MON-05)
+    beforeSend(event) {
+      // Scrub request body (may contain passwords, tokens, messages)
+      if (event.request?.data) {
+        event.request.data = '[REDACTED]';
+      }
+
+      // Scrub query strings (may contain tokens)
+      if (event.request?.query_string) {
+        event.request.query_string = '[REDACTED]';
+      }
+
+      // Scrub cookies (contain session tokens)
+      if (event.request?.cookies) {
+        event.request.cookies = {};
+      }
+
+      // Scrub authorization headers
+      if (event.request?.headers) {
+        const sensitiveHeaders = ['authorization', 'cookie', 'x-csrf-token'];
+        for (const header of sensitiveHeaders) {
+          if (event.request.headers[header]) {
+            event.request.headers[header] = '[REDACTED]';
+          }
+        }
+      }
+
+      return event;
+    },
   });
 }
 
@@ -34,6 +74,8 @@ import {
   addVersionToHealth,
   API_VERSIONS,
   CURRENT_API_VERSION,
+  // Correlation ID middleware (MON-05)
+  correlationMiddleware,
 } from '@vlvt/shared';
 
 // Admin API key for protected endpoints
@@ -135,6 +177,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+
+// Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
+app.use(correlationMiddleware);
 
 // CSRF Protection Configuration
 const csrfMiddleware = createCsrfMiddleware({

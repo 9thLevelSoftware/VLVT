@@ -96,6 +96,8 @@ import {
   addVersionToHealth,
   API_VERSIONS,
   CURRENT_API_VERSION,
+  // Correlation ID middleware (MON-05)
+  correlationMiddleware,
 } from '@vlvt/shared';
 import { createAfterHoursRouter } from './routes/after-hours';
 
@@ -167,6 +169,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+
+// Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
+app.use(correlationMiddleware);
 
 // CSRF Protection Configuration
 const csrfMiddleware = createCsrfMiddleware({
