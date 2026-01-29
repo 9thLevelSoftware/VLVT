@@ -1172,11 +1172,30 @@ app.post('/auth/email/register', authLimiter, async (req: Request, res: Response
 });
 
 // Email verification endpoint
+// Returns HTML when accessed from browser (email link click), JSON for API clients
 app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response) => {
+  const isBrowser = req.headers.accept?.includes('text/html');
+
+  const sendVerificationPage = (title: string, message: string, success: boolean) => {
+    if (!isBrowser) return; // Only for browser requests
+    const color = success ? '#6B46C1' : '#DC2626';
+    const icon = success ? '&#10003;' : '&#10007;';
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title>
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#f5f5f5;color:#333}
+.card{background:#fff;border-radius:12px;padding:48px;max-width:420px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.icon{width:64px;height:64px;border-radius:50%;background:${color};color:#fff;font-size:32px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px}
+h1{font-size:24px;margin:0 0 12px}p{color:#666;line-height:1.6;margin:0}
+.logo{font-size:28px;font-weight:bold;color:#6B46C1;margin-bottom:24px}</style></head>
+<body><div class="card"><div class="logo">VLVT</div><div class="icon">${icon}</div><h1>${title}</h1><p>${message}</p></div></body></html>`);
+  };
+
   try {
     const { token } = req.query;
 
     if (!token || typeof token !== 'string') {
+      if (isBrowser) return sendVerificationPage('Invalid Link', 'This verification link is invalid. Please request a new verification email from the app.', false);
       return res.status(400).json({ success: false, error: 'Verification token is required' });
     }
 
@@ -1192,6 +1211,7 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
     );
 
     if (result.rows.length === 0) {
+      if (isBrowser) return sendVerificationPage('Link Expired', 'This verification link has already been used or is invalid. If your email is already verified, you can log in from the app.', false);
       return res.status(400).json({ success: false, error: 'Invalid or expired verification token' });
     }
 
@@ -1199,6 +1219,7 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
 
     // Check if token expired
     if (isTokenExpired(credential.verification_expires)) {
+      if (isBrowser) return sendVerificationPage('Link Expired', 'This verification link has expired. Please request a new verification email from the app.', false);
       return res.status(400).json({ success: false, error: 'Verification token has expired' });
     }
 
@@ -1235,6 +1256,10 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
       // Don't fail the verification if ticket awarding fails
     }
 
+    if (isBrowser) {
+      return sendVerificationPage('Email Verified!', 'Your email has been verified successfully. You can now go back to the VLVT app and log in.', true);
+    }
+
     res.json({
       success: true,
       message: 'Email verified successfully',
@@ -1246,6 +1271,7 @@ app.get('/auth/email/verify', verifyLimiter, async (req: Request, res: Response)
     });
   } catch (error) {
     logger.error('Email verification error', { error });
+    if (isBrowser) return sendVerificationPage('Verification Failed', 'Something went wrong. Please try again or request a new verification email from the app.', false);
     res.status(500).json({ success: false, error: 'Verification failed' });
   }
 });

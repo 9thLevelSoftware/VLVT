@@ -17,6 +17,7 @@ interface EmailConfig {
   from: string;
   appName: string;
   appUrl: string;
+  authServiceUrl: string;
   smtp?: {
     host: string;
     port: number;
@@ -49,6 +50,7 @@ class EmailService {
       from: process.env.EMAIL_FROM || 'noreply@getvlvt.vip',
       appName: process.env.APP_NAME || 'VLVT',
       appUrl: process.env.APP_URL || 'https://getvlvt.vip',
+      authServiceUrl: process.env.AUTH_SERVICE_URL || 'https://vlvtauth.up.railway.app',
     };
 
     if (provider === 'smtp') {
@@ -181,7 +183,7 @@ class EmailService {
   }
 
   async sendVerificationEmail(email: string, token: string): Promise<boolean> {
-    const verificationUrl = `${this.config.appUrl}/verify?token=${token}`;
+    const verificationUrl = `${this.config.authServiceUrl}/api/v1/auth/email/verify?token=${token}`;
 
     const html = this.getVerificationEmailTemplate(verificationUrl);
     const text = `Welcome to ${this.config.appName}!\n\nPlease verify your email address by clicking the following link:\n${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`;
