@@ -422,7 +422,20 @@ app.get('/csrf-token', csrfTokenHandler);
 app.use(csrfMiddleware);
 
 // Apply input validation middleware to all routes
-app.use(validateInputMiddleware);
+// Skip for email verify/reset — tokens are hex strings that get hashed immediately,
+// and the aggressive SQL/XSS patterns can false-positive on random hex
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const skipPaths = [
+    '/auth/email/verify',
+    '/api/v1/auth/email/verify',
+    '/auth/email/reset',
+    '/api/v1/auth/email/reset',
+  ];
+  if (skipPaths.some(p => req.path.startsWith(p))) {
+    return next();
+  }
+  return validateInputMiddleware(req, res, next);
+});
 
 // =============================================================================
 // API VERSIONING SUPPORT
