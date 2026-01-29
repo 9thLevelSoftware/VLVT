@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 6 of 7 (Deployment Infrastructure)
-Plan: 1 of 5 complete in current phase
+Plan: 2 of 5 complete in current phase
 Status: In progress
-Last activity: 2026-01-26 - Completed 06-01-PLAN.md (Environment Variable & Secrets Audit)
+Last activity: 2026-01-29 - Completed 06-02-PLAN.md (Email Service Configuration)
 
-Progress: [███████████████████] 73% (Phases 1-5 complete + 1 plan - 36 plans)
+Progress: [████████████████████] 76% (Phases 1-5 complete + 2 plans - 37 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 36 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 1 deployment)
+- Total plans completed: 37 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 2 deployment)
 - Average duration: ~7 min
 - Total execution time: ~4.2 hours
 
@@ -32,12 +32,12 @@ Progress: [███████████████████] 73% (Phase
 | 03-testing-infrastructure | 12 | 12 | Complete (verified) |
 | 04-bug-fixes-ui-polish | 5 | 5 | Complete (verified) |
 | 05-monitoring-alerting | 5 | 5 | Complete (verified) |
-| 06-deployment-infrastructure | 5 | 1 | In progress |
+| 06-deployment-infrastructure | 5 | 2 | In progress |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 06-01 (8 min)
-- Trend: Phase 6 started - env var audit and secrets documentation
+- Last plan: 06-02 (~4 days including checkpoint wait)
+- Trend: Phase 6 email service configured with Resend HTTP API
 
 *Updated after each plan completion*
 
@@ -130,23 +130,26 @@ Recent decisions affecting current work:
 - [06-01]: Railway shared variables for cross-service configuration (JWT_SECRET, DATABASE_URL)
 - [06-01]: Railway sealed variables for all secret values
 - [06-01]: Table format for env var documentation (Required/Secret/Source columns)
+- [06-02]: Resend HTTP API over SMTP: Railway blocks outbound port 587, use provider HTTP APIs instead
+- [06-02]: Migration runner must explicitly list all migration files (run_migration.js)
+- [06-02]: IF NOT EXISTS on all DDL statements for idempotent migration re-runs
 
 ### Pending Todos
 
-Phase 6 Deployment Infrastructure in progress. Plans 06-02 through 06-05 remaining.
+Phase 6 Deployment Infrastructure in progress. Plans 06-03 through 06-05 remaining.
 
 ### Blockers/Concerns
 
-None - Phase 5 complete. DEP-05 (email service) and DEP-06 (Apple Sign-In) tracked for Phase 6.
+DEP-05 (email service) RESOLVED. DEP-06 (Apple Sign-In) still tracked for Phase 6.
 
 ## Session Continuity
 
-Last session: 2026-01-26
-Stopped at: Completed 06-01-PLAN.md
-Resume file: .planning/phases/06-deployment-infrastructure/06-02-PLAN.md
+Last session: 2026-01-29
+Stopped at: Completed 06-02-PLAN.md
+Resume file: .planning/phases/06-deployment-infrastructure/06-03-PLAN.md
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (36 plans complete, 73%)*
+*Current milestone: Production Readiness (37 plans complete, 76%)*
