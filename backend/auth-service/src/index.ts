@@ -468,7 +468,9 @@ app.use((req, res, next) => {
     res.setHeader('X-API-Version', `v${version}`);
 
     // Rewrite URL to strip version prefix for routing
-    req.url = remainingPath;
+    // Preserve query string during rewrite
+    const queryString = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';
+    req.url = remainingPath + queryString;
   } else {
     // Legacy unversioned route
     req.apiVersion = 1; // Default to v1
