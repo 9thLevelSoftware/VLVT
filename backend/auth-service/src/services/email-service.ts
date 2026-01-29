@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 import logger from '../utils/logger';
 
 type EmailProvider = 'console' | 'smtp' | 'sendgrid' | 'resend';
@@ -33,6 +34,7 @@ interface EmailConfig {
 class EmailService {
   private config: EmailConfig;
   private transporter: Transporter | null = null;
+  private resendClient: Resend | null = null;
 
   constructor() {
     this.config = this.loadConfig();
@@ -89,6 +91,7 @@ class EmailService {
       }
     }
 
+    logger.info(`Email service initialized with provider: ${config.provider}`);
     return config;
   }
 
@@ -119,15 +122,9 @@ class EmailService {
         },
       });
     } else if (this.config.provider === 'resend' && this.config.resend) {
-      this.transporter = nodemailer.createTransport({
-        host: 'smtp.resend.com',
-        port: 587,
-        secure: false,
-        auth: {
-          user: 'resend',
-          pass: this.config.resend.apiKey,
-        },
-      });
+      // Use Resend HTTP API instead of SMTP (SMTP port 587 is blocked on many hosts)
+      this.resendClient = new Resend(this.config.resend.apiKey);
+      logger.info('Resend HTTP API client initialized');
     }
   }
 
@@ -140,6 +137,25 @@ class EmailService {
           text: options.text || 'No text version',
           htmlLength: options.html.length
         });
+        return true;
+      }
+
+      // Resend uses HTTP API, not nodemailer transporter
+      if (this.config.provider === 'resend' && this.resendClient) {
+        const { data, error } = await this.resendClient.emails.send({
+          from: this.config.from,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+        });
+
+        if (error) {
+          logger.error('Resend API error', { error, to: options.to });
+          return false;
+        }
+
+        logger.info('Email sent successfully via Resend', { to: options.to, id: data?.id });
         return true;
       }
 
