@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_auth_credentials_reset_token ON auth_credentials(
 
 -- Partial unique index for (provider, email) that only applies when email IS NOT NULL
 -- This prevents UNIQUE constraint violations with NULL emails for OAuth providers
-CREATE UNIQUE INDEX idx_auth_credentials_provider_email_unique
+CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_credentials_provider_email_unique
   ON auth_credentials(provider, email)
   WHERE email IS NOT NULL;
 

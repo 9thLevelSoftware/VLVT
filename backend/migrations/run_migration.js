@@ -31,7 +31,19 @@ const MIGRATIONS = [
   '011_add_kycaid_verification.sql',
   '012_fix_data_integrity.sql',
   '013_security_improvements.sql',
-  '014_encrypt_kycaid_pii.sql'
+  '014_encrypt_kycaid_pii.sql',
+  '015_hash_verification_tokens.sql',
+  '016_add_login_attempts.sql',
+  '017_create_audit_log.sql',
+  '018_database_audit_triggers.sql',
+  '019_add_profile_filters.sql',
+  '020_token_rotation.sql',
+  '021_add_after_hours_tables.sql',
+  '022_add_after_hours_preferences_columns.sql',
+  '023_add_matching_engine_columns.sql',
+  '024_add_matches_source_column.sql',
+  '025_ban_enforcement.sql',
+  '026_add_user_consents.sql'
 ];
 
 async function runMigrations() {
