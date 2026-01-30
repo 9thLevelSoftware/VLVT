@@ -310,6 +310,7 @@ const csrfMiddleware = createCsrfMiddleware({
     '/auth/google',
     '/auth/google/callback',
     '/auth/apple',
+    '/auth/apple/web',
     '/auth/apple/callback',
     // Email auth endpoints (no Bearer token yet when logging in)
     '/auth/email/register',
@@ -325,6 +326,7 @@ const csrfMiddleware = createCsrfMiddleware({
     '/api/v1/auth/google',
     '/api/v1/auth/google/callback',
     '/api/v1/auth/apple',
+    '/api/v1/auth/apple/web',
     '/api/v1/auth/apple/callback',
     '/api/v1/auth/email/register',
     '/api/v1/auth/email/login',
@@ -601,6 +603,137 @@ app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {
   } catch (error) {
     logger.error('Apple authentication error', { error });
     res.status(500).json({ success: false, error: 'Authentication failed' });
+  }
+});
+
+// Apple Sign-In web flow (for Android via web)
+// Uses authorization code exchange instead of direct identity token verification.
+// Key differences from native flow: requires client secret generation,
+// uses Services ID (not App ID) as audience, no nonce validation.
+app.post('/auth/apple/web', authLimiter, async (req: Request, res: Response) => {
+  try {
+    const { code, state } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ success: false, error: 'Authorization code is required' });
+    }
+
+    // Validate required environment variables for web flow
+    if (!process.env.APPLE_SERVICES_ID || !process.env.APPLE_TEAM_ID ||
+        !process.env.APPLE_KEY_ID || !process.env.APPLE_PRIVATE_KEY ||
+        !process.env.APPLE_REDIRECT_URI) {
+      logger.error('Apple web flow environment variables not configured');
+      return res.status(503).json({ success: false, error: 'Apple Sign-In web flow not configured' });
+    }
+
+    // Generate client secret JWT using apple-signin-auth
+    const clientSecret = appleSignin.getClientSecret({
+      clientID: process.env.APPLE_SERVICES_ID,
+      teamID: process.env.APPLE_TEAM_ID,
+      privateKey: process.env.APPLE_PRIVATE_KEY,
+      keyIdentifier: process.env.APPLE_KEY_ID,
+      expAfter: 15777000, // 6 months in seconds (maximum allowed by Apple)
+    });
+
+    // Exchange authorization code for tokens
+    const tokenResponse = await appleSignin.getAuthorizationToken(code, {
+      clientID: process.env.APPLE_SERVICES_ID,
+      clientSecret,
+      redirectUri: process.env.APPLE_REDIRECT_URI,
+    });
+
+    if (!tokenResponse.id_token) {
+      return res.status(401).json({ success: false, error: 'Failed to get identity token from Apple' });
+    }
+
+    // Verify the id_token - web flow uses Services ID as audience (not App ID)
+    const appleIdTokenClaims = await appleSignin.verifyIdToken(tokenResponse.id_token, {
+      audience: process.env.APPLE_SERVICES_ID,
+    });
+
+    if (!appleIdTokenClaims || !appleIdTokenClaims.sub) {
+      return res.status(401).json({ success: false, error: 'Invalid identity token claims' });
+    }
+
+    const providerId = `apple_${appleIdTokenClaims.sub}`;
+    const email = appleIdTokenClaims.email?.toLowerCase() || `user_${appleIdTokenClaims.sub}@apple.example.com`;
+    const provider = 'apple';
+
+    // Check if this Apple account is already linked (reuse existing logic)
+    const existingCredential = await pool.query(
+      `SELECT ac.user_id FROM auth_credentials ac WHERE ac.provider = $1 AND ac.provider_id = $2`,
+      [provider, providerId]
+    );
+
+    let userId: string;
+
+    if (existingCredential.rows.length > 0) {
+      userId = existingCredential.rows[0].user_id;
+      await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
+    } else {
+      // Check for existing user with same email (account linking)
+      const existingEmail = await pool.query(
+        'SELECT user_id FROM auth_credentials WHERE email = $1',
+        [email]
+      );
+
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+
+        if (existingEmail.rows.length > 0) {
+          // Link to existing account
+          userId = existingEmail.rows[0].user_id;
+
+          await client.query(
+            `INSERT INTO auth_credentials (user_id, provider, provider_id, email, email_verified)
+             VALUES ($1, $2, $3, $4, true)
+             ON CONFLICT (provider, provider_id) DO UPDATE SET updated_at = NOW()`,
+            [userId, provider, providerId, email]
+          );
+        } else {
+          // Create new user (maintain backwards compatibility with old ID format)
+          userId = providerId;
+
+          await client.query(
+            `INSERT INTO users (id, provider, email) VALUES ($1, $2, $3)
+             ON CONFLICT (id) DO UPDATE SET updated_at = NOW(), email = $3`,
+            [userId, provider, email]
+          );
+
+          await client.query(
+            `INSERT INTO auth_credentials (user_id, provider, provider_id, email, email_verified)
+             VALUES ($1, $2, $3, $4, true)
+             ON CONFLICT (provider, provider_id) DO UPDATE SET updated_at = NOW()`,
+            [userId, provider, providerId, email]
+          );
+        }
+
+        await client.query('COMMIT');
+      } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+      } finally {
+        client.release();
+      }
+    }
+
+    // Issue short-lived access token + refresh token pair (same as native flow)
+    const { accessToken, refreshToken, expiresIn } = await issueTokenPair(userId, provider, email, req);
+
+    logger.info('Apple web sign-in successful', { userId, email });
+    res.json({
+      success: true,
+      token: accessToken, // For backwards compatibility
+      accessToken,
+      refreshToken,
+      expiresIn,
+      userId,
+      provider,
+    });
+  } catch (error) {
+    logger.error('Apple web sign-in error', { error });
+    res.status(401).json({ success: false, error: 'Apple authentication failed' });
   }
 });
 
