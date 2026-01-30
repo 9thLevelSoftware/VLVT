@@ -10,16 +10,16 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 6 of 7 (Deployment Infrastructure)
-Plan: 4 of 5 complete in current phase (auto tasks done, checkpoint pending)
+Plan: 5 of 5 complete in current phase (auto tasks done, checkpoint pending)
 Status: In progress
-Last activity: 2026-01-30 - Completed 06-04-PLAN.md auto tasks (PostgreSQL Backup Configuration)
+Last activity: 2026-01-30 - Completed 06-05-PLAN.md auto tasks (Backup Restore Verification)
 
-Progress: [██████████████████████] 80% (Phases 1-5 complete + 4 plans - 39 plans)
+Progress: [███████████████████████] 82% (Phases 1-5 complete + 5 plans - 40 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 39 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 4 deployment)
+- Total plans completed: 40 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 5 deployment)
 - Average duration: ~7 min
 - Total execution time: ~4.3 hours
 
@@ -32,12 +32,12 @@ Progress: [██████████████████████] 8
 | 03-testing-infrastructure | 12 | 12 | Complete (verified) |
 | 04-bug-fixes-ui-polish | 5 | 5 | Complete (verified) |
 | 05-monitoring-alerting | 5 | 5 | Complete (verified) |
-| 06-deployment-infrastructure | 5 | 4 | In progress |
+| 06-deployment-infrastructure | 5 | 5 | Complete (checkpoints pending) |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 06-04 (~1 min auto tasks, checkpoint pending)
-- Trend: PostgreSQL backup configuration documented for Railway + R2
+- Last plan: 06-05 (~1 min auto tasks, checkpoint pending)
+- Trend: Backup restore runbook created; all Phase 6 auto tasks complete
 
 *Updated after each plan completion*
 
@@ -142,7 +142,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-Phase 6 Deployment Infrastructure in progress. Plan 06-05 remaining.
+Phase 6 Deployment Infrastructure auto tasks complete. Checkpoints pending for 06-01 (Railway env vars), 06-02 (migration runner), 06-04 (backup deploy), 06-05 (restore test).
 
 ### Blockers/Concerns
 
@@ -151,11 +151,11 @@ DEP-05 (email service) RESOLVED. DEP-06 (Apple Sign-In) code complete, awaiting 
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 06-04-PLAN.md (auto tasks; checkpoint pending)
-Resume file: .planning/phases/06-deployment-infrastructure/06-05-PLAN.md
+Stopped at: Completed 06-05-PLAN.md (auto tasks; checkpoint pending for restore test)
+Resume file: .planning/phases/06-deployment-infrastructure/06-05-PLAN.md (checkpoint)
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (39 plans complete, 80%)*
+*Current milestone: Production Readiness (40 plans complete, 82%)*
