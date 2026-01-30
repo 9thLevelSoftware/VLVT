@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-01-24)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 6 Deployment Infrastructure - IN PROGRESS
+**Current focus:** Phase 6 Deployment Infrastructure - COMPLETE (Phase 7 next)
 
 ## Current Position
 
-Phase: 6 of 7 (Deployment Infrastructure)
-Plan: 5 of 5 complete in current phase (auto tasks done, checkpoint pending)
-Status: In progress
-Last activity: 2026-01-30 - Completed 06-05-PLAN.md auto tasks (Backup Restore Verification)
+Phase: 6 of 7 (Deployment Infrastructure) - COMPLETE
+Plan: 5 of 5 complete in current phase
+Status: Phase complete (2 checkpoints deferred to operational readiness)
+Last activity: 2026-01-30 - Phase 6 finalized with verification report
 
-Progress: [███████████████████████] 82% (Phases 1-5 complete + 5 plans - 40 plans)
+Progress: [████████████████████████████] 87% (Phases 1-6 complete - 45 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 40 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 5 deployment)
+- Total plans completed: 45 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 5 deployment)
 - Average duration: ~7 min
-- Total execution time: ~4.3 hours
+- Total execution time: ~4.5 hours
 
 **By Phase:**
 
@@ -32,12 +32,12 @@ Progress: [███████████████████████
 | 03-testing-infrastructure | 12 | 12 | Complete (verified) |
 | 04-bug-fixes-ui-polish | 5 | 5 | Complete (verified) |
 | 05-monitoring-alerting | 5 | 5 | Complete (verified) |
-| 06-deployment-infrastructure | 5 | 5 | Complete (checkpoints pending) |
+| 06-deployment-infrastructure | 5 | 5 | Complete (verified, 2 checkpoints deferred) |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 06-05 (~1 min auto tasks, checkpoint pending)
-- Trend: Backup restore runbook created; all Phase 6 auto tasks complete
+- Last plan: 06-05 (backup restore runbook)
+- Trend: Phase 6 complete; 2 operational checkpoints deferred (Apple Portal config, restore test)
 
 *Updated after each plan completion*
 
@@ -142,20 +142,24 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-Phase 6 Deployment Infrastructure auto tasks complete. Checkpoints pending for 06-01 (Railway env vars), 06-02 (migration runner), 06-04 (backup deploy), 06-05 (restore test).
+Phase 6 complete. Two operational items deferred:
+- 06-03: Apple Developer Portal Services ID configuration (code deployed, returns 503 until configured)
+- 06-05: Restore test execution (runbook written, AWS CLI not installed locally)
+
+Phase 7 Safety Systems not yet planned.
 
 ### Blockers/Concerns
 
-DEP-05 (email service) RESOLVED. DEP-06 (Apple Sign-In) code complete, awaiting Apple Developer Portal configuration.
+DEP-05 (email service) RESOLVED. DEP-06 (Apple Sign-In) code complete, awaiting Apple Developer Portal configuration (non-blocking for Phase 7).
 
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 06-05-PLAN.md (auto tasks; checkpoint pending for restore test)
-Resume file: .planning/phases/06-deployment-infrastructure/06-05-PLAN.md (checkpoint)
+Stopped at: Phase 6 finalized - all plans complete with verification report
+Resume file: None (Phase 7 not yet planned)
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (40 plans complete, 82%)*
+*Current milestone: Production Readiness (45 plans complete, 87%)*

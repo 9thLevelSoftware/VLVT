@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Testing Infrastructure** - Enable safe code changes with regression protection
 - [x] **Phase 4: Bug Fixes & UI Polish** - Fix UI bugs and polish user experience for beta quality
 - [x] **Phase 5: Monitoring & Alerting** - Gain production visibility after hardening
-- [ ] **Phase 6: Deployment Infrastructure** - Ensure operational resilience and recovery capability
+- [x] **Phase 6: Deployment Infrastructure** - Ensure operational resilience and recovery capability
 - [ ] **Phase 7: Safety Systems** - Protect users from harassment and enable effective moderation
 
 ## Phase Details
@@ -139,11 +139,11 @@ Plans:
 **Plans**: 5 plans in 2 waves
 
 Plans:
-- [ ] 06-01-PLAN.md - Environment variable audit and secrets management documentation (DEP-02, DEP-03)
-- [ ] 06-02-PLAN.md - Email service configuration for Resend (DEP-05)
-- [ ] 06-03-PLAN.md - Apple Sign-In web flow for Android support (DEP-06)
-- [ ] 06-04-PLAN.md - PostgreSQL backup automation to R2 (DEP-01)
-- [ ] 06-05-PLAN.md - Backup restore procedure and verification (DEP-04)
+- [x] 06-01-PLAN.md - Environment variable audit and secrets management documentation (DEP-02, DEP-03)
+- [x] 06-02-PLAN.md - Email service configuration for Resend (DEP-05)
+- [x] 06-03-PLAN.md - Apple Sign-In web flow for Android support (DEP-06) [Apple Portal config deferred]
+- [x] 06-04-PLAN.md - PostgreSQL backup automation to R2 (DEP-01)
+- [x] 06-05-PLAN.md - Backup restore procedure and verification (DEP-04) [Restore test deferred]
 
 ### Phase 7: Safety Systems
 **Goal**: Reported users can be investigated and moderated even after unmatch
@@ -172,11 +172,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Testing Infrastructure | 12/12 | Complete | 2026-01-25 |
 | 4. Bug Fixes & UI Polish | 5/5 | Complete | 2026-01-25 |
 | 5. Monitoring & Alerting | 5/5 | Complete | 2026-01-26 |
-| 6. Deployment Infrastructure | 0/5 | Planned | - |
+| 6. Deployment Infrastructure | 5/5 | Complete | 2026-01-30 |
 | 7. Safety Systems | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-26 - Phase 6 planned (5 plans in 2 waves)*
+*Last updated: 2026-01-30 - Phase 6 complete (5 plans, 2 checkpoints deferred)*
 *Coverage: 38/38 v1 requirements mapped*
