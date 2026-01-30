@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-24)
 ## Current Position
 
 Phase: 6 of 7 (Deployment Infrastructure)
-Plan: 2 of 5 complete in current phase
+Plan: 3 of 5 complete in current phase (auto tasks done, checkpoint pending)
 Status: In progress
-Last activity: 2026-01-29 - Completed 06-02-PLAN.md (Email Service Configuration)
+Last activity: 2026-01-30 - Completed 06-03-PLAN.md auto tasks (Apple Sign-In Web Flow)
 
-Progress: [████████████████████] 76% (Phases 1-5 complete + 2 plans - 37 plans)
+Progress: [█████████████████████] 78% (Phases 1-5 complete + 3 plans - 38 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 37 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 2 deployment)
+- Total plans completed: 38 (7 security + 6 GDPR + 12 testing + 5 UI polish + 5 monitoring + 3 deployment)
 - Average duration: ~7 min
-- Total execution time: ~4.2 hours
+- Total execution time: ~4.3 hours
 
 **By Phase:**
 
@@ -32,12 +32,12 @@ Progress: [████████████████████] 76% (Ph
 | 03-testing-infrastructure | 12 | 12 | Complete (verified) |
 | 04-bug-fixes-ui-polish | 5 | 5 | Complete (verified) |
 | 05-monitoring-alerting | 5 | 5 | Complete (verified) |
-| 06-deployment-infrastructure | 5 | 2 | In progress |
+| 06-deployment-infrastructure | 5 | 3 | In progress |
 | 07-safety-systems | TBD | 0 | Not started |
 
 **Recent Trend:**
-- Last plan: 06-02 (~4 days including checkpoint wait)
-- Trend: Phase 6 email service configured with Resend HTTP API
+- Last plan: 06-03 (~3 min auto tasks, checkpoint pending)
+- Trend: Apple Sign-In web flow endpoint added for Android users
 
 *Updated after each plan completion*
 
@@ -133,23 +133,26 @@ Recent decisions affecting current work:
 - [06-02]: Resend HTTP API over SMTP: Railway blocks outbound port 587, use provider HTTP APIs instead
 - [06-02]: Migration runner must explicitly list all migration files (run_migration.js)
 - [06-02]: IF NOT EXISTS on all DDL statements for idempotent migration re-runs
+- [06-03]: Separate APPLE_SERVICES_ID (web flow) from APPLE_CLIENT_ID (iOS native)
+- [06-03]: issueTokenPair() for consistent token issuance across all auth endpoints
+- [06-03]: CSRF skipPaths required for all OAuth endpoints (no Bearer token available)
 
 ### Pending Todos
 
-Phase 6 Deployment Infrastructure in progress. Plans 06-03 through 06-05 remaining.
+Phase 6 Deployment Infrastructure in progress. Plans 06-04 and 06-05 remaining.
 
 ### Blockers/Concerns
 
-DEP-05 (email service) RESOLVED. DEP-06 (Apple Sign-In) still tracked for Phase 6.
+DEP-05 (email service) RESOLVED. DEP-06 (Apple Sign-In) code complete, awaiting Apple Developer Portal configuration.
 
 ## Session Continuity
 
-Last session: 2026-01-29
-Stopped at: Completed 06-02-PLAN.md
-Resume file: .planning/phases/06-deployment-infrastructure/06-03-PLAN.md
+Last session: 2026-01-30
+Stopped at: Completed 06-03-PLAN.md (auto tasks; checkpoint pending)
+Resume file: .planning/phases/06-deployment-infrastructure/06-04-PLAN.md
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: Production Readiness (37 plans complete, 76%)*
+*Current milestone: Production Readiness (38 plans complete, 78%)*
