@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Bug Fixes & UI Polish** - Fix UI bugs and polish user experience for beta quality
 - [x] **Phase 5: Monitoring & Alerting** - Gain production visibility after hardening
 - [x] **Phase 6: Deployment Infrastructure** - Ensure operational resilience and recovery capability
-- [ ] **Phase 7: Safety Systems** - Protect users from harassment and enable effective moderation
+- [x] **Phase 7: Safety Systems** - Protect users from harassment and enable effective moderation
 
 ## Phase Details
 
@@ -154,10 +154,14 @@ Plans:
   2. Moderators can review reported content including preserved chat history
   3. Report handling workflow is documented and functional end-to-end
   4. After Hours ephemeral messages are retained server-side for safety review (30 days)
-**Plans**: TBD
+**Plans**: 5 plans in 2 waves
 
 Plans:
-- [ ] 07-01: TBD (planned during phase planning)
+- [x] 07-01-PLAN.md - After Hours block and report endpoints (SAF-01, SAF-02, SAF-03)
+- [x] 07-02-PLAN.md - Device fingerprinting and photo perceptual hashing for ban enforcement
+- [x] 07-03-PLAN.md - Session cleanup jobs and orphaned data removal
+- [x] 07-04-PLAN.md - Frontend quick report flow UI (SAF-03)
+- [x] 07-05-PLAN.md - Analytics events for After Hours funnel
 
 ## Progress
 
@@ -173,10 +177,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Bug Fixes & UI Polish | 5/5 | Complete | 2026-01-25 |
 | 5. Monitoring & Alerting | 5/5 | Complete | 2026-01-26 |
 | 6. Deployment Infrastructure | 5/5 | Complete | 2026-01-30 |
-| 7. Safety Systems | 0/TBD | Not started | - |
+| 7. Safety Systems | 5/5 | Complete | 2026-01-30 |
 
 ---
 
 *Roadmap created: 2026-01-24*
-*Last updated: 2026-01-30 - Phase 6 complete (5 plans, 2 checkpoints deferred)*
-*Coverage: 38/38 v1 requirements mapped*
+*Last updated: 2026-01-30 - Phase 7 complete (all 7 phases done, milestone complete)*
+*Coverage: 40/40 v1 requirements mapped*

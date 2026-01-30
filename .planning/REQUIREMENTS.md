@@ -16,7 +16,7 @@ Requirements for beta launch. Each maps to roadmap phases.
 - [x] **SEC-05**: Rate limiting configured on authentication endpoints
 - [x] **SEC-06**: No hardcoded secrets in codebase (all moved to environment variables)
 - [x] **SEC-07**: PII scrubbed from application logs (no emails, locations, message content)
-- [ ] **SEC-08**: Input validation hardened across all API endpoints
+- [x] **SEC-08**: Input validation hardened across all API endpoints
 - [x] **SEC-09**: Socket.IO adapter upgraded from deprecated socket.io-redis to @socket.io/redis-adapter
 
 ### GDPR Compliance
@@ -31,12 +31,12 @@ Requirements for beta launch. Each maps to roadmap phases.
 
 ### Testing
 
-- [ ] **TEST-01**: Authentication flow tests (login, signup, logout, token refresh, password reset)
-- [ ] **TEST-02**: Payment flow tests (RevenueCat subscription, entitlement checks)
-- [ ] **TEST-03**: Match/chat flow tests (swipe, match, message send/receive)
-- [ ] **TEST-04**: Safety flow tests (block user, report user, unblock)
-- [ ] **TEST-05**: After Hours flow tests (session start, matching, ephemeral chat, save)
-- [ ] **TEST-06**: Security regression tests for fixed vulnerabilities
+- [x] **TEST-01**: Authentication flow tests (login, signup, logout, token refresh, password reset)
+- [x] **TEST-02**: Payment flow tests (RevenueCat subscription, entitlement checks)
+- [x] **TEST-03**: Match/chat flow tests (swipe, match, message send/receive)
+- [x] **TEST-04**: Safety flow tests (block user, report user, unblock)
+- [x] **TEST-05**: After Hours flow tests (session start, matching, ephemeral chat, save)
+- [x] **TEST-06**: Security regression tests for fixed vulnerabilities
 
 ### Monitoring & Alerting
 
@@ -49,12 +49,12 @@ Requirements for beta launch. Each maps to roadmap phases.
 
 ### Deployment Infrastructure
 
-- [ ] **DEP-01**: Database backup strategy implemented (daily to R2, 30-day retention)
-- [ ] **DEP-02**: Environment variable audit completed (all services, all environments)
-- [ ] **DEP-03**: Secrets management reviewed (no secrets in code, proper Railway configuration)
-- [ ] **DEP-04**: Backup restoration tested and documented
-- [ ] **DEP-05**: Email service configured (Resend/SendGrid/SMTP) for verification and password reset emails
-- [ ] **DEP-06**: Apple Sign-In web flow configured for Android support (Services ID, callback URL, client secret)
+- [x] **DEP-01**: Database backup strategy implemented (daily to R2, 30-day retention)
+- [x] **DEP-02**: Environment variable audit completed (all services, all environments)
+- [x] **DEP-03**: Secrets management reviewed (no secrets in code, proper Railway configuration)
+- [x] **DEP-04**: Backup restoration tested and documented
+- [x] **DEP-05**: Email service configured (Resend/SendGrid/SMTP) for verification and password reset emails
+- [x] **DEP-06**: Apple Sign-In web flow configured for Android support (Services ID, callback URL, client secret)
 
 ### Bug Fixes & UI Polish
 
@@ -67,10 +67,10 @@ Requirements for beta launch. Each maps to roadmap phases.
 
 ### Safety Systems
 
-- [ ] **SAF-01**: Chat history preserved 30 days post-unmatch for moderation
-- [ ] **SAF-02**: Content moderation capability for reviewing reported content
-- [ ] **SAF-03**: Report handling workflow documented and functional
-- [ ] **SAF-04**: Ephemeral After Hours messages retained server-side (30 days) for safety
+- [x] **SAF-01**: Chat history preserved 30 days post-unmatch for moderation
+- [x] **SAF-02**: Content moderation capability for reviewing reported content
+- [x] **SAF-03**: Report handling workflow documented and functional
+- [x] **SAF-04**: Ephemeral After Hours messages retained server-side (30 days) for safety
 
 ## v2 Requirements
 
@@ -119,15 +119,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase 1 | Pending |
-| SEC-02 | Phase 1 | Pending |
-| SEC-03 | Phase 1 | Pending |
-| SEC-04 | Phase 1 | Pending |
-| SEC-05 | Phase 1 | Pending |
-| SEC-06 | Phase 1 | Pending |
-| SEC-07 | Phase 1 | Pending |
-| SEC-08 | Phase 1 | Pending |
-| SEC-09 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Complete |
+| SEC-02 | Phase 1 | Complete |
+| SEC-03 | Phase 1 | Complete |
+| SEC-04 | Phase 1 | Complete |
+| SEC-05 | Phase 1 | Complete |
+| SEC-06 | Phase 1 | Complete |
+| SEC-07 | Phase 1 | Complete |
+| SEC-08 | Phase 1 | Complete |
+| SEC-09 | Phase 1 | Complete |
 | GDPR-01 | Phase 2 | Complete |
 | GDPR-02 | Phase 2 | Complete |
 | GDPR-03 | Phase 2 | Complete |
@@ -135,12 +135,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GDPR-05 | Phase 2 | Complete |
 | GDPR-06 | Phase 2 | Complete |
 | GDPR-07 | Phase 2 | Complete |
-| TEST-01 | Phase 3 | Pending |
-| TEST-02 | Phase 3 | Pending |
-| TEST-03 | Phase 3 | Pending |
-| TEST-04 | Phase 3 | Pending |
-| TEST-05 | Phase 3 | Pending |
-| TEST-06 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Complete |
+| TEST-02 | Phase 3 | Complete |
+| TEST-03 | Phase 3 | Complete |
+| TEST-04 | Phase 3 | Complete |
+| TEST-05 | Phase 3 | Complete |
+| TEST-06 | Phase 3 | Complete |
 | UI-01 | Phase 4 | Complete |
 | UI-02 | Phase 4 | Complete |
 | UI-03 | Phase 4 | Complete |
@@ -153,16 +153,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MON-04 | Phase 5 | Complete |
 | MON-05 | Phase 5 | Complete |
 | MON-06 | Phase 5 | Complete |
-| DEP-01 | Phase 6 | Pending |
-| DEP-02 | Phase 6 | Pending |
-| DEP-03 | Phase 6 | Pending |
-| DEP-04 | Phase 6 | Pending |
-| DEP-05 | Phase 6 | Pending |
-| DEP-06 | Phase 6 | Pending |
-| SAF-01 | Phase 7 | Pending |
-| SAF-02 | Phase 7 | Pending |
-| SAF-03 | Phase 7 | Pending |
-| SAF-04 | Phase 7 | Pending |
+| DEP-01 | Phase 6 | Complete |
+| DEP-02 | Phase 6 | Complete |
+| DEP-03 | Phase 6 | Complete |
+| DEP-04 | Phase 6 | Complete |
+| DEP-05 | Phase 6 | Complete |
+| DEP-06 | Phase 6 | Complete |
+| SAF-01 | Phase 7 | Complete |
+| SAF-02 | Phase 7 | Complete |
+| SAF-03 | Phase 7 | Complete |
+| SAF-04 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 40 total
@@ -171,4 +171,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-24*
-*Last updated: 2026-01-26 - Phase 5 (Monitoring & Alerting) complete*
+*Last updated: 2026-01-30 - All phases complete (40/40 requirements satisfied)*
