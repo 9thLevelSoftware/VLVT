@@ -2228,6 +2228,16 @@ app.delete('/auth/account', generalLimiter, authenticateJWT, async (req: Request
     // - user_status
     // - user_subscriptions
     // - swipes
+    // - verifications
+    // - kycaid_verifications
+    // - login_attempts
+    // - golden_tickets / golden_ticket_redemptions
+    // - date_proposals (via matches CASCADE)
+    // - after_hours_profiles
+    // - after_hours_preferences
+    // - after_hours_sessions (+ declines, matches, messages via CASCADE)
+    // - device_fingerprints
+    // - user_consents
 
     const result = await client.query(
       'DELETE FROM users WHERE id = $1 RETURNING id',
