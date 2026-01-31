@@ -28,6 +28,12 @@ class AppConfig {
   /// Build a versioned chat service URL
   static String chatUrl(String path) => buildApiUrl(chatServiceUrl, path);
 
+  /// Apple Services ID for web-based Apple Sign-In (used on Android)
+  static const String appleServicesId = String.fromEnvironment(
+    'APPLE_SERVICES_ID',
+    defaultValue: 'vip.getvlvt.web',
+  );
+
   /// Google Sign-In Client ID (for mobile platforms)
   /// Get this from Firebase Console > Authentication > Sign-in method > Google
   /// IMPORTANT: This is required for Google Sign-In to work in production

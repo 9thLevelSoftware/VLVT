@@ -174,23 +174,45 @@ class AuthService extends ChangeNotifier {
       final rawNonce = _generateNonce();
       final hashedNonce = _sha256ofString(rawNonce);
 
+      final isAndroid = Platform.isAndroid;
+
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
         nonce: hashedNonce,
+        webAuthenticationOptions: isAndroid
+            ? WebAuthenticationOptions(
+                clientId: AppConfig.appleServicesId,
+                redirectUri: Uri.parse(
+                  '${AppConfig.authServiceUrl}/auth/apple/callback',
+                ),
+              )
+            : null,
       );
 
-      // Send to backend with the raw nonce for verification
-      final response = await http.post(
-        Uri.parse(AppConfig.authUrl('/auth/apple')),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'identityToken': credential.identityToken,
-          'nonce': rawNonce,
-        }),
-      );
+      // Android uses web flow (authorization code → /auth/apple/web)
+      // iOS uses native flow (identity token → /auth/apple)
+      final http.Response response;
+      if (isAndroid) {
+        response = await http.post(
+          Uri.parse(AppConfig.authUrl('/auth/apple/web')),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'code': credential.authorizationCode,
+          }),
+        );
+      } else {
+        response = await http.post(
+          Uri.parse(AppConfig.authUrl('/auth/apple')),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'identityToken': credential.identityToken,
+            'nonce': rawNonce,
+          }),
+        );
+      }
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

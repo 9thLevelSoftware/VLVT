@@ -291,6 +291,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-CSRF-Token']
 }));
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
@@ -604,6 +605,19 @@ app.post('/auth/apple', authLimiter, async (req: Request, res: Response) => {
     logger.error('Apple authentication error', { error });
     res.status(500).json({ success: false, error: 'Authentication failed' });
   }
+});
+
+// Apple Sign-In callback - receives Apple's form POST redirect and sends
+// the authorization code back to the Flutter app via Android intent URL.
+app.post('/auth/apple/callback', (req: Request, res: Response) => {
+  const { code, state } = req.body;
+  if (!code) {
+    return res.status(400).send('Missing authorization code');
+  }
+  const params = new URLSearchParams({ code });
+  if (state) params.set('state', state);
+  const intentUrl = `intent://callback?${params.toString()}#Intent;package=app.vlvt;scheme=signinwithapple;end`;
+  res.redirect(303, intentUrl);
 });
 
 // Apple Sign-In web flow (for Android via web)
