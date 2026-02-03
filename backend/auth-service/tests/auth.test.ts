@@ -78,6 +78,8 @@ const mockErrorCodes = {
 jest.mock('@vlvt/shared', () => ({
   createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+  correlationMiddleware: (req: any, res: any, next: any) => next(),
+  createRequestLoggerMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   createAuditLogger: jest.fn(() => ({
     logAction: jest.fn().mockResolvedValue(undefined),
     logAuthEvent: jest.fn().mockResolvedValue(undefined),
@@ -155,10 +157,10 @@ describe('Auth Service', () => {
         .get('/health')
         .expect(200);
 
-      expect(response.body).toEqual({
+      expect(response.body).toEqual(expect.objectContaining({
         status: 'ok',
         service: 'auth-service',
-      });
+      }));
     });
   });
 

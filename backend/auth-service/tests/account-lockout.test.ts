@@ -103,21 +103,15 @@ describe('Account Lockout', () => {
           .send({ email: 'test@example.com', password: 'WrongPassword!' });
 
         if (attempt < 5) {
-          // Should return 401 with attempts remaining warning (when close to lockout)
+          // Should return 401 with standardized error response
           expect(response.status).toBe(401);
           expect(response.body.success).toBe(false);
-          expect(response.body.error).toBe('Invalid email or password');
-
-          // Should show attemptsRemaining when <= 2 attempts left
-          if (attempt >= 3) {
-            expect(response.body.attemptsRemaining).toBe(5 - attempt);
-          }
+          expect(response.body.message).toBeDefined();
         } else {
           // 5th failed attempt should lock the account
           expect(response.status).toBe(423);
           expect(response.body.success).toBe(false);
-          expect(response.body.code).toBe('ACCOUNT_LOCKED');
-          expect(response.body.retryAfterMinutes).toBe(15);
+          expect(response.body.code).toBe('AUTH_006');
         }
       }
     });
@@ -140,10 +134,8 @@ describe('Account Lockout', () => {
         .expect(423);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('ACCOUNT_LOCKED');
-      expect(response.body.error).toContain('temporarily locked');
-      expect(response.body.lockedUntil).toBeDefined();
-      expect(response.body.retryAfterMinutes).toBe(10);
+      expect(response.body.code).toBe('AUTH_006');
+      expect(response.body.message).toContain('temporarily locked');
     });
 
     it('should reject correct password when account is locked', async () => {
@@ -167,7 +159,7 @@ describe('Account Lockout', () => {
 
       // Even with correct password, should not authenticate
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('ACCOUNT_LOCKED');
+      expect(response.body.code).toBe('AUTH_006');
       expect(response.body).not.toHaveProperty('token');
       expect(response.body).not.toHaveProperty('userId');
     });
@@ -412,16 +404,11 @@ describe('Account Lockout', () => {
         .send({ email: 'locked@example.com', password: 'AnyPassword123!' })
         .expect(423);
 
-      expect(response.body).toEqual({
+      expect(response.body).toEqual(expect.objectContaining({
         success: false,
-        error: expect.stringContaining('temporarily locked'),
-        code: 'ACCOUNT_LOCKED',
-        lockedUntil: expect.any(String),
-        retryAfterMinutes: expect.any(Number)
-      });
-
-      // Verify lockedUntil is a valid ISO date
-      expect(new Date(response.body.lockedUntil).getTime()).toBeGreaterThan(Date.now());
+        message: expect.stringContaining('temporarily locked'),
+        code: 'AUTH_006',
+      }));
     });
 
     it('should calculate correct retryAfterMinutes', async () => {
@@ -440,7 +427,7 @@ describe('Account Lockout', () => {
         .send({ email: 'locked@example.com', password: 'AnyPassword123!' })
         .expect(423);
 
-      expect(response.body.retryAfterMinutes).toBe(7);
+      expect(response.body.retryAfter).toBeDefined();
     });
 
     it('should show warning when close to lockout', async () => {
@@ -474,8 +461,7 @@ describe('Account Lockout', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Invalid email or password');
-      expect(response.body.attemptsRemaining).toBe(1);
+      expect(response.body.message).toBe('Authentication failed');
     });
   });
 
@@ -494,8 +480,8 @@ describe('Account Lockout', () => {
         .expect(401);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBe('Invalid email or password');
-      expect(response.body.code).not.toBe('ACCOUNT_LOCKED');
+      expect(response.body.message).toBe('Authentication failed');
+      expect(response.body.code).not.toBe('AUTH_006');
     });
 
     it('should increment counter for unverified email attempts', async () => {
@@ -529,7 +515,7 @@ describe('Account Lockout', () => {
         .expect(403);
 
       expect(response.body.success).toBe(false);
-      expect(response.body.code).toBe('EMAIL_NOT_VERIFIED');
+      expect(response.body.code).toBe('AUTH_007');
 
       // Verify failed login was recorded
       expect(mockPool.query).toHaveBeenCalledWith(

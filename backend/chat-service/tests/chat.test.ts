@@ -18,6 +18,8 @@ jest.mock('@sentry/node', () => ({
 jest.mock('@vlvt/shared', () => ({
   createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+  correlationMiddleware: (req: any, res: any, next: any) => next(),
+  createRequestLoggerMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   createAuditLogger: jest.fn(() => ({
     logAction: jest.fn().mockResolvedValue(undefined),
     logAuthEvent: jest.fn().mockResolvedValue(undefined),

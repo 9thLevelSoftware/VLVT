@@ -9,7 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --coverageReporters=text --coverageReporters=lcov",
-    "test:ci": "jest --ci --coverage --coverageReporters=text-summary --coverageReporters=json-summary"
+    "test:ci": "jest --ci --forceExit --coverage --coverageReporters=text-summary --coverageReporters=json-summary"
   },
   "keywords": [],
   "author": "",
