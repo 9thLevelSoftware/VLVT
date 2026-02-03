@@ -1,0 +1,187 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Shared package ──────────────────────────────────────────────
+  shared:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/shared/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend/shared
+        run: npm ci
+
+      - name: Type-check
+        working-directory: backend/shared
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: backend/shared
+        run: npm run build
+
+      - name: Test with coverage
+        working-directory: backend/shared
+        run: npm run test:ci
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-shared
+          path: backend/shared/coverage/
+          retention-days: 7
+
+  # ── Backend services (matrix) ───────────────────────────────────
+  backend-test:
+    needs: shared
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vlvt_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [auth-service, profile-service, chat-service]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/${{ matrix.service }}/package-lock.json
+
+      - name: Install shared dependencies
+        working-directory: backend/shared
+        run: npm ci
+
+      - name: Build shared
+        working-directory: backend/shared
+        run: npm run build
+
+      - name: Install service dependencies
+        working-directory: backend/${{ matrix.service }}
+        run: npm ci
+
+      - name: Type-check
+        working-directory: backend/${{ matrix.service }}
+        run: npx tsc --noEmit
+
+      - name: Run tests with coverage
+        working-directory: backend/${{ matrix.service }}
+        run: npm run test:ci
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vlvt_test
+          JWT_SECRET: test-secret
+          NODE_ENV: test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/coverage/
+          retention-days: 7
+
+  # ── Flutter ─────────────────────────────────────────────────────
+  flutter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: frontend
+        run: flutter analyze
+
+      - name: Run tests
+        working-directory: frontend
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-flutter
+          path: frontend/coverage/
+          retention-days: 7
+
+  # ── Coverage report ─────────────────────────────────────────────
+  coverage-report:
+    if: always()
+    needs: [shared, backend-test, flutter]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: coverage-artifacts
+
+      - name: Coverage summary
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for dir in coverage-artifacts/coverage-*/; do
+            name=$(basename "$dir" | sed 's/^coverage-//')
+            summary="$dir/coverage-summary.json"
+            if [ -f "$summary" ]; then
+              lines=$(jq -r '.total.lines.pct // "N/A"' "$summary")
+              branches=$(jq -r '.total.branches.pct // "N/A"' "$summary")
+              functions=$(jq -r '.total.functions.pct // "N/A"' "$summary")
+              statements=$(jq -r '.total.statements.pct // "N/A"' "$summary")
+              echo "### $name" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Lines | ${lines}% |" >> $GITHUB_STEP_SUMMARY
+              echo "| Branches | ${branches}% |" >> $GITHUB_STEP_SUMMARY
+              echo "| Functions | ${functions}% |" >> $GITHUB_STEP_SUMMARY
+              echo "| Statements | ${statements}% |" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "### $name" >> $GITHUB_STEP_SUMMARY
+              echo "_No coverage summary found_" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

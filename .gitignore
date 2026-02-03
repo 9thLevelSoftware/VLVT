@@ -2,7 +2,6 @@
 backend/*/node_modules/
 backend/*/dist/
 backend/*/.env
-backend/*/package-lock.json
 backend/*/coverage/
 backend/*/logs/
 backend/*/.nyc_output/

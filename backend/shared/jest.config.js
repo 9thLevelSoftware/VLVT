@@ -13,4 +13,12 @@ module.exports = {
   verbose: true,
   // Suppress console output during tests
   silent: true,
+  coverageThreshold: {
+    global: {
+      branches: 30,
+      functions: 30,
+      lines: 30,
+      statements: 30,
+    },
+  },
 };
