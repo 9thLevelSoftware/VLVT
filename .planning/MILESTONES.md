@@ -1,4 +1,34 @@
-# Project Milestones: VLVT After Hours Mode
+# Project Milestones: VLVT
+
+## v1.1 Production Readiness (Shipped: 2026-02-03)
+
+**Delivered:** Security hardening, GDPR compliance, testing infrastructure, UI polish, monitoring, deployment infrastructure, and safety systems to make VLVT production-ready for staged beta launch.
+
+**Phases completed:** 1-7 (50 plans total)
+
+**Key accomplishments:**
+
+- Closed all exploitable security vulnerabilities (60 endpoints audited for BOLA/IDOR, rate limiting, KYCAID encryption, PII redaction)
+- Established full GDPR compliance (granular consent, data export, account deletion with R2 cleanup, Article 9 disclosure)
+- Built comprehensive test infrastructure (477 automated tests across auth, payment, chat, safety, and security regression)
+- Polished UI/UX to beta quality (29 screens audited, 47 issues fixed, design system enforced, error/loading states standardized)
+- Deployed production monitoring stack (Sentry, health checks, correlation IDs, brute force alerting, structured logging)
+- Completed deployment infrastructure (daily database backups to R2, environment audit, Resend email service, Apple Sign-In web flow)
+- Built safety systems (chat preservation, moderation capability, device fingerprinting, photo hashing, quick report flow)
+
+**Stats:**
+
+- 192 files created/modified
+- +6,042 lines TypeScript, +910 lines Dart (net)
+- 7 phases, 50 plans, 40 requirements satisfied
+- 7 days from v1.0 to v1.1 (2026-01-24 → 2026-01-31)
+- 156 commits
+
+**Git range:** `c8423a3` → `b37a0b5`
+
+**What's next:** Beta launch, user testing, iterate based on feedback
+
+---
 
 ## v1.0 After Hours Mode (Shipped: 2026-01-24)
 
