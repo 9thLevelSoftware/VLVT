@@ -231,8 +231,12 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
                                 color: VlvtColors.surfaceElevated,
-                                child: const Center(
-                                  child: VlvtProgressIndicator(size: 24),
+                                child: Center(
+                                  child: AnimatedOpacity(
+                                    opacity: 1.0,
+                                    duration: const Duration(milliseconds: 300),
+                                    child: const VlvtProgressIndicator(size: 24),
+                                  ),
                                 ),
                               ),
                               errorWidget: (context, url, error) => Container(

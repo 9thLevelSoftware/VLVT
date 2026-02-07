@@ -96,12 +96,16 @@ class MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final subscriptionService = context.watch<SubscriptionService>();
     final authService = context.watch<AuthService>();
-    // Loading state - use VLVT loader
+    // Loading state - use VLVT loader with fade-in
     if (subscriptionService.isLoading) {
       return Scaffold(
         backgroundColor: VlvtColors.background,
-        body: const Center(
-          child: VlvtLoader(),
+        body: Center(
+          child: AnimatedOpacity(
+            opacity: 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: const VlvtLoader(),
+          ),
         ),
       );
     }
@@ -115,12 +119,16 @@ class MainScreenState extends State<MainScreen> {
       );
     }
 
-    // Loading state for profile
+    // Loading state for profile with fade-in
     if (_isLoadingProfile) {
       return Scaffold(
         backgroundColor: VlvtColors.background,
-        body: const Center(
-          child: VlvtLoader(),
+        body: Center(
+          child: AnimatedOpacity(
+            opacity: 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: const VlvtLoader(),
+          ),
         ),
       );
     }
@@ -249,15 +257,21 @@ class MainScreenState extends State<MainScreen> {
                   final item = items[index];
                   final isSelected = index == currentIndex;
 
-                  return GestureDetector(
-                    onTap: () {
-                      if (index != currentIndex) {
-                        HapticFeedback.selectionClick();
-                      }
-                      onTap(index);
-                    },
-                    behavior: HitTestBehavior.opaque,
-                    child: AnimatedContainer(
+                  return Semantics(
+                    label: '${item.label} tab',
+                    button: true,
+                    selected: isSelected,
+                    child: Tooltip(
+                      message: item.label ?? '',
+                      child: GestureDetector(
+                        onTap: () {
+                          if (index != currentIndex) {
+                            HapticFeedback.selectionClick();
+                          }
+                          onTap(index);
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -323,6 +337,8 @@ class MainScreenState extends State<MainScreen> {
                         ],
                       ),
                     ),
+                  ),
+                  ),
                   );
                 }),
               ),

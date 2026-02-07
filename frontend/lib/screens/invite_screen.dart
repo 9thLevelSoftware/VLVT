@@ -72,7 +72,13 @@ class _InviteScreenState extends State<InviteScreen> {
         title: const Text('Invite Friends'),
       ),
       body: ticketsService.isLoading
-          ? const Center(child: VlvtLoader())
+          ? Center(
+              child: AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: const VlvtLoader(),
+              ),
+            )
           : RefreshIndicator(
               onRefresh: ticketsService.loadTickets,
               child: SingleChildScrollView(

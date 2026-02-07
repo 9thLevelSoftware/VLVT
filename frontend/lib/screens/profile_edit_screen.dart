@@ -9,6 +9,7 @@ import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
+import '../utils/error_handler.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Profile? existingProfile;
@@ -172,7 +173,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save profile: ${e.toString()}'),
+          content: Text('Failed to save profile: ${ErrorHandler.getShortMessage(e)}'),
           backgroundColor: VlvtColors.error,
         ),
       );

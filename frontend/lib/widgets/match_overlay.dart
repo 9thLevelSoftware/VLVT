@@ -82,14 +82,19 @@ class _MatchOverlayState extends State<MatchOverlay>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        _controller.animateTo(1.0, duration: const Duration(milliseconds: 300));
-      },
-      child: Container(
-        color: Colors.transparent,
-        child: Center(
-          child: AnimatedBuilder(
+    return Semantics(
+      label: widget.isNewMatch
+          ? "It's a Match! You and ${widget.userName} liked each other!"
+          : 'You liked ${widget.userName}',
+      hint: 'Tap to dismiss',
+      child: GestureDetector(
+        onTap: () {
+          _controller.animateTo(1.0, duration: const Duration(milliseconds: 300));
+        },
+        child: Container(
+          color: Colors.transparent,
+          child: Center(
+            child: AnimatedBuilder(
             animation: _controller,
             builder: (context, child) {
               return Opacity(
@@ -153,13 +158,14 @@ class _MatchOverlayState extends State<MatchOverlay>
               ),
             ),
           ),
+          ),
         ),
       ),
     );
   }
 }
 
-/// Heart particles that fly up when liking a profile
+/// Heart particles that fly up when liking a profile (decorative, excluded from semantics)
 class HeartParticleAnimation extends StatefulWidget {
   final VoidCallback onComplete;
 
@@ -213,8 +219,9 @@ class _HeartParticleAnimationState extends State<HeartParticleAnimation>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return IgnorePointer(
-      child: AnimatedBuilder(
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
           return Stack(
@@ -242,6 +249,7 @@ class _HeartParticleAnimationState extends State<HeartParticleAnimation>
             }).toList(),
           );
         },
+        ),
       ),
     );
   }

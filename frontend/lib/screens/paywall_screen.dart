@@ -164,7 +164,22 @@ class _PaywallScreenState extends State<PaywallScreen> {
 
               // CTA Buttons
               if (subscriptionService.isLoading)
-                const Center(child: VlvtProgressIndicator())
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const VlvtProgressIndicator(),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Processing...',
+                        style: TextStyle(
+                          color: VlvtColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               else ...[
                 VlvtButton.primary(
                   label: 'Subscribe Now',

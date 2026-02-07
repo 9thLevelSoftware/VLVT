@@ -937,6 +937,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
               Icons.filter_list,
               color: hasActiveFilters ? VlvtColors.gold : VlvtColors.textSecondary,
             ),
+            tooltip: 'Filter profiles',
             onPressed: _navigateToFilters,
           ),
         ],
@@ -950,12 +951,20 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                 WhoLikedYouBanner(
                   likesCount: _receivedLikesCount,
                   onTap: () {
-                    Navigator.push(
+                    Navigator.push<void>(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const MatchesScreen(
+                      PageRouteBuilder<void>(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            const MatchesScreen(
                           initialFilter: MatchFilterType.likedYou,
                         ),
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
                       ),
                     );
                   },
@@ -992,26 +1001,31 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                             left: 8,
                             right: 8,
                             bottom: 0,
-                            child: Card(
-                              elevation: 4,
-                              color: VlvtColors.surface.withValues(alpha: 0.5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: VlvtColors.gold.withValues(alpha: 0.15),
-                                  width: 1,
+                            child: ExcludeSemantics(
+                              child: Card(
+                                elevation: 4,
+                                color: VlvtColors.surface.withValues(alpha: 0.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: VlvtColors.gold.withValues(alpha: 0.15),
+                                    width: 1,
+                                  ),
                                 ),
+                                child: Container(), // Empty shadow card
                               ),
-                              child: Container(), // Empty shadow card
                             ),
                           ),
                         // Main card
-                        GestureDetector(
-                          onPanStart: _onPanStart,
-                          onPanUpdate: _onPanUpdate,
-                          onPanEnd: _onPanEnd,
-                          onTap: _toggleExpanded,
-                          child: AnimatedBuilder(
+                        Semantics(
+                          label: 'Profile card for ${profile.name ?? "user"}. Swipe right to like, left to pass, or use buttons below.',
+                          hint: 'Double tap to expand profile details',
+                          child: GestureDetector(
+                            onPanStart: _onPanStart,
+                            onPanUpdate: _onPanUpdate,
+                            onPanEnd: _onPanEnd,
+                            onTap: _toggleExpanded,
+                            child: AnimatedBuilder(
                             animation: _swipeAnimationController,
                             child: _buildProfileCard(profile),
                             builder: (context, child) {
@@ -1114,6 +1128,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                 ),
                               );
                             },
+                            ),
                           ),
                         ),
                       ], // Stack children

@@ -166,8 +166,12 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
     if (mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => AfterHoursChatScreen(match: match),
+        PageRouteBuilder<void>(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              AfterHoursChatScreen(match: match),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
         ),
       );
     }
@@ -315,7 +319,13 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
             isComplete: isProfileComplete,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AfterHoursProfileScreen()),
+              PageRouteBuilder<void>(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const AfterHoursProfileScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+              ),
             ).then((_) => _loadSetupData()),
           ),
 
@@ -327,7 +337,13 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
             isComplete: isPrefsComplete,
             onTap: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const AfterHoursPreferencesScreen()),
+              PageRouteBuilder<void>(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const AfterHoursPreferencesScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+              ),
             ).then((_) => _loadSetupData()),
           ),
 
@@ -445,7 +461,7 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
         onTap: () => setState(() => _selectedDuration = minutes),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             color: isSelected ? VlvtColors.gold : VlvtColors.surface,
             borderRadius: BorderRadius.circular(8),
@@ -560,8 +576,12 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => AfterHoursChatScreen(match: match),
+                      PageRouteBuilder<void>(
+                        pageBuilder: (context, animation, secondaryAnimation) =>
+                            AfterHoursChatScreen(match: match),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(opacity: animation, child: child);
+                        },
                       ),
                     );
                   },
@@ -619,7 +639,7 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
             IconButton(
               icon: const Icon(Icons.stop_circle_outlined),
               onPressed: _endSession,
-              tooltip: 'End Session',
+              tooltip: 'End After Hours session',
             ),
         ],
       ),

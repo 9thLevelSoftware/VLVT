@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 
 /// Enhanced empty state widget with icons, helpful messaging, and CTAs
-class EmptyStateWidget extends StatelessWidget {
+class EmptyStateWidget extends StatefulWidget {
   final IconData icon;
   final String title;
   final String message;
@@ -28,6 +29,34 @@ class EmptyStateWidget extends StatelessWidget {
   });
 
   @override
+  State<EmptyStateWidget> createState() => _EmptyStateWidgetState();
+}
+
+class _EmptyStateWidgetState extends State<EmptyStateWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _breathingController;
+  late Animation<double> _breathingAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _breathingController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+    _breathingAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
+      CurvedAnimation(parent: _breathingController, curve: Curves.easeInOut),
+    );
+    _breathingController.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _breathingController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -38,25 +67,23 @@ class EmptyStateWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated icon with subtle pulse effect
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.9, end: 1.0),
-              duration: const Duration(milliseconds: 1500),
-              curve: Curves.easeInOut,
-              builder: (context, scale, child) {
+            // Animated icon with continuous breathing effect
+            AnimatedBuilder(
+              animation: _breathingAnimation,
+              builder: (context, child) {
                 return Transform.scale(
-                  scale: scale,
+                  scale: _breathingAnimation.value,
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: (iconColor ?? theme.colorScheme.primary)
+                      color: (widget.iconColor ?? theme.colorScheme.primary)
                           .withAlpha(isDark ? 38 : 26),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      icon,
-                      size: iconSize,
-                      color: iconColor ?? theme.colorScheme.primary,
+                      widget.icon,
+                      size: widget.iconSize,
+                      color: widget.iconColor ?? theme.colorScheme.primary,
                     ),
                   ),
                 );
@@ -67,7 +94,7 @@ class EmptyStateWidget extends StatelessWidget {
 
             // Title
             Text(
-              title,
+              widget.title,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.textTheme.bodyLarge?.color,
@@ -79,7 +106,7 @@ class EmptyStateWidget extends StatelessWidget {
 
             // Message
             Text(
-              message,
+              widget.message,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.textTheme.bodyMedium?.color,
                 height: 1.5,
@@ -90,20 +117,20 @@ class EmptyStateWidget extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Primary action button
-            if (actionLabel != null && onAction != null)
+            if (widget.actionLabel != null && widget.onAction != null)
               VlvtButton.primary(
-                label: actionLabel!,
-                onPressed: onAction,
+                label: widget.actionLabel!,
+                onPressed: widget.onAction,
                 icon: Icons.arrow_forward,
                 expanded: true,
               ),
 
             // Secondary action button
-            if (secondaryActionLabel != null && onSecondaryAction != null) ...[
+            if (widget.secondaryActionLabel != null && widget.onSecondaryAction != null) ...[
               const SizedBox(height: 12),
               VlvtButton.secondary(
-                label: secondaryActionLabel!,
-                onPressed: onSecondaryAction,
+                label: widget.secondaryActionLabel!,
+                onPressed: widget.onSecondaryAction,
                 expanded: true,
               ),
             ],
@@ -264,22 +291,20 @@ class DiscoveryEmptyState {
 
             const SizedBox(height: 24),
 
-            // Reassuring footer
+            // Reassuring footer - improved contrast
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.verified_user_outlined,
                   size: 16,
-                  color: VlvtColors.textMuted,
+                  color: VlvtColors.textSecondary,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'New members are verified daily',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: VlvtColors.textMuted,
-                    fontFamily: 'Montserrat',
+                  style: VlvtTextStyles.caption.copyWith(
+                    color: VlvtColors.textSecondary,
                   ),
                 ),
               ],

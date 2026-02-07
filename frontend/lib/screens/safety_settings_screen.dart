@@ -278,10 +278,14 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
           ),
           const Divider(),
           if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(32.0),
+            Padding(
+              padding: const EdgeInsets.all(32.0),
               child: Center(
-                child: VlvtProgressIndicator(size: 32),
+                child: AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: const VlvtProgressIndicator(size: 32),
+                ),
               ),
             )
           else if (_blockedUsers.isEmpty)
@@ -320,11 +324,14 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
               final name = profile?.name ?? 'Unknown User';
 
               return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: VlvtColors.surface,
-                  child: Text(
-                    name[0].toUpperCase(),
-                    style: VlvtTextStyles.labelMedium.copyWith(color: Colors.white),
+                leading: Semantics(
+                  label: 'Profile picture for $name',
+                  child: CircleAvatar(
+                    backgroundColor: VlvtColors.surface,
+                    child: Text(
+                      name[0].toUpperCase(),
+                      style: VlvtTextStyles.labelMedium.copyWith(color: Colors.white),
+                    ),
                   ),
                 ),
                 title: Text(name),
@@ -433,10 +440,23 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const LegalDocumentViewer(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const LegalDocumentViewer(
                     documentType: LegalDocumentType.privacyPolicy,
                   ),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 1.0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      )),
+                      child: child,
+                    );
+                  },
                 ),
               );
             },
@@ -449,8 +469,21 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ConsentSettingsScreen(),
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const ConsentSettingsScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 1.0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      )),
+                      child: child,
+                    );
+                  },
                 ),
               );
             },
@@ -463,10 +496,23 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const LegalDocumentViewer(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const LegalDocumentViewer(
                     documentType: LegalDocumentType.termsOfService,
                   ),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0.0, 1.0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      )),
+                      child: child,
+                    );
+                  },
                 ),
               );
             },

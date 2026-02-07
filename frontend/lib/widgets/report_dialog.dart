@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/vlvt_colors.dart';
+import '../utils/error_handler.dart';
 import 'vlvt_input.dart';
 import 'vlvt_button.dart';
 
@@ -99,7 +100,7 @@ class _ReportDialogState extends State<ReportDialog> {
           _isSubmitting = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit report: $e')),
+          SnackBar(content: Text('Failed to submit report: ${ErrorHandler.getShortMessage(e)}')),
         );
       }
     }

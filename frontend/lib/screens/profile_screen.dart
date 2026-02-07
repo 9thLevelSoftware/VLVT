@@ -15,6 +15,7 @@ import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import '../utils/error_handler.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -59,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = e.toString();
+          _error = ErrorHandler.getShortMessage(e);
         });
       }
     }
@@ -115,6 +116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.logout, color: VlvtColors.gold),
+              tooltip: 'Sign out',
               onPressed: () async {
                 await authService.signOut();
               },
@@ -135,6 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: VlvtColors.gold),
+            tooltip: 'Sign out',
             onPressed: () async {
               await authService.signOut();
             },
@@ -179,25 +182,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: VlvtColors.gold, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: VlvtColors.gold.withValues(alpha: 0.3),
-                              blurRadius: 20,
-                              spreadRadius: 2,
+                      child: Semantics(
+                        label: 'Profile photo',
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: VlvtColors.gold, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: VlvtColors.gold.withValues(alpha: 0.3),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 60,
+                            backgroundColor: VlvtColors.primary,
+                            child: const Icon(
+                              Icons.person,
+                              size: 60,
+                              color: Colors.white,
                             ),
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundColor: VlvtColors.primary,
-                          child: const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -345,8 +351,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       expanded: true,
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const SafetySettingsScreen(),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) =>
+                                const SafetySettingsScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).animate(CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                )),
+                                child: child,
+                              );
+                            },
                           ),
                         );
                       },
@@ -358,8 +377,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       expanded: true,
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const InviteScreen(),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) =>
+                                const InviteScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              return SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).animate(CurvedAnimation(
+                                  parent: animation,
+                                  curve: Curves.easeOutCubic,
+                                )),
+                                child: child,
+                              );
+                            },
                           ),
                         );
                       },

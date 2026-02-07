@@ -8,6 +8,7 @@ import '../../services/location_service.dart';
 import '../../theme/vlvt_colors.dart';
 import '../../theme/vlvt_text_styles.dart';
 import '../verified_badge.dart';
+import '../vlvt_loader.dart';
 
 /// A reusable profile card widget for the discovery screen
 /// Displays profile photo carousel, name, age, bio, and interests
@@ -91,11 +92,11 @@ class DiscoveryProfileCard extends StatelessWidget {
                                       fit: BoxFit.cover,
                                       alignment: parallaxAlignment,
                                       memCacheWidth: 800,
-                                      placeholder: (context, url) => Container(
-                                        color: Colors.white.withValues(alpha: 0.2),
-                                        child: const Center(
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
+                                      placeholder: (context, url) => ExcludeSemantics(
+                                        child: Container(
+                                          color: Colors.white.withValues(alpha: 0.2),
+                                          child: const Center(
+                                            child: VlvtProgressIndicator(size: 32),
                                           ),
                                         ),
                                       ),
@@ -178,10 +179,12 @@ class _PhotoIndicators extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         count,
-        (index) => Container(
+        (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: 8,
-          height: 8,
+          width: currentIndex == index ? 10 : 8,
+          height: currentIndex == index ? 10 : 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: currentIndex == index

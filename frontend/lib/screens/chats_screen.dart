@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/auth_service.dart';
@@ -459,6 +460,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
         ),
       ),
       confirmDismiss: (direction) async {
+        HapticFeedback.mediumImpact();
         await _handleUnmatch(match);
         return false; // We handle removal ourselves
       },
@@ -618,6 +620,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                 else ...[
                   IconButton(
                     icon: const Icon(Icons.search, color: VlvtColors.gold),
+                    tooltip: 'Search chats',
                     onPressed: () {
                       setState(() {
                         _isSearching = true;
@@ -629,6 +632,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.sort, color: VlvtColors.gold),
+                    tooltip: 'Sort chats',
                     onPressed: _showSortDialog,
                   ),
                 ],

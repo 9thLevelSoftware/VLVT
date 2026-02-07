@@ -10,6 +10,7 @@ import '../../services/after_hours_service.dart';
 import '../../theme/vlvt_colors.dart';
 import '../../theme/vlvt_text_styles.dart';
 import '../../widgets/vlvt_button.dart';
+import '../../widgets/vlvt_loader.dart';
 
 /// Modal match card with Tinder-style swipe gestures for After Hours mode.
 ///
@@ -350,7 +351,7 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: VlvtColors.surface,
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: const Center(child: VlvtProgressIndicator(size: 32)),
                 ),
                 errorWidget: (context, url, error) => Container(
                   color: VlvtColors.surface,

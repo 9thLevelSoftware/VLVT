@@ -543,6 +543,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
         backgroundColor: VlvtColors.background,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: 'Go back',
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
@@ -594,24 +595,30 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'report',
-                child: Row(
-                  children: [
-                    Icon(Icons.flag, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Report User'),
-                  ],
+                child: Semantics(
+                  label: 'Report this user',
+                  child: const Row(
+                    children: [
+                      Icon(Icons.flag, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Report User'),
+                    ],
+                  ),
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'block',
-                child: Row(
-                  children: [
-                    Icon(Icons.block, color: Colors.orange),
-                    SizedBox(width: 8),
-                    Text('Block User'),
-                  ],
+                child: Semantics(
+                  label: 'Block this user',
+                  child: const Row(
+                    children: [
+                      Icon(Icons.block, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('Block User'),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -629,7 +636,13 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
           // Messages list
           Expanded(
             child: _isLoading
-                ? const Center(child: VlvtLoader())
+                ? Center(
+                    child: AnimatedOpacity(
+                      opacity: 1.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: const VlvtLoader(),
+                    ),
+                  )
                 : _buildMessagesList(currentUserId),
           ),
 
@@ -830,9 +843,16 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
                   ],
                 ),
                 if (isFailed)
-                  Text(
-                    'Failed to send - tap to retry',
-                    style: VlvtTextStyles.overline.copyWith(color: VlvtColors.error, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh, size: 12, color: VlvtColors.error),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Failed - tap to retry',
+                        style: VlvtTextStyles.overline.copyWith(color: VlvtColors.error, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
               ],
             ),

@@ -250,6 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: IconButton(
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.pop(context),
+                          tooltip: 'Go back to sign in',
                         ),
                       ),
                       Spacing.verticalXl,
@@ -477,27 +478,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             expanded: true,
                           ),
                           Spacing.verticalMd,
-                          // Sign in link
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Already have an account? ',
-                                style: VlvtTextStyles.bodyMedium.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.8),
+                          // Sign in link - larger touch target
+                          Center(
+                            child: InkWell(
+                              onTap: () => Navigator.pop(context),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Already have an account? ',
+                                      style: VlvtTextStyles.bodyMedium.copyWith(
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                      ),
+                                    ),
+                                    Text(
+                                      'Sign in',
+                                      style: VlvtTextStyles.bodyMedium.copyWith(
+                                        color: VlvtColors.gold,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: Text(
-                                  'Sign in',
-                                  style: VlvtTextStyles.bodyMedium.copyWith(
-                                    color: VlvtColors.gold,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                           Spacing.verticalXl,
                         ],

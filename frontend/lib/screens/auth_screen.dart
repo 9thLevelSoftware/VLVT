@@ -24,12 +24,8 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen>
-    with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -39,28 +35,10 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-
-    _animationController.forward();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -235,29 +213,35 @@ class _AuthScreenState extends State<AuthScreen>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background image with blur effect
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                child: Image.asset(
-                  'assets/images/loginbackground.jpg',
-                  fit: BoxFit.cover,
+            // Background image with blur effect (decorative)
+            Semantics(
+              excludeSemantics: true,
+              child: Positioned.fill(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                  child: Image.asset(
+                    'assets/images/loginbackground.jpg',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
-            // Dark overlay for better contrast
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.4),
-                      Colors.black.withValues(alpha: 0.7),
-                      const Color(0xFF1A0F2E).withValues(alpha: 0.9),
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
+            // Dark overlay for better contrast (decorative)
+            Semantics(
+              excludeSemantics: true,
+              child: Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.4),
+                        Colors.black.withValues(alpha: 0.7),
+                        const Color(0xFF1A0F2E).withValues(alpha: 0.9),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
                   ),
                 ),
               ),
@@ -278,6 +262,7 @@ class _AuthScreenState extends State<AuthScreen>
                         'assets/images/logo.png',
                         width: 340,
                         height: 340,
+                        semanticLabel: 'VLVT logo',
                       ),
                       Spacing.verticalXl,
                       // Loading indicator or form
@@ -389,9 +374,9 @@ class _AuthScreenState extends State<AuthScreen>
                                 ),
                               ),
                               Spacing.verticalMd,
-                              // Create account link
+                              // Create account link - larger touch target
                               Center(
-                                child: GestureDetector(
+                                child: InkWell(
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -400,23 +385,30 @@ class _AuthScreenState extends State<AuthScreen>
                                       ),
                                     );
                                   },
-                                  child: RichText(
-                                    text: TextSpan(
-                                      style: VlvtTextStyles.bodyMedium.copyWith(
-                                        color: Colors.white.withValues(alpha: 0.8),
-                                      ),
-                                      children: [
-                                        const TextSpan(text: "Don't have an account? "),
-                                        TextSpan(
-                                          text: 'Get on the list',
-                                          style: TextStyle(
-                                            color: const Color(0xFFD4AF37),
-                                            fontWeight: FontWeight.w600,
-                                            decoration: TextDecoration.underline,
-                                            decorationColor: const Color(0xFFD4AF37),
-                                          ),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: VlvtTextStyles.bodyMedium.copyWith(
+                                          color: Colors.white.withValues(alpha: 0.8),
                                         ),
-                                      ],
+                                        children: [
+                                          const TextSpan(text: "Don't have an account? "),
+                                          TextSpan(
+                                            text: 'Get on the list',
+                                            style: TextStyle(
+                                              color: const Color(0xFFD4AF37),
+                                              fontWeight: FontWeight.w600,
+                                              decoration: TextDecoration.underline,
+                                              decorationColor: const Color(0xFFD4AF37),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -464,6 +456,7 @@ class _AuthScreenState extends State<AuthScreen>
                               onPressed: _signInWithApple,
                               assetPath: 'assets/images/apple_logo_white.png',
                               invertColor: true,
+                              semanticLabel: 'Sign in with Apple',
                             ),
                           ],
                         ),
@@ -535,27 +528,27 @@ class _AuthScreenState extends State<AuthScreen>
 
   // Google button - requires white background with colored G logo per brand guidelines
   Widget _buildGoogleButton({required VoidCallback onPressed}) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    return Semantics(
+      label: 'Sign in with Google',
+      button: true,
+      child: Material(
+        color: Colors.white,
+        shape: const CircleBorder(),
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.2),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: Center(
+              child: Image.asset(
+                'assets/images/google_g_logo.png',
+                width: 28,
+                height: 28,
+              ),
             ),
-          ],
-        ),
-        child: Center(
-          child: Image.asset(
-            'assets/images/google_g_logo.png',
-            width: 28,
-            height: 28,
           ),
         ),
       ),
@@ -568,44 +561,51 @@ class _AuthScreenState extends State<AuthScreen>
     IconData? icon,
     Color? iconColor,
     bool invertColor = false,
+    String? semanticLabel,
   }) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          shape: BoxShape.circle,
-          border: Border.all(
+    return Semantics(
+      label: semanticLabel ?? 'Sign in',
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        shape: CircleBorder(
+          side: BorderSide(
             color: Colors.white.withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
-        child: Center(
-          child: assetPath != null
-              ? (invertColor
-                  ? ColorFiltered(
-                      colorFilter: const ColorFilter.mode(
-                        Colors.white,
-                        BlendMode.srcIn,
-                      ),
-                      child: Image.asset(
-                        assetPath,
-                        width: 24,
-                        height: 24,
-                      ),
-                    )
-                  : Image.asset(
-                      assetPath,
-                      width: 24,
-                      height: 24,
-                    ))
-              : Icon(
-                  icon,
-                  size: 24,
-                  color: iconColor ?? Colors.white,
-                ),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: Center(
+              child: assetPath != null
+                  ? (invertColor
+                      ? ColorFiltered(
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                          child: Image.asset(
+                            assetPath,
+                            width: 24,
+                            height: 24,
+                          ),
+                        )
+                      : Image.asset(
+                          assetPath,
+                          width: 24,
+                          height: 24,
+                        ))
+                  : Icon(
+                      icon,
+                      size: 24,
+                      color: iconColor ?? Colors.white,
+                    ),
+            ),
+          ),
         ),
       ),
     );

@@ -8,8 +8,10 @@ import '../services/profile_api_service.dart';
 import '../models/match.dart';
 import '../models/profile.dart';
 import '../widgets/vlvt_loader.dart';
+import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
+import '../utils/error_handler.dart';
 import 'chat_screen.dart';
 import 'profile_detail_screen.dart';
 
@@ -274,44 +276,50 @@ class _MatchesScreenState extends State<MatchesScreen> {
           return Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: GestureDetector(
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  setState(() {
-                    _activeFilter = filter.type;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: isActive ? VlvtColors.gold : VlvtColors.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isActive ? VlvtColors.gold : VlvtColors.border,
+              child: Semantics(
+                label: filter.label,
+                button: true,
+                selected: isActive,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _activeFilter = filter.type;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isActive ? VlvtColors.gold : VlvtColors.surface,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: isActive ? VlvtColors.gold : VlvtColors.border,
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        filter.icon,
-                        size: 14,
-                        color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          filter.label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Montserrat',
-                            color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          filter.icon,
+                          size: 14,
+                          color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            filter.label,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Montserrat',
+                              color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -347,22 +355,30 @@ class _MatchesScreenState extends State<MatchesScreen> {
       return [
         SliverFillRemaining(
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 64, color: VlvtColors.crimson),
-                const SizedBox(height: 16),
-                Text(
-                  'Error loading matches',
-                  style: VlvtTextStyles.h3.copyWith(color: VlvtColors.crimson),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _error!,
-                  style: VlvtTextStyles.bodySmall.copyWith(color: VlvtColors.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: VlvtColors.crimson),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading matches',
+                    style: VlvtTextStyles.h3.copyWith(color: VlvtColors.crimson),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    ErrorHandler.getShortMessage(_error),
+                    style: VlvtTextStyles.bodySmall.copyWith(color: VlvtColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  VlvtButton.primary(
+                    label: 'Retry',
+                    onPressed: _loadData,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -379,7 +395,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       ];
     }
 
-    // Grid of match cards
+    // Grid of match cards with stagger animation
     return [
       SliverPadding(
         padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 100),
@@ -391,7 +407,22 @@ class _MatchesScreenState extends State<MatchesScreen> {
             mainAxisSpacing: 12,
           ),
           delegate: SliverChildBuilderDelegate(
-            (context, index) => _buildMatchCard(entries[index]),
+            (context, index) => TweenAnimationBuilder<double>(
+              key: ValueKey(entries[index].odId),
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: Duration(milliseconds: 300 + (index * 50).clamp(0, 300)),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 20 * (1 - value)),
+                    child: child,
+                  ),
+                );
+              },
+              child: _buildMatchCard(entries[index]),
+            ),
             childCount: entries.length,
           ),
         ),
@@ -459,9 +490,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
     final bio = profile?.bio ?? '';
     final photoUrl = profile?.photos?.isNotEmpty == true ? profile!.photos!.first : null;
 
-    return GestureDetector(
-      onTap: () => _handleCardTap(entry),
-      child: Container(
+    return Semantics(
+      label: 'View match with $name',
+      button: true,
+      child: InkWell(
+        onTap: () => _handleCardTap(entry),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
         decoration: BoxDecoration(
           color: VlvtColors.surface,
           borderRadius: BorderRadius.circular(16),
@@ -552,6 +587,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
               child: _buildStatusBadge(entry.status),
             ),
           ],
+        ),
         ),
       ),
     );

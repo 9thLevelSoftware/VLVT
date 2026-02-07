@@ -264,16 +264,21 @@ class _VlvtButtonState extends State<VlvtButton> {
       ],
     );
 
-    final button = GestureDetector(
-      onTapDown: widget.onPressed != null ? _handleTapDown : null,
-      onTapUp: widget.onPressed != null ? _handleTapUp : null,
-      onTapCancel: widget.onPressed != null ? _handleTapCancel : null,
-      onTap: widget.onPressed != null && !widget.loading ? _handleTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        padding: _padding,
-        decoration: _decoration,
-        child: content,
+    final button = Semantics(
+      label: widget.label,
+      button: true,
+      enabled: widget.onPressed != null && !widget.loading,
+      child: GestureDetector(
+        onTapDown: widget.onPressed != null ? _handleTapDown : null,
+        onTapUp: widget.onPressed != null ? _handleTapUp : null,
+        onTapCancel: widget.onPressed != null ? _handleTapCancel : null,
+        onTap: widget.onPressed != null && !widget.loading ? _handleTap : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          padding: _padding,
+          decoration: _decoration,
+          child: content,
+        ),
       ),
     );
 
@@ -310,32 +315,40 @@ class VlvtIconButton extends StatelessWidget {
     final iconColor = color ?? VlvtColors.gold;
 
     if (outlined) {
-      return GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          width: size + 20,
-          height: size + 20,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: iconColor.withValues(alpha: 0.5),
-              width: 1.5,
+      return Semantics(
+        button: true,
+        enabled: onPressed != null,
+        child: GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            width: size + 20,
+            height: size + 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: iconColor.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
             ),
-          ),
-          child: Icon(
-            icon,
-            size: size,
-            color: iconColor,
+            child: Icon(
+              icon,
+              size: size,
+              color: iconColor,
+            ),
           ),
         ),
       );
     }
 
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      iconSize: size,
-      color: iconColor,
+    return Semantics(
+      button: true,
+      enabled: onPressed != null,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        iconSize: size,
+        color: iconColor,
+      ),
     );
   }
 }
