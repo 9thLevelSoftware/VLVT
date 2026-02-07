@@ -52,7 +52,7 @@ class UserActionSheet extends StatelessWidget {
           try {
             await safetyService.unmatch(match!.id);
           } catch (e) {
-            debugPrint('Error unmatching after block: $e');
+            // debugPrint('Error unmatching after block: $e');
             // Continue even if unmatch fails
           }
         }

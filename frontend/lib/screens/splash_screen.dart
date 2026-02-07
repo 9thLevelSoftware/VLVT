@@ -112,7 +112,7 @@ class _SplashScreenState extends State<SplashScreen>
       ]);
     } catch (e) {
       // Silently fail - assets will load normally if pre-cache fails
-      debugPrint('Asset pre-cache failed: $e');
+      // debugPrint('Asset pre-cache failed: $e');
     }
   }
 

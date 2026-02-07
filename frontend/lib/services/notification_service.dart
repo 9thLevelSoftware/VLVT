@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vlvt/services/auth_service.dart';
 import 'package:vlvt/config/app_config.dart';
@@ -11,13 +10,6 @@ import 'dart:convert';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Keep handler minimal to avoid isolate crashes
-  try {
-    if (kDebugMode) {
-      print('Background message received: ${message.messageId}');
-    }
-  } catch (e) {
-    // Silently ignore errors in background handler
-  }
 }
 
 /// Service for handling push notifications
@@ -41,13 +33,10 @@ class NotificationService {
   Future<void> initialize({AuthService? authService}) async {
     _authService = authService;
     if (_initialized) {
-      if (kDebugMode) print('🔔 Notification service already initialized');
       return;
     }
 
     try {
-      if (kDebugMode) print('🔔 Initializing notification service...');
-
       // Set up background message handler
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -57,14 +46,12 @@ class NotificationService {
       // Request permission
       final permission = await _requestPermission();
       if (!permission) {
-        if (kDebugMode) print('⚠️ Notification permission denied');
         _initialized = true;
         return;
       }
 
       // Get FCM token
       _fcmToken = await _firebaseMessaging.getToken();
-      if (kDebugMode) print('📱 FCM Token: ${_fcmToken?.substring(0, 20)}...');
 
       // Register token with backend
       if (_fcmToken != null) {
@@ -73,7 +60,6 @@ class NotificationService {
 
       // Listen for token refresh
       _firebaseMessaging.onTokenRefresh.listen((newToken) {
-        if (kDebugMode) print('🔄 FCM Token refreshed');
         _fcmToken = newToken;
         _registerToken(newToken);
       });
@@ -91,9 +77,7 @@ class NotificationService {
       }
 
       _initialized = true;
-      if (kDebugMode) print('✅ Notification service initialized successfully');
-    } catch (error) {
-      if (kDebugMode) print('❌ Failed to initialize notification service: $error');
+    } catch (_) {
       _initialized = true; // Mark as initialized even on error to prevent retry loops
     }
   }
@@ -123,9 +107,7 @@ class NotificationService {
           try {
             final data = jsonDecode(details.payload!);
             onNotificationTap?.call(data);
-          } catch (e) {
-            if (kDebugMode) print('Error parsing notification payload: $e');
-          }
+          } catch (_) {}
         }
       },
     );
@@ -185,26 +167,23 @@ class NotificationService {
     try {
       final authService = _authService;
       if (authService == null) {
-        if (kDebugMode) print('⚠️ AuthService not provided - cannot register FCM token');
         return;
       }
 
       final user = await authService.getCurrentUser();
 
       if (user == null) {
-        if (kDebugMode) print('⚠️ No user logged in - cannot register FCM token');
         return;
       }
 
       final jwtToken = await authService.getToken();
       if (jwtToken == null) {
-        if (kDebugMode) print('⚠️ No JWT token - cannot register FCM token');
         return;
       }
 
       final deviceType = Platform.isIOS ? 'ios' : 'android';
 
-      final response = await http.post(
+      await http.post(
         Uri.parse(AppConfig.chatUrl('/fcm/register')),
         headers: {
           'Content-Type': 'application/json',
@@ -215,15 +194,7 @@ class NotificationService {
           'deviceType': deviceType,
         }),
       );
-
-      if (response.statusCode == 200) {
-        if (kDebugMode) print('✅ FCM token registered with backend');
-      } else {
-        if (kDebugMode) print('❌ Failed to register FCM token: ${response.statusCode}');
-      }
-    } catch (error) {
-      if (kDebugMode) print('❌ Error registering FCM token: $error');
-    }
+    } catch (_) {}
   }
 
   /// Unregister FCM token from backend
@@ -247,22 +218,11 @@ class NotificationService {
           'token': _fcmToken,
         }),
       );
-
-      if (kDebugMode) print('✅ FCM token unregistered from backend');
-    } catch (error) {
-      if (kDebugMode) print('❌ Error unregistering FCM token: $error');
-    }
+    } catch (_) {}
   }
 
   /// Handle foreground messages (app is open)
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
-    if (kDebugMode) {
-      print('📬 Foreground message received: ${message.messageId}');
-      print('   Title: ${message.notification?.title}');
-      print('   Body: ${message.notification?.body}');
-      print('   Data: ${message.data}');
-    }
-
     // Show local notification
     final notification = message.notification;
 
@@ -297,19 +257,7 @@ class NotificationService {
 
   /// Handle notification tap (app opened from notification)
   void _handleNotificationTap(RemoteMessage message) {
-    if (kDebugMode) {
-      print('👆 Notification tapped');
-      print('   Message ID: ${message.messageId}');
-      print('   Data: ${message.data}');
-      print('   Type: ${message.data['type']}');
-      print('   Match ID: ${message.data['matchId']}');
-    }
-
-    if (onNotificationTap != null) {
-      onNotificationTap?.call(message.data);
-    } else {
-      if (kDebugMode) print('⚠️ onNotificationTap callback not set - notification tap ignored');
-    }
+    onNotificationTap?.call(message.data);
   }
 
   /// Get current FCM token

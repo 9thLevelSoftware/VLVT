@@ -63,7 +63,16 @@ import { authMiddleware } from './middleware/auth';
 import { validateMessage, validateMatch, validateReport, validateBlock } from './middleware/validation';
 import logger from './utils/logger';
 import { generateMatchId, generateMessageId, generateBlockId, generateReportId } from './utils/id-generator';
-import { generalLimiter, matchLimiter, messageLimiter, reportLimiter } from './middleware/rate-limiter';
+import {
+  generalLimiter,
+  matchLimiter,
+  messageLimiter,
+  reportLimiter,
+  userMessageLimiter,
+  blockLimiter,
+  sensitiveActionLimiter,
+  initializeRateLimiting,
+} from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
 import { createAfterHoursChatRouter } from './routes/after-hours-chat';
@@ -624,7 +633,8 @@ app.get('/messages/:matchId', authMiddleware, generalLimiter, async (req: Reques
 });
 
 // Send a message - Verify senderId matches authenticated user and user is part of match
-app.post('/messages', authMiddleware, messageLimiter, validateMessage, async (req: Request, res: Response) => {
+// Uses per-user rate limiting to prevent message spam
+app.post('/messages', authMiddleware, userMessageLimiter, validateMessage, async (req: Request, res: Response) => {
   try {
     const authenticatedUserId = req.user!.userId;
     const { matchId, senderId, text } = req.body;
@@ -860,7 +870,8 @@ app.put('/messages/:matchId/mark-read', authMiddleware, generalLimiter, async (r
 // ===== SAFETY & MODERATION ENDPOINTS =====
 
 // Delete a match (unmatch) - Only allow users to delete their own matches
-app.delete('/matches/:matchId', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
+// Uses sensitive action limiter for irreversible operations
+app.delete('/matches/:matchId', authMiddleware, sensitiveActionLimiter, async (req: Request, res: Response) => {
   try {
     const { matchId } = req.params;
     const authenticatedUserId = req.user!.userId;
@@ -902,7 +913,8 @@ app.delete('/matches/:matchId', authMiddleware, generalLimiter, async (req: Requ
 });
 
 // Block a user - Verify userId matches authenticated user
-app.post('/blocks', authMiddleware, generalLimiter, validateBlock, async (req: Request, res: Response) => {
+// Uses per-user rate limiting to prevent block abuse
+app.post('/blocks', authMiddleware, blockLimiter, validateBlock, async (req: Request, res: Response) => {
   try {
     const authenticatedUserId = req.user!.userId;
     const { userId, blockedUserId, reason } = req.body;

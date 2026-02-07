@@ -33,8 +33,15 @@ export {
   uploadLimiter,
   userRateLimiter,
   sensitiveActionLimiter,
+  profileUpdateLimiter,
+  reportLimiter,
+  passwordResetLimiter,
+  loginLimiter,
   createUserKeyGenerator,
-  userKeyGenerator
+  userKeyGenerator,
+  initializeRateLimiting,
+  getRedisStore,
+  getRedisStoreSync,
 } from './rate-limiter';
 export type { RateLimiterOptions } from './rate-limiter';
 

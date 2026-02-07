@@ -93,6 +93,8 @@ import {
   correlationMiddleware,
   // Request logger middleware (MON-05)
   createRequestLoggerMiddleware,
+  // Internal service authentication (HMAC-based)
+  signInternalServiceRequest,
 } from '@vlvt/shared';
 
 const app = express();
@@ -2207,13 +2209,24 @@ app.delete('/auth/account', generalLimiter, authenticateJWT, async (req: Request
 
     if (photoKeys.length > 0) {
       const profileServiceUrl = process.env.PROFILE_SERVICE_URL || 'http://localhost:3002';
+      const internalPath = '/api/internal/cleanup-photos';
+      const requestBody = { userId, photoKeys };
+
       try {
         // Call profile-service internal endpoint to delete photos from R2
+        // Uses HMAC-signed headers for secure service-to-service authentication
+        const signedHeaders = signInternalServiceRequest(
+          'auth-service',
+          'POST',
+          internalPath,
+          requestBody
+        );
+
         await axios.post(
-          `${profileServiceUrl}/api/internal/cleanup-photos`,
-          { userId, photoKeys },
+          `${profileServiceUrl}${internalPath}`,
+          requestBody,
           {
-            headers: { 'X-Internal-Service': 'auth-service' },
+            headers: signedHeaders,
             timeout: 30000 // 30 second timeout for R2 operations
           }
         );

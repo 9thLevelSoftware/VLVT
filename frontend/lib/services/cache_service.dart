@@ -31,22 +31,18 @@ class CacheService extends ChangeNotifier {
   List<Match>? getCachedMatches(String userId) {
     final entry = _matchesCache[userId];
     if (entry != null && !entry.isExpired(matchesCacheDuration)) {
-      debugPrint('Cache hit: matches for user $userId');
       return entry.data;
     }
-    debugPrint('Cache miss: matches for user $userId');
     return null;
   }
 
   void cacheMatches(String userId, List<Match> matches) {
     _matchesCache[userId] = CacheEntry(matches, DateTime.now());
-    debugPrint('Cached ${matches.length} matches for user $userId');
     notifyListeners();
   }
 
   void invalidateMatches(String userId) {
     _matchesCache.remove(userId);
-    debugPrint('Invalidated matches cache for user $userId');
     notifyListeners();
   }
 
@@ -54,16 +50,13 @@ class CacheService extends ChangeNotifier {
   Profile? getCachedProfile(String userId) {
     final entry = _profilesCache[userId];
     if (entry != null && !entry.isExpired(profilesCacheDuration)) {
-      debugPrint('Cache hit: profile for user $userId');
       return entry.data;
     }
-    debugPrint('Cache miss: profile for user $userId');
     return null;
   }
 
   void cacheProfile(String userId, Profile profile) {
     _profilesCache[userId] = CacheEntry(profile, DateTime.now());
-    debugPrint('Cached profile for user $userId');
     notifyListeners();
   }
 
@@ -72,13 +65,11 @@ class CacheService extends ChangeNotifier {
     profiles.forEach((userId, profile) {
       _profilesCache[userId] = CacheEntry(profile, timestamp);
     });
-    debugPrint('Batch cached ${profiles.length} profiles');
     notifyListeners();
   }
 
   void invalidateProfile(String userId) {
     _profilesCache.remove(userId);
-    debugPrint('Invalidated profile cache for user $userId');
     notifyListeners();
   }
 
@@ -86,22 +77,18 @@ class CacheService extends ChangeNotifier {
   List<Message>? getCachedMessages(String matchId) {
     final entry = _messagesCache[matchId];
     if (entry != null && !entry.isExpired(messagesCacheDuration)) {
-      debugPrint('Cache hit: messages for match $matchId');
       return entry.data;
     }
-    debugPrint('Cache miss: messages for match $matchId');
     return null;
   }
 
   void cacheMessages(String matchId, List<Message> messages) {
     _messagesCache[matchId] = CacheEntry(messages, DateTime.now());
-    debugPrint('Cached ${messages.length} messages for match $matchId');
     notifyListeners();
   }
 
   void invalidateMessages(String matchId) {
     _messagesCache.remove(matchId);
-    debugPrint('Invalidated messages cache for match $matchId');
     notifyListeners();
   }
 
@@ -109,16 +96,13 @@ class CacheService extends ChangeNotifier {
   Message? getCachedLastMessage(String matchId) {
     final entry = _lastMessageCache[matchId];
     if (entry != null && !entry.isExpired(lastMessageCacheDuration)) {
-      debugPrint('Cache hit: last message for match $matchId');
       return entry.data;
     }
-    debugPrint('Cache miss: last message for match $matchId');
     return null;
   }
 
   void cacheLastMessage(String matchId, Message? message) {
     _lastMessageCache[matchId] = CacheEntry(message, DateTime.now());
-    debugPrint('Cached last message for match $matchId');
     notifyListeners();
   }
 
@@ -127,13 +111,11 @@ class CacheService extends ChangeNotifier {
     messages.forEach((matchId, message) {
       _lastMessageCache[matchId] = CacheEntry(message, timestamp);
     });
-    debugPrint('Batch cached ${messages.length} last messages');
     notifyListeners();
   }
 
   void invalidateLastMessage(String matchId) {
     _lastMessageCache.remove(matchId);
-    debugPrint('Invalidated last message cache for match $matchId');
     notifyListeners();
   }
 
@@ -143,7 +125,6 @@ class CacheService extends ChangeNotifier {
     _profilesCache.clear();
     _messagesCache.clear();
     _lastMessageCache.clear();
-    debugPrint('Cleared all caches');
     notifyListeners();
   }
 
@@ -152,7 +133,6 @@ class CacheService extends ChangeNotifier {
     _matchesCache.remove(userId);
     _profilesCache.remove(userId);
     // Note: we don't clear messages as we'd need to know which matches belong to this user
-    debugPrint('Cleared cache for user $userId');
     notifyListeners();
   }
 

@@ -125,7 +125,7 @@ class DiscoveryPreferencesService extends ChangeNotifier {
         final data = json.decode(filtersJson);
         _filters = DiscoveryFilters.fromJson(data);
       } catch (e) {
-        debugPrint('Error loading filters: $e');
+        // debugPrint('Error loading filters: $e');
       }
     }
   }
@@ -152,7 +152,7 @@ class DiscoveryPreferencesService extends ChangeNotifier {
             .map((a) => ProfileAction.fromJson(a))
             .toList();
       } catch (e) {
-        debugPrint('Error loading profile actions: $e');
+        // debugPrint('Error loading profile actions: $e');
       }
     }
   }
@@ -172,7 +172,7 @@ class DiscoveryPreferencesService extends ChangeNotifier {
 
     if (_profileActions.length != beforeCount) {
       await _saveProfileActions();
-      debugPrint('Cleaned ${beforeCount - _profileActions.length} expired profile actions');
+      // debugPrint('Cleaned ${beforeCount - _profileActions.length} expired profile actions');
     }
   }
 

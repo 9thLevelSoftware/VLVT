@@ -179,10 +179,10 @@ class AfterHoursProfileService extends BaseApiService {
         return null;
       }
 
-      debugPrint('Failed to get After Hours profile: ${response.statusCode}');
+      // debugPrint('Failed to get After Hours profile: ${response.statusCode}');
       return null;
     } catch (e) {
-      debugPrint('Error getting After Hours profile: $e');
+      // debugPrint('Error getting After Hours profile: $e');
       return null;
     }
   }
@@ -206,11 +206,11 @@ class AfterHoursProfileService extends BaseApiService {
         }
       }
 
-      debugPrint('Failed to create After Hours profile: ${response.statusCode}');
-      debugPrint('Response: ${response.body}');
+      // debugPrint('Failed to create After Hours profile: ${response.statusCode}');
+      // debugPrint('Response: ${response.body}');
       return null;
     } catch (e) {
-      debugPrint('Error creating After Hours profile: $e');
+      // debugPrint('Error creating After Hours profile: $e');
       return null;
     }
   }
@@ -237,10 +237,10 @@ class AfterHoursProfileService extends BaseApiService {
         }
       }
 
-      debugPrint('Failed to update After Hours profile: ${response.statusCode}');
+      // debugPrint('Failed to update After Hours profile: ${response.statusCode}');
       return null;
     } catch (e) {
-      debugPrint('Error updating After Hours profile: $e');
+      // debugPrint('Error updating After Hours profile: $e');
       return null;
     }
   }
@@ -256,7 +256,7 @@ class AfterHoursProfileService extends BaseApiService {
       // Add authorization header
       final token = authService.token;
       if (token == null) {
-        debugPrint('Cannot upload photo: no auth token');
+        // debugPrint('Cannot upload photo: no auth token');
         return null;
       }
       request.headers['Authorization'] = 'Bearer $token';
@@ -289,11 +289,11 @@ class AfterHoursProfileService extends BaseApiService {
         }
       }
 
-      debugPrint('Failed to upload After Hours photo: ${response.statusCode}');
-      debugPrint('Response: ${response.body}');
+      // debugPrint('Failed to upload After Hours photo: ${response.statusCode}');
+      // debugPrint('Response: ${response.body}');
       return null;
     } catch (e) {
-      debugPrint('Error uploading After Hours photo: $e');
+      // debugPrint('Error uploading After Hours photo: $e');
       return null;
     }
   }
@@ -343,10 +343,10 @@ class AfterHoursProfileService extends BaseApiService {
         return null;
       }
 
-      debugPrint('Failed to get After Hours preferences: ${response.statusCode}');
+      // debugPrint('Failed to get After Hours preferences: ${response.statusCode}');
       return null;
     } catch (e) {
-      debugPrint('Error getting After Hours preferences: $e');
+      // debugPrint('Error getting After Hours preferences: $e');
       return null;
     }
   }
@@ -381,11 +381,11 @@ class AfterHoursProfileService extends BaseApiService {
         }
       }
 
-      debugPrint('Failed to create After Hours preferences: ${response.statusCode}');
-      debugPrint('Response: ${response.body}');
+      // debugPrint('Failed to create After Hours preferences: ${response.statusCode}');
+      // debugPrint('Response: ${response.body}');
       return null;
     } catch (e) {
-      debugPrint('Error creating After Hours preferences: $e');
+      // debugPrint('Error creating After Hours preferences: $e');
       return null;
     }
   }
@@ -420,10 +420,10 @@ class AfterHoursProfileService extends BaseApiService {
         }
       }
 
-      debugPrint('Failed to update After Hours preferences: ${response.statusCode}');
+      // debugPrint('Failed to update After Hours preferences: ${response.statusCode}');
       return null;
     } catch (e) {
-      debugPrint('Error updating After Hours preferences: $e');
+      // debugPrint('Error updating After Hours preferences: $e');
       return null;
     }
   }
@@ -470,10 +470,10 @@ class AfterHoursProfileService extends BaseApiService {
     var response = await http.patch(uri, headers: headers, body: encodedBody);
 
     if (response.statusCode == 401) {
-      debugPrint('Got 401, attempting token refresh...');
+      // debugPrint('Got 401, attempting token refresh...');
       final refreshed = await authService.refreshToken();
       if (refreshed) {
-        debugPrint('Token refreshed, retrying request...');
+        // debugPrint('Token refreshed, retrying request...');
         final newHeaders = {
           'Content-Type': 'application/json',
           if (authService.token != null) 'Authorization': 'Bearer ${authService.token}',

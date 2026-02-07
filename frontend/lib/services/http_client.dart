@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
@@ -48,14 +47,14 @@ class ApiHttpClient {
   Future<http.Response?> _handle401(
     Future<http.Response> Function() retryRequest,
   ) async {
-    debugPrint('ApiHttpClient: Received 401, attempting token refresh');
+    // debugPrint('ApiHttpClient: Received 401, attempting token refresh');
 
     final refreshed = await _authService.refreshToken();
     if (refreshed) {
-      debugPrint('ApiHttpClient: Token refreshed, retrying request');
+      // debugPrint('ApiHttpClient: Token refreshed, retrying request');
       return await retryRequest();
     } else {
-      debugPrint('ApiHttpClient: Token refresh failed, signing out');
+      // debugPrint('ApiHttpClient: Token refresh failed, signing out');
       await _authService.signOut();
       return null;
     }
@@ -86,7 +85,7 @@ class ApiHttpClient {
 
       return response;
     } on TimeoutException {
-      debugPrint('ApiHttpClient: Request timed out: $url');
+      // debugPrint('ApiHttpClient: Request timed out: $url');
       rethrow;
     }
   }
@@ -118,7 +117,7 @@ class ApiHttpClient {
 
       return response;
     } on TimeoutException {
-      debugPrint('ApiHttpClient: Request timed out: $url');
+      // debugPrint('ApiHttpClient: Request timed out: $url');
       rethrow;
     }
   }
@@ -150,7 +149,7 @@ class ApiHttpClient {
 
       return response;
     } on TimeoutException {
-      debugPrint('ApiHttpClient: Request timed out: $url');
+      // debugPrint('ApiHttpClient: Request timed out: $url');
       rethrow;
     }
   }
@@ -182,7 +181,7 @@ class ApiHttpClient {
 
       return response;
     } on TimeoutException {
-      debugPrint('ApiHttpClient: Request timed out: $url');
+      // debugPrint('ApiHttpClient: Request timed out: $url');
       rethrow;
     }
   }

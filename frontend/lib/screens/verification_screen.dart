@@ -72,7 +72,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error initializing camera: $e');
+      // debugPrint('Error initializing camera: $e');
     }
   }
 
@@ -127,7 +127,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         _isCapturing = false;
       });
     } catch (e) {
-      debugPrint('Error capturing photo: $e');
+      // debugPrint('Error capturing photo: $e');
       setState(() {
         _isCapturing = false;
       });

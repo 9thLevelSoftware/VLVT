@@ -4,7 +4,6 @@ library;
 
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
 
 /// Collects device fingerprint for ban enforcement
 class DeviceFingerprintService {
@@ -30,7 +29,7 @@ class DeviceFingerprintService {
 
       return fingerprint;
     } catch (e) {
-      debugPrint('Error collecting device fingerprint: $e');
+      // debugPrint('Error collecting device fingerprint: $e');
       return {};
     }
   }

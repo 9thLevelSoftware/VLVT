@@ -128,7 +128,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 uploadedPhotoUrls.add(result['photo']['url'] as String);
               }
             } catch (e) {
-              debugPrint('Failed to upload photo: $e');
+              // debugPrint('Failed to upload photo: $e');
               // Continue with other photos even if one fails
             }
           }

@@ -63,7 +63,7 @@ class SafetyService extends ChangeNotifier {
         throw Exception('Failed to load blocked users: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error loading blocked users: $e');
+      // debugPrint('Error loading blocked users: $e');
       // Don't rethrow - we can continue with empty blocked list
       _blockedUserIds = {};
       _isLoaded = true;
@@ -110,7 +110,7 @@ class SafetyService extends ChangeNotifier {
         throw Exception('Failed to block user: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error blocking user: $e');
+      // debugPrint('Error blocking user: $e');
       rethrow;
     }
   }
@@ -142,7 +142,7 @@ class SafetyService extends ChangeNotifier {
         throw Exception('Failed to unblock user: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error unblocking user: $e');
+      // debugPrint('Error unblocking user: $e');
       rethrow;
     }
   }
@@ -182,7 +182,7 @@ class SafetyService extends ChangeNotifier {
         throw Exception('Failed to report user: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error reporting user: $e');
+      // debugPrint('Error reporting user: $e');
       rethrow;
     }
   }
@@ -205,7 +205,7 @@ class SafetyService extends ChangeNotifier {
         throw Exception('Failed to unmatch: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error unmatching: $e');
+      // debugPrint('Error unmatching: $e');
       rethrow;
     }
   }
@@ -237,7 +237,7 @@ class SafetyService extends ChangeNotifier {
         throw Exception('Failed to load blocked users: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting blocked users with profiles: $e');
+      // debugPrint('Error getting blocked users with profiles: $e');
       rethrow;
     }
   }

@@ -106,7 +106,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
           }
         }
       } catch (e) {
-        debugPrint('Failed to load received likes: $e');
+        // debugPrint('Failed to load received likes: $e');
       }
 
       try {
@@ -118,7 +118,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
           }
         }
       } catch (e) {
-        debugPrint('Failed to load sent likes: $e');
+        // debugPrint('Failed to load sent likes: $e');
       }
 
       // 3. Batch load all profiles at once (fixes N+1)
@@ -127,7 +127,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
         try {
           profilesMap = await profileService.batchGetProfiles(allUserIds);
         } catch (e) {
-          debugPrint('Failed to batch load profiles: $e');
+          // debugPrint('Failed to batch load profiles: $e');
         }
       }
 
@@ -686,7 +686,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                 final profileService = context.read<ProfileApiService>();
                 await profileService.swipe(targetUserId: entry.odId, action: 'like');
               } catch (e) {
-                debugPrint('Failed to like back: $e');
+                // debugPrint('Failed to like back: $e');
               }
             },
           ),

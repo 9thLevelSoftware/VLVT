@@ -132,7 +132,7 @@ class TicketsService extends ChangeNotifier {
         _error = 'Failed to load tickets';
       }
     } catch (e) {
-      debugPrint('Error loading tickets: $e');
+      // debugPrint('Error loading tickets: $e');
       _error = e.toString();
     }
 
@@ -175,7 +175,7 @@ class TicketsService extends ChangeNotifier {
         'error': data['error'] ?? 'Failed to create invite code',
       };
     } catch (e) {
-      debugPrint('Error creating invite code: $e');
+      // debugPrint('Error creating invite code: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -204,7 +204,7 @@ class TicketsService extends ChangeNotifier {
         'error': data['error'] ?? 'Invalid invite code',
       };
     } catch (e) {
-      debugPrint('Error validating invite code: $e');
+      // debugPrint('Error validating invite code: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -236,7 +236,7 @@ class TicketsService extends ChangeNotifier {
         'error': data['error'] ?? 'Failed to redeem invite code',
       };
     } catch (e) {
-      debugPrint('Error redeeming invite code: $e');
+      // debugPrint('Error redeeming invite code: $e');
       return {'success': false, 'error': e.toString()};
     }
   }

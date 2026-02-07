@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import '../config/app_config.dart';
 import '../models/match.dart';
@@ -34,7 +33,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to load matches: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting matches: $e');
+      // debugPrint('Error getting matches: $e');
       rethrow;
     }
   }
@@ -58,7 +57,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to load messages: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting messages: $e');
+      // debugPrint('Error getting messages: $e');
       rethrow;
     }
   }
@@ -87,7 +86,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to create match: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error creating match: $e');
+      // debugPrint('Error creating match: $e');
       rethrow;
     }
   }
@@ -117,7 +116,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to send message: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error sending message: $e');
+      // debugPrint('Error sending message: $e');
       rethrow;
     }
   }
@@ -146,7 +145,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to unmatch: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error unmatching: $e');
+      // debugPrint('Error unmatching: $e');
       rethrow;
     }
   }
@@ -161,7 +160,7 @@ class ChatApiService extends BaseApiService {
       // Messages are typically returned in chronological order, so get the last one
       return messages.last;
     } catch (e) {
-      debugPrint('Error getting last message: $e');
+      // debugPrint('Error getting last message: $e');
       return null; // Return null instead of rethrowing for graceful degradation
     }
   }
@@ -188,7 +187,7 @@ class ChatApiService extends BaseApiService {
 
       return messageMap;
     } catch (e) {
-      debugPrint('Error batch getting last messages: $e');
+      // debugPrint('Error batch getting last messages: $e');
       return {}; // Return empty map for graceful degradation
     }
   }
@@ -213,7 +212,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to get unread counts: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting unread counts: $e');
+      // debugPrint('Error getting unread counts: $e');
       return {}; // Return empty map for graceful degradation
     }
   }
@@ -233,7 +232,7 @@ class ChatApiService extends BaseApiService {
         throw Exception('Failed to mark messages as read: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error marking messages as read: $e');
+      // debugPrint('Error marking messages as read: $e');
       // Don't rethrow - marking as read is not critical
     }
   }

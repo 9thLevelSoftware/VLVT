@@ -77,7 +77,7 @@ class LocationService extends ChangeNotifier {
       notifyListeners();
       return serviceEnabled;
     } catch (e) {
-      debugPrint('Error checking location service: $e');
+      // debugPrint('Error checking location service: $e');
       return false;
     }
   }
@@ -90,7 +90,7 @@ class LocationService extends ChangeNotifier {
       notifyListeners();
       return _hasPermission;
     } catch (e) {
-      debugPrint('Error checking location permission: $e');
+      // debugPrint('Error checking location permission: $e');
       return false;
     }
   }
@@ -101,7 +101,7 @@ class LocationService extends ChangeNotifier {
       // First check if location services are enabled
       final serviceEnabled = await checkLocationService();
       if (!serviceEnabled) {
-        debugPrint('Location services are disabled');
+        // debugPrint('Location services are disabled');
         return false;
       }
 
@@ -118,7 +118,7 @@ class LocationService extends ChangeNotifier {
       notifyListeners();
       return _hasPermission;
     } catch (e) {
-      debugPrint('Error requesting location permission: $e');
+      // debugPrint('Error requesting location permission: $e');
       return false;
     }
   }
@@ -129,7 +129,7 @@ class LocationService extends ChangeNotifier {
       if (!_hasPermission) {
         final granted = await requestPermission();
         if (!granted) {
-          debugPrint('Location permission not granted');
+          // debugPrint('Location permission not granted');
           return null;
         }
       }
@@ -145,10 +145,10 @@ class LocationService extends ChangeNotifier {
       _currentLocation = location;
       notifyListeners();
 
-      debugPrint('Got location: ${location.latitude}, ${location.longitude}');
+      // debugPrint('Got location: ${location.latitude}, ${location.longitude}');
       return location;
     } catch (e) {
-      debugPrint('Error getting current location: $e');
+      // debugPrint('Error getting current location: $e');
       return null;
     }
   }
@@ -179,14 +179,14 @@ class LocationService extends ChangeNotifier {
       notifyListeners();
 
       if (success) {
-        debugPrint('Location updated successfully');
+        // debugPrint('Location updated successfully');
       } else {
-        debugPrint('Failed to update location in backend');
+        // debugPrint('Failed to update location in backend');
       }
 
       return success;
     } catch (e) {
-      debugPrint('Error updating location: $e');
+      // debugPrint('Error updating location: $e');
       _isUpdating = false;
       notifyListeners();
       return false;
@@ -202,14 +202,14 @@ class LocationService extends ChangeNotifier {
       (_) => updateLocation(),
     );
 
-    debugPrint('Started periodic location updates (every 15 minutes)');
+    // debugPrint('Started periodic location updates (every 15 minutes)');
   }
 
   /// Stop periodic location updates
   void stopPeriodicUpdates() {
     _periodicUpdateTimer?.cancel();
     _periodicUpdateTimer = null;
-    debugPrint('Stopped periodic location updates');
+    // debugPrint('Stopped periodic location updates');
   }
 
   /// Calculate distance to another location in kilometers

@@ -166,7 +166,7 @@ http.Client createPinnedHttpClient() {
   if (kIsWeb) {
     // Web platform doesn't support certificate pinning
     // Return a standard client - web browsers handle certificate validation
-    debugPrint('PinnedHttpClient: Web platform detected, using standard client');
+    // debugPrint('PinnedHttpClient: Web platform detected, using standard client');
     return http.Client();
   }
 
@@ -180,7 +180,7 @@ http.Client createPinnedHttpClient() {
   httpClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
     // In debug mode, allow localhost connections
     if (CertificatePinningConfig.shouldBypassPinning(host)) {
-      debugPrint('PinnedHttpClient: Bypassing pinning for development host: $host');
+      // debugPrint('PinnedHttpClient: Bypassing pinning for development host: $host');
       return true;
     }
 
@@ -194,14 +194,14 @@ http.Client createPinnedHttpClient() {
       );
 
       if (!isValid) {
-        debugPrint('PinnedHttpClient: Certificate pinning FAILED for $host');
-        debugPrint('PinnedHttpClient: Expected one of: $pins');
-        debugPrint('PinnedHttpClient: Got: $fingerprint');
+        // debugPrint('PinnedHttpClient: Certificate pinning FAILED for $host');
+        // debugPrint('PinnedHttpClient: Expected one of: $pins');
+        // debugPrint('PinnedHttpClient: Got: $fingerprint');
         // Return false to reject the certificate
         return false;
       }
 
-      debugPrint('PinnedHttpClient: Certificate pinning PASSED for $host');
+      // debugPrint('PinnedHttpClient: Certificate pinning PASSED for $host');
       return true;
     }
 
@@ -209,12 +209,12 @@ http.Client createPinnedHttpClient() {
     // The badCertificateCallback is only called for "bad" certificates,
     // so returning false here rejects certificates that failed normal validation
     if (kReleaseMode) {
-      debugPrint('PinnedHttpClient: Rejecting unpinned host in release mode: $host');
+      // debugPrint('PinnedHttpClient: Rejecting unpinned host in release mode: $host');
       return false;
     }
 
     // In debug mode, allow non-pinned hosts (for testing against staging, etc.)
-    debugPrint('PinnedHttpClient: Allowing unpinned host in debug mode: $host');
+    // debugPrint('PinnedHttpClient: Allowing unpinned host in debug mode: $host');
     return true;
   };
 
@@ -306,16 +306,6 @@ class PinnedHttpClient {
 
   /// Validate URL before making request
   void _validateUrl(Uri url) {
-    final host = url.host;
-
-    // In release mode, warn if connecting to an unpinned production host
-    if (kReleaseMode &&
-        !CertificatePinningConfig.hasPinForHost(host) &&
-        !CertificatePinningConfig.shouldBypassPinning(host)) {
-      debugPrint(
-        'PinnedHttpClient: WARNING - Connecting to unpinned host: $host. '
-        'Consider adding certificate pins for this host.',
-      );
-    }
+    // Validation logic removed - logging not needed in production
   }
 }

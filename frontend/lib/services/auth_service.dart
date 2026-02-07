@@ -139,15 +139,15 @@ class AuthService extends ChangeNotifier {
 
         await _storage.write(key: 'auth_token', value: _token);
 
-        debugPrint('Token refresh successful');
+        // // debugPrint('Token refresh successful');
         notifyListeners();
         return true;
       } else {
-        debugPrint('Token refresh failed: ${response.statusCode}');
+        // // debugPrint('Token refresh failed: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      debugPrint('Token refresh error: $e');
+      // // debugPrint('Token refresh error: $e');
       return false;
     } finally {
       _isRefreshing = false;
@@ -240,7 +240,7 @@ class AuthService extends ChangeNotifier {
       await AnalyticsService.logLoginFailed('apple', 'backend_error_${response.statusCode}');
       return false;
     } catch (e) {
-      debugPrint('Error signing in with Apple: $e');
+      // // debugPrint('Error signing in with Apple: $e');
 
       // Track failed login
       await AnalyticsService.logLoginFailed('apple', e.toString());
@@ -259,7 +259,7 @@ class AuthService extends ChangeNotifier {
       );
       _googleSignInInitialized = true;
     } catch (e) {
-      debugPrint('Error initializing Google Sign-In: $e');
+      // // debugPrint('Error initializing Google Sign-In: $e');
       rethrow;
     }
   }
@@ -268,8 +268,8 @@ class AuthService extends ChangeNotifier {
     try {
       // Validate Google Client ID is configured in production
       if (!kDebugMode && !AppConfig.isGoogleClientIdConfigured) {
-        debugPrint('ERROR: Google Client ID is not configured for production!');
-        debugPrint('Please set GOOGLE_CLIENT_ID environment variable.');
+        // // debugPrint('ERROR: Google Client ID is not configured for production!');
+        // // debugPrint('Please set GOOGLE_CLIENT_ID environment variable.');
         await AnalyticsService.logLoginFailed('google', 'missing_client_id');
         return false;
       }
@@ -358,7 +358,7 @@ class AuthService extends ChangeNotifier {
       await AnalyticsService.logLoginFailed('google', 'backend_error_${response.statusCode}');
       return false;
     } catch (e) {
-      debugPrint('Error signing in with Google: $e');
+      // // debugPrint('Error signing in with Google: $e');
 
       // Track failed login
       await AnalyticsService.logLoginFailed('google', e.toString());
@@ -396,7 +396,7 @@ class AuthService extends ChangeNotifier {
         'details': data['details'],
       };
     } catch (e) {
-      debugPrint('Error registering with email: $e');
+      // // debugPrint('Error registering with email: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -442,7 +442,7 @@ class AuthService extends ChangeNotifier {
       await AnalyticsService.logLoginFailed('email', 'backend_error_${response.statusCode}');
       return {'success': false, 'error': data['error'] ?? 'Login failed'};
     } catch (e) {
-      debugPrint('Error signing in with email: $e');
+      // // debugPrint('Error signing in with email: $e');
       await AnalyticsService.logLoginFailed('email', e.toString());
       return {'success': false, 'error': e.toString()};
     }
@@ -459,7 +459,7 @@ class AuthService extends ChangeNotifier {
 
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error requesting password reset: $e');
+      // // debugPrint('Error requesting password reset: $e');
       return false;
     }
   }
@@ -483,7 +483,7 @@ class AuthService extends ChangeNotifier {
         'details': data['details'],
       };
     } catch (e) {
-      debugPrint('Error resetting password: $e');
+      // // debugPrint('Error resetting password: $e');
       return {'success': false, 'message': e.toString()};
     }
   }
@@ -499,7 +499,7 @@ class AuthService extends ChangeNotifier {
 
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error resending verification: $e');
+      // // debugPrint('Error resending verification: $e');
       return false;
     }
   }
@@ -530,7 +530,7 @@ class AuthService extends ChangeNotifier {
 
       return false;
     } catch (e) {
-      debugPrint('Error verifying email: $e');
+      // // debugPrint('Error verifying email: $e');
       return false;
     }
   }
@@ -546,7 +546,7 @@ class AuthService extends ChangeNotifier {
           body: json.encode({'refreshToken': _refreshToken}),
         ).timeout(const Duration(seconds: 5)).ignore();
       } catch (e) {
-        debugPrint('Failed to revoke refresh token: $e');
+        // // debugPrint('Failed to revoke refresh token: $e');
         // Continue with logout anyway
       }
     }
@@ -558,7 +558,7 @@ class AuthService extends ChangeNotifier {
     try {
       await _googleSignIn.disconnect();
     } catch (e) {
-      debugPrint('Google Sign-In disconnect failed: $e');
+      // // debugPrint('Google Sign-In disconnect failed: $e');
       // Continue with logout anyway
     }
 
@@ -573,7 +573,7 @@ class AuthService extends ChangeNotifier {
   /// Returns true if deletion was successful, false otherwise
   Future<bool> deleteAccount() async {
     if (_token == null) {
-      debugPrint('Cannot delete account: not authenticated');
+      // // debugPrint('Cannot delete account: not authenticated');
       return false;
     }
 
@@ -595,7 +595,7 @@ class AuthService extends ChangeNotifier {
           await _googleSignIn.disconnect();
         } catch (e) {
           // Ignore Google sign-out errors during account deletion
-          debugPrint('Google disconnect error (ignored): $e');
+          // // debugPrint('Google disconnect error (ignored): $e');
         }
 
         _token = null;
@@ -603,15 +603,13 @@ class AuthService extends ChangeNotifier {
         _isAuthenticated = false;
         notifyListeners();
 
-        debugPrint('Account deleted successfully');
         return true;
       }
 
-      final data = json.decode(response.body);
-      debugPrint('Account deletion failed: ${data['error']}');
+      json.decode(response.body); // Parse to validate response format
       return false;
     } catch (e) {
-      debugPrint('Error deleting account: $e');
+      // // debugPrint('Error deleting account: $e');
       return false;
     }
   }
@@ -685,7 +683,7 @@ class AuthService extends ChangeNotifier {
 
       return {'success': false, 'error': data['error'] ?? 'Failed to start verification'};
     } catch (e) {
-      debugPrint('Error starting ID verification: $e');
+      // // debugPrint('Error starting ID verification: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -720,7 +718,7 @@ class AuthService extends ChangeNotifier {
 
       return {'success': false, 'error': data['error'] ?? 'Failed to check status'};
     } catch (e) {
-      debugPrint('Error checking ID verification status: $e');
+      // // debugPrint('Error checking ID verification status: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -751,7 +749,7 @@ class AuthService extends ChangeNotifier {
 
       return {'success': false, 'error': data['error'] ?? 'Failed to refresh status'};
     } catch (e) {
-      debugPrint('Error refreshing ID verification status: $e');
+      // // debugPrint('Error refreshing ID verification status: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -780,10 +778,10 @@ class AuthService extends ChangeNotifier {
         final List<dynamic> consents = data['consents'];
         return consents.map((c) => ConsentStatus.fromJson(c)).toList();
       }
-      debugPrint('Failed to fetch consents: ${response.statusCode}');
+      // // debugPrint('Failed to fetch consents: ${response.statusCode}');
       return [];
     } catch (e) {
-      debugPrint('Error fetching consents: $e');
+      // // debugPrint('Error fetching consents: $e');
       return [];
     }
   }
@@ -804,7 +802,7 @@ class AuthService extends ChangeNotifier {
 
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error granting consent: $e');
+      // // debugPrint('Error granting consent: $e');
       return false;
     }
   }
@@ -821,7 +819,7 @@ class AuthService extends ChangeNotifier {
 
       return response.statusCode == 200;
     } catch (e) {
-      debugPrint('Error withdrawing consent: $e');
+      // // debugPrint('Error withdrawing consent: $e');
       return false;
     }
   }
@@ -846,17 +844,17 @@ class AuthService extends ChangeNotifier {
         final file = File('${directory.path}/$fileName');
         await file.writeAsString(response.body);
 
-        debugPrint('Data export saved to: ${file.path}');
+        // // debugPrint('Data export saved to: ${file.path}');
         return file.path;
       } else if (response.statusCode == 429) {
-        debugPrint('Export rate limited');
+        // // debugPrint('Export rate limited');
         return null; // Rate limited
       } else {
-        debugPrint('Export failed: ${response.statusCode}');
+        // // debugPrint('Export failed: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      debugPrint('Error requesting data export: $e');
+      // // debugPrint('Error requesting data export: $e');
       return null;
     }
   }

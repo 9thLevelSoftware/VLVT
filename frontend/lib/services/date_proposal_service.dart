@@ -144,7 +144,7 @@ class DateProposalService extends ChangeNotifier {
         _error = 'Failed to load date proposals';
       }
     } catch (e) {
-      debugPrint('Error loading date proposals: $e');
+      // debugPrint('Error loading date proposals: $e');
       _error = e.toString();
     }
 
@@ -194,7 +194,7 @@ class DateProposalService extends ChangeNotifier {
         'error': data['error'] ?? 'Failed to create date proposal',
       };
     } catch (e) {
-      debugPrint('Error creating date proposal: $e');
+      // debugPrint('Error creating date proposal: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -233,7 +233,7 @@ class DateProposalService extends ChangeNotifier {
         'error': data['error'] ?? 'Failed to respond to proposal',
       };
     } catch (e) {
-      debugPrint('Error responding to date proposal: $e');
+      // debugPrint('Error responding to date proposal: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -267,7 +267,7 @@ class DateProposalService extends ChangeNotifier {
         'error': data['error'] ?? 'Failed to confirm date',
       };
     } catch (e) {
-      debugPrint('Error confirming date: $e');
+      // debugPrint('Error confirming date: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -296,7 +296,7 @@ class DateProposalService extends ChangeNotifier {
         'error': data['error'] ?? 'Failed to cancel proposal',
       };
     } catch (e) {
-      debugPrint('Error cancelling date proposal: $e');
+      // debugPrint('Error cancelling date proposal: $e');
       return {'success': false, 'error': e.toString()};
     }
   }

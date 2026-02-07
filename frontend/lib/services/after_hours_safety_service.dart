@@ -46,7 +46,7 @@ class AfterHoursSafetyService extends ChangeNotifier {
       }
       throw Exception('Failed to block user: ${response.statusCode}');
     } catch (e) {
-      debugPrint('Error blocking After Hours user: $e');
+      // debugPrint('Error blocking After Hours user: $e');
       rethrow;
     }
   }
@@ -79,7 +79,7 @@ class AfterHoursSafetyService extends ChangeNotifier {
       }
       throw Exception('Failed to report user: ${response.statusCode}');
     } catch (e) {
-      debugPrint('Error reporting After Hours user: $e');
+      // debugPrint('Error reporting After Hours user: $e');
       rethrow;
     }
   }

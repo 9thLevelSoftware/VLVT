@@ -150,7 +150,6 @@ class AfterHoursService extends ChangeNotifier {
   /// Update state and notify listeners
   void _setState(AfterHoursState newState) {
     if (_state != newState) {
-      debugPrint('AfterHoursService: State change $_state -> $newState');
       _state = newState;
       notifyListeners();
     }
@@ -158,39 +157,28 @@ class AfterHoursService extends ChangeNotifier {
 
   /// Subscribe to all After Hours socket events
   void _subscribeToEvents() {
-    debugPrint('AfterHoursService: Subscribing to socket events');
-
     // Match found
     _matchSubscription = _socketService.onAfterHoursMatch.listen((data) {
-      debugPrint('AfterHoursService: Match received: $data');
       try {
         _currentMatch = AfterHoursMatch.fromJson(data);
         _partnerSaved = false; // Reset for new match
         _setState(AfterHoursState.matched);
-        // Fire-and-forget analytics
         AnalyticsService.logAfterHoursMatchReceived(matchId: _currentMatch!.id);
-      } catch (e) {
-        debugPrint('AfterHoursService: Error parsing match: $e');
-      }
+      } catch (_) {}
     });
 
     // Message received (for unread count tracking)
     _messageSubscription = _socketService.onAfterHoursMessage.listen((message) {
-      debugPrint('AfterHoursService: Message received');
       // Message handling delegated to AfterHoursChatService
-      // This subscription is for future unread count tracking
     });
 
     // Session expiring warning (2 minutes)
     _expiringSubscription = _socketService.onSessionExpiring.listen((data) {
-      debugPrint('AfterHoursService: Session expiring warning');
       _setState(AfterHoursState.expiring);
     });
 
     // Session expired
     _expiredSubscription = _socketService.onSessionExpired.listen((data) {
-      debugPrint('AfterHoursService: Session expired');
-      // Fire-and-forget analytics with elapsed time
       if (_sessionStartedAt != null) {
         final elapsedMinutes = DateTime.now().difference(_sessionStartedAt!).inMinutes;
         AnalyticsService.logAfterHoursSessionEnded(
@@ -203,7 +191,6 @@ class AfterHoursService extends ChangeNotifier {
 
     // No matches available
     _noMatchesSubscription = _socketService.onNoMatches.listen((data) {
-      debugPrint('AfterHoursService: No matches available');
       final count = data['nearbyCount'] as int? ?? 0;
       _nearbyCount = count;
       notifyListeners();
@@ -211,7 +198,6 @@ class AfterHoursService extends ChangeNotifier {
 
     // Match expired (auto-decline)
     _matchExpiredSubscription = _socketService.onMatchExpired.listen((data) {
-      debugPrint('AfterHoursService: Match expired (auto-decline)');
       _currentMatch = null;
       _partnerSaved = false;
       _setState(AfterHoursState.searching);
@@ -219,29 +205,22 @@ class AfterHoursService extends ChangeNotifier {
 
     // Partner saved the match
     _partnerSavedSubscription = _socketService.onPartnerSaved.listen((data) {
-      debugPrint('AfterHoursService: Partner saved match');
       _partnerSaved = true;
       notifyListeners();
     });
 
     // Match saved (mutual)
     _matchSavedSubscription = _socketService.onMatchSaved.listen((data) {
-      debugPrint('AfterHoursService: Match saved (mutual)');
-      // Fire-and-forget analytics
       final matchId = data['matchId'] as String? ?? _currentMatch?.id ?? '';
       if (matchId.isNotEmpty) {
         AnalyticsService.logAfterHoursMatchSaved(matchId: matchId);
       }
-      // The match has been converted to a permanent match
-      // UI should show a celebration/notification
-      // Then transition back to searching or show permanent match
       notifyListeners();
     });
   }
 
   /// Unsubscribe from all socket events
   void _unsubscribeFromEvents() {
-    debugPrint('AfterHoursService: Unsubscribing from socket events');
     _matchSubscription?.cancel();
     _messageSubscription?.cancel();
     _expiringSubscription?.cancel();
@@ -268,7 +247,6 @@ class AfterHoursService extends ChangeNotifier {
     required double lng,
   }) async {
     if (isSessionActive) {
-      debugPrint('AfterHoursService: Session already active');
       return false;
     }
 
@@ -277,7 +255,6 @@ class AfterHoursService extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        debugPrint('AfterHoursService: No auth token');
         _setState(AfterHoursState.inactive);
         return false;
       }
@@ -302,13 +279,11 @@ class AfterHoursService extends ChangeNotifier {
         if (data['success'] == true && data['session'] != null) {
           _sessionId = data['session']['id'] as String;
           _expiresAt = DateTime.parse(data['session']['expiresAt'] as String);
-          _sessionStartedAt = DateTime.now(); // Track for analytics duration
+          _sessionStartedAt = DateTime.now();
           _setState(AfterHoursState.searching);
 
-          // Start foreground service for background location
           await _startForegroundService();
 
-          // Fire-and-forget analytics
           AnalyticsService.logAfterHoursSessionStarted(
             durationMinutes: durationMinutes,
           );
@@ -317,12 +292,9 @@ class AfterHoursService extends ChangeNotifier {
         }
       }
 
-      debugPrint('AfterHoursService: Failed to start session: ${response.statusCode}');
-      debugPrint('Response: ${response.body}');
       _setState(AfterHoursState.inactive);
       return false;
-    } catch (e) {
-      debugPrint('AfterHoursService: Error starting session: $e');
+    } catch (_) {
       _setState(AfterHoursState.inactive);
       return false;
     }
@@ -331,25 +303,21 @@ class AfterHoursService extends ChangeNotifier {
   /// End the current session early
   Future<bool> endSession() async {
     if (!isSessionActive) {
-      debugPrint('AfterHoursService: No active session to end');
       return false;
     }
 
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        debugPrint('AfterHoursService: No auth token');
         return false;
       }
 
-      // Make API call to end session
       final response = await http.post(
         Uri.parse(_url('/after-hours/session/end')),
         headers: _authHeaders,
       );
 
       if (response.statusCode == 200) {
-        // Fire-and-forget analytics for manual session end
         if (_sessionStartedAt != null) {
           final elapsedMinutes = DateTime.now().difference(_sessionStartedAt!).inMinutes;
           AnalyticsService.logAfterHoursSessionEnded(
@@ -361,37 +329,24 @@ class AfterHoursService extends ChangeNotifier {
         return true;
       }
 
-      debugPrint('AfterHoursService: Failed to end session: ${response.statusCode}');
       return false;
-    } catch (e) {
-      debugPrint('AfterHoursService: Error ending session: $e');
+    } catch (_) {
       return false;
     }
   }
 
   /// Accept the current match and transition to chatting
-  ///
-  /// Match acceptance is socket-based (joinAfterHoursChat), not HTTP.
-  /// The socket event notifies the backend and partner simultaneously.
   Future<bool> acceptMatch() async {
     if (_currentMatch == null) {
-      debugPrint('AfterHoursService: No current match to accept');
       return false;
     }
 
     try {
-      // Join the chat room (socket-based, not HTTP)
       _socketService.joinAfterHoursChat(_currentMatch!.id);
-
-      debugPrint('AfterHoursService: Accepted match ${_currentMatch!.id}');
       _setState(AfterHoursState.chatting);
-
-      // Fire-and-forget analytics
       AnalyticsService.logAfterHoursChatStarted(matchId: _currentMatch!.id);
-
       return true;
-    } catch (e) {
-      debugPrint('AfterHoursService: Error accepting match: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -399,7 +354,6 @@ class AfterHoursService extends ChangeNotifier {
   /// Decline the current match and return to searching
   Future<bool> declineMatch() async {
     if (_currentMatch == null) {
-      debugPrint('AfterHoursService: No current match to decline');
       return false;
     }
 
@@ -408,33 +362,22 @@ class AfterHoursService extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        debugPrint('AfterHoursService: No auth token');
         return false;
       }
 
-      // Make API call to decline match
-      final response = await http.post(
+      await http.post(
         Uri.parse(_url('/after-hours/match/decline')),
         headers: _authHeaders,
         body: json.encode({'matchId': matchId}),
       );
 
-      if (response.statusCode != 200) {
-        debugPrint('AfterHoursService: Failed to decline match: ${response.statusCode}');
-        // Continue with local state change even if API fails
-      }
-
-      debugPrint('AfterHoursService: Declined match $matchId');
-
-      // Fire-and-forget analytics
       AnalyticsService.logAfterHoursMatchDeclined(matchId: matchId);
 
       _currentMatch = null;
       _partnerSaved = false;
       _setState(AfterHoursState.searching);
       return true;
-    } catch (e) {
-      debugPrint('AfterHoursService: Error declining match: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -444,11 +387,9 @@ class AfterHoursService extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        debugPrint('AfterHoursService: No auth token for refresh');
         return;
       }
 
-      // Make API call to get current session status
       final response = await http.get(
         Uri.parse(_url('/after-hours/session')),
         headers: _authHeaders,
@@ -460,7 +401,6 @@ class AfterHoursService extends ChangeNotifier {
           if (data['active'] == true && data['session'] != null) {
             _sessionId = data['session']['id'] as String;
             _expiresAt = DateTime.parse(data['session']['expiresAt'] as String);
-            // Check if session is expiring (less than 2 minutes left)
             if (remainingSeconds <= 120 && remainingSeconds > 0) {
               _setState(AfterHoursState.expiring);
             } else if (remainingSeconds > 0) {
@@ -469,24 +409,17 @@ class AfterHoursService extends ChangeNotifier {
               resetToInactive();
             }
           } else {
-            // No active session
             resetToInactive();
           }
         }
       }
-    } catch (e) {
-      debugPrint('AfterHoursService: Error refreshing session: $e');
-    }
+    } catch (_) {}
   }
 
   /// Reset state to inactive, clear all session data
   void resetToInactive() {
-    debugPrint('AfterHoursService: Resetting to inactive');
-
-    // Stop foreground service
     _stopForegroundService();
 
-    // Leave chat room if in one
     if (_currentMatch != null) {
       _socketService.leaveAfterHoursChat(_currentMatch!.id);
     }
@@ -535,9 +468,8 @@ class AfterHoursService extends ChangeNotifier {
     await FlutterForegroundTask.startService(
       notificationTitle: 'After Hours Active',
       notificationText: 'Your session is running',
-      callback: null, // No background callback needed, just keeping app alive
+      callback: null,
     );
-    debugPrint('AfterHoursService: Foreground service started');
   }
 
   /// Stop foreground service when session ends
@@ -546,12 +478,10 @@ class AfterHoursService extends ChangeNotifier {
     if (!isRunning) return;
 
     await FlutterForegroundTask.stopService();
-    debugPrint('AfterHoursService: Foreground service stopped');
   }
 
   @override
   void dispose() {
-    debugPrint('AfterHoursService: Disposing');
     _unsubscribeFromEvents();
     super.dispose();
   }

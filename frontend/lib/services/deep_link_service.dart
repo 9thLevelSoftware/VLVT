@@ -34,7 +34,7 @@ class DeepLinkService {
     // Set up security monitoring callback
     DeepLinkValidator.onLinkRejected = (link, reason) {
       _rejectedLinkCount++;
-      debugPrint('[DeepLinkService] Security: Rejected malicious link. Total rejected: $_rejectedLinkCount');
+      // debugPrint('[DeepLinkService] Security: Rejected malicious link. Total rejected: $_rejectedLinkCount');
       // In production, this could send to analytics/security monitoring
     };
 
@@ -45,14 +45,14 @@ class DeepLinkService {
         _handleDeepLink(navigatorState, authService, initialLink.toString());
       }
     } catch (e) {
-      debugPrint('Error getting initial deep link: $e');
+      // debugPrint('Error getting initial deep link: $e');
     }
 
     // Handle links while app is running
     _sub = _appLinks!.uriLinkStream.listen((Uri uri) {
       _handleDeepLink(navigatorState, authService, uri.toString());
     }, onError: (err) {
-      debugPrint('Error handling deep link stream: $err');
+      // debugPrint('Error handling deep link stream: $err');
     });
   }
 
@@ -70,7 +70,7 @@ class DeepLinkService {
     final validationResult = DeepLinkValidator.validate(link);
 
     if (!validationResult.isValid) {
-      debugPrint('[DeepLinkService] Rejected invalid deep link: ${validationResult.error}');
+      // debugPrint('[DeepLinkService] Rejected invalid deep link: ${validationResult.error}');
       // Show a user-friendly error for rejected links
       if (navigator.mounted) {
         ScaffoldMessenger.of(navigator.context).showSnackBar(
@@ -118,7 +118,7 @@ class DeepLinkService {
             );
             return;
           }
-          debugPrint('Deep link to match: $matchId');
+          // debugPrint('Deep link to match: $matchId');
           // Currently navigates to Matches tab. The matchId is extracted but not
           // used to scroll to the specific match - this could be a future enhancement
           // to highlight or scroll to the specific match in the list.
@@ -143,7 +143,7 @@ class DeepLinkService {
             );
             return;
           }
-          debugPrint('Deep link to chat: $chatId');
+          // debugPrint('Deep link to chat: $chatId');
           navigator.push(
             MaterialPageRoute(
               builder: (context) => ChatScreen(matchId: chatId),
@@ -157,7 +157,7 @@ class DeepLinkService {
         if (code != null && code.isNotEmpty) {
           // Store the invite code for use during signup
           pendingInviteCode = code;
-          debugPrint('Stored pending invite code: $code');
+          // debugPrint('Stored pending invite code: $code');
 
           // If user is already authenticated, show a message
           if (authService.isAuthenticated && navigator.mounted) {
@@ -173,7 +173,7 @@ class DeepLinkService {
 
       case null:
         // This shouldn't happen since we check isValid above
-        debugPrint('[DeepLinkService] Warning: Valid link but no type detected');
+        // debugPrint('[DeepLinkService] Warning: Valid link but no type detected');
         break;
     }
   }

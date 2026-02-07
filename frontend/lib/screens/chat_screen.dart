@@ -220,7 +220,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       await socketService.markMessagesAsRead(matchId: _match!.id);
     } catch (e) {
-      debugPrint('Failed to mark messages as read: $e');
+      // debugPrint('Failed to mark messages as read: $e');
     }
   }
 

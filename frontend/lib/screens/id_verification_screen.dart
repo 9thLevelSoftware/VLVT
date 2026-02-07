@@ -180,10 +180,10 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
-            debugPrint('WebView loading: $url');
+            // debugPrint('WebView loading: $url');
           },
           onPageFinished: (String url) {
-            debugPrint('WebView finished: $url');
+            // debugPrint('WebView finished: $url');
             // Check if verification completed (user closed the verification flow)
             if (url.contains('verification-completed') ||
                 url.contains('success') ||
@@ -192,7 +192,7 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
             }
           },
           onWebResourceError: (WebResourceError error) {
-            debugPrint('WebView error: ${error.description}');
+            // debugPrint('WebView error: ${error.description}');
           },
         ),
       )

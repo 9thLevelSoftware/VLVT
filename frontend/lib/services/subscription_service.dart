@@ -25,7 +25,7 @@ class RevenueCatConfig {
     // Require API key from environment - no hardcoded fallback in production
     final envKey = const String.fromEnvironment('REVENUECAT_API_KEY');
     if (envKey.isEmpty && !kDebugMode) {
-      debugPrint('ERROR: REVENUECAT_API_KEY not configured for production!');
+      // // debugPrint('ERROR: REVENUECAT_API_KEY not configured for production!');
     }
     return envKey;
   }
@@ -68,7 +68,7 @@ class SubscriptionService extends ChangeNotifier {
 
       // If already premium from backend, we're done (test user case)
       if (_hasPremiumAccess) {
-        debugPrint('SubscriptionService: User has premium from backend database');
+        // // debugPrint('SubscriptionService: User has premium from backend database');
         _isLoading = false;
         notifyListeners();
         return;
@@ -77,7 +77,7 @@ class SubscriptionService extends ChangeNotifier {
       // Check if API key is available
       final apiKey = RevenueCatConfig.apiKey;
       if (apiKey.isEmpty) {
-        debugPrint('RevenueCat: No API key configured. Running in demo-only mode.');
+        // // debugPrint('RevenueCat: No API key configured. Running in demo-only mode.');
         _isRevenueCatConfigured = false;
         _isLoading = false;
         notifyListeners();
@@ -109,9 +109,9 @@ class SubscriptionService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      debugPrint('RevenueCat: Initialized successfully for user $userId');
+      // // debugPrint('RevenueCat: Initialized successfully for user $userId');
     } catch (e) {
-      debugPrint('RevenueCat: Error initializing - $e');
+      // // debugPrint('RevenueCat: Error initializing - $e');
       _isRevenueCatConfigured = false;
       _isLoading = false;
       notifyListeners();
@@ -121,7 +121,7 @@ class SubscriptionService extends ChangeNotifier {
   /// Check backend database for subscription status (for test users)
   Future<void> _checkBackendSubscriptionStatus() async {
     if (_authToken == null) {
-      debugPrint('SubscriptionService: No auth token, skipping backend check');
+      // // debugPrint('SubscriptionService: No auth token, skipping backend check');
       return;
     }
 
@@ -138,11 +138,11 @@ class SubscriptionService extends ChangeNotifier {
         final data = json.decode(response.body);
         if (data['success'] == true && data['isPremium'] == true) {
           _hasPremiumAccess = true;
-          debugPrint('SubscriptionService: Backend confirms premium status');
+          // // debugPrint('SubscriptionService: Backend confirms premium status');
         }
       }
     } catch (e) {
-      debugPrint('SubscriptionService: Error checking backend subscription - $e');
+      // // debugPrint('SubscriptionService: Error checking backend subscription - $e');
       // Fail silently - will fall back to RevenueCat
     }
   }
@@ -152,7 +152,7 @@ class SubscriptionService extends ChangeNotifier {
     _customerInfo = info;
     _updatePremiumStatus(info);
     notifyListeners();
-    debugPrint('RevenueCat: Customer info updated');
+    // debugPrint('RevenueCat: Customer info updated');
   }
 
   /// Update premium status based on customer info
@@ -161,7 +161,7 @@ class SubscriptionService extends ChangeNotifier {
     _hasPremiumAccess = entitlement?.isActive ?? false;
 
     if (_hasPremiumAccess) {
-      debugPrint('RevenueCat: User has premium access via ${entitlement?.productIdentifier}');
+      // // debugPrint('RevenueCat: User has premium access via ${entitlement?.productIdentifier}');
     }
   }
 
@@ -173,7 +173,7 @@ class SubscriptionService extends ChangeNotifier {
       _customerInfo = await Purchases.getCustomerInfo();
       _updatePremiumStatus(_customerInfo!);
     } catch (e) {
-      debugPrint('RevenueCat: Error fetching customer info - $e');
+      // // debugPrint('RevenueCat: Error fetching customer info - $e');
     }
   }
 
@@ -184,10 +184,10 @@ class SubscriptionService extends ChangeNotifier {
     try {
       _offerings = await Purchases.getOfferings();
       if (_offerings?.current != null) {
-        debugPrint('RevenueCat: Loaded ${_offerings!.current!.availablePackages.length} packages');
+        // // debugPrint('RevenueCat: Loaded ${_offerings!.current!.availablePackages.length} packages');
       }
     } catch (e) {
-      debugPrint('RevenueCat: Error fetching offerings - $e');
+      // // debugPrint('RevenueCat: Error fetching offerings - $e');
     }
   }
 
@@ -207,7 +207,7 @@ class SubscriptionService extends ChangeNotifier {
   /// Returns true if a purchase was made, false otherwise
   Future<PaywallResult> presentPaywall({bool displayCloseButton = true}) async {
     if (!_isRevenueCatConfigured) {
-      debugPrint('RevenueCat: Cannot present paywall - not configured');
+      // // debugPrint('RevenueCat: Cannot present paywall - not configured');
       return PaywallResult.notPresented;
     }
 
@@ -219,7 +219,7 @@ class SubscriptionService extends ChangeNotifier {
         displayCloseButton: displayCloseButton,
       );
 
-      debugPrint('RevenueCat: Paywall result - $result');
+      // // debugPrint('RevenueCat: Paywall result - $result');
 
       // Refresh customer info after paywall
       await _fetchCustomerInfo();
@@ -229,7 +229,7 @@ class SubscriptionService extends ChangeNotifier {
 
       return result;
     } catch (e) {
-      debugPrint('RevenueCat: Error presenting paywall - $e');
+      // // debugPrint('RevenueCat: Error presenting paywall - $e');
       _isLoading = false;
       notifyListeners();
       return PaywallResult.error;
@@ -250,7 +250,7 @@ class SubscriptionService extends ChangeNotifier {
   /// Purchase a specific package
   Future<bool> purchasePackage(Package package) async {
     if (!_isRevenueCatConfigured) {
-      debugPrint('RevenueCat: Cannot purchase - not configured');
+      // // debugPrint('RevenueCat: Cannot purchase - not configured');
       return false;
     }
 
@@ -268,12 +268,12 @@ class SubscriptionService extends ChangeNotifier {
 
       return _hasPremiumAccess;
     } on PurchasesErrorCode catch (e) {
-      debugPrint('RevenueCat: Purchase error code - $e');
+      // // debugPrint('RevenueCat: Purchase error code - $e');
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
-      debugPrint('RevenueCat: Purchase error - $e');
+      // // debugPrint('RevenueCat: Purchase error - $e');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -283,7 +283,7 @@ class SubscriptionService extends ChangeNotifier {
   /// Restore previous purchases
   Future<bool> restorePurchases() async {
     if (!_isRevenueCatConfigured) {
-      debugPrint('RevenueCat: Cannot restore - not configured');
+      // // debugPrint('RevenueCat: Cannot restore - not configured');
       return false;
     }
 
@@ -300,7 +300,7 @@ class SubscriptionService extends ChangeNotifier {
 
       return _hasPremiumAccess;
     } catch (e) {
-      debugPrint('RevenueCat: Error restoring purchases - $e');
+      // // debugPrint('RevenueCat: Error restoring purchases - $e');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -310,7 +310,7 @@ class SubscriptionService extends ChangeNotifier {
   /// Present the Customer Center for subscription management
   Future<void> presentCustomerCenter(BuildContext context) async {
     if (!_isRevenueCatConfigured) {
-      debugPrint('RevenueCat: Cannot present customer center - not configured');
+      // // debugPrint('RevenueCat: Cannot present customer center - not configured');
       _showNotConfiguredDialog(context);
       return;
     }
@@ -318,7 +318,7 @@ class SubscriptionService extends ChangeNotifier {
     try {
       await RevenueCatUI.presentCustomerCenter();
     } catch (e) {
-      debugPrint('RevenueCat: Error presenting customer center - $e');
+      // // debugPrint('RevenueCat: Error presenting customer center - $e');
       // Fallback: show a simple subscription info dialog
       if (context.mounted) {
         _showSubscriptionInfoDialog(context);
@@ -426,7 +426,7 @@ class SubscriptionService extends ChangeNotifier {
       }
       return false;
     } catch (e) {
-      debugPrint('RevenueCat: Error checking intro eligibility - $e');
+      // // debugPrint('RevenueCat: Error checking intro eligibility - $e');
       return false;
     }
   }
@@ -472,7 +472,7 @@ class SubscriptionService extends ChangeNotifier {
       try {
         await Purchases.logOut();
       } catch (e) {
-        debugPrint('RevenueCat: Error logging out - $e');
+        // // debugPrint('RevenueCat: Error logging out - $e');
       }
     }
 

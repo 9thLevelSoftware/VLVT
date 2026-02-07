@@ -168,7 +168,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
       try {
         unreadCounts = await chatService.getUnreadCounts(userId);
       } catch (e) {
-        debugPrint('Failed to fetch unread counts: $e');
+        // debugPrint('Failed to fetch unread counts: $e');
         // Continue without unread counts - not critical
       }
 

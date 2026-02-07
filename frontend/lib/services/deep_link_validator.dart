@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 /// Result of deep link validation
 class DeepLinkValidationResult {
   final bool isValid;
@@ -385,8 +383,8 @@ class DeepLinkValidator {
   /// Log and return a rejection result
   static DeepLinkValidationResult _rejectLink(String link, String reason) {
     // Log the rejection for security monitoring
-    debugPrint('[DeepLinkValidator] Rejected link: $reason');
-    debugPrint('[DeepLinkValidator] Link: $link');
+    // debugPrint('[DeepLinkValidator] Rejected link: $reason');
+    // debugPrint('[DeepLinkValidator] Link: $link');
 
     // Call the optional callback for external logging
     onLinkRejected?.call(link, reason);

@@ -69,7 +69,7 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
       context.read<AfterHoursService>().removeListener(_onServiceStateChanged);
     } catch (e) {
       // Service may be disposed already during hot reload
-      debugPrint('AfterHoursTabScreen: Could not remove listener: $e');
+      // debugPrint('AfterHoursTabScreen: Could not remove listener: $e');
     }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

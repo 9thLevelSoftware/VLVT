@@ -41,7 +41,7 @@ class QueuedMessage {
 class MessageQueueService extends ChangeNotifier {
   static const String _storageKey = 'vlvt_message_queue';
   static const int _maxRetries = 3;
-  static const Duration _maxMessageAge = Duration(hours: 24); // Auto-delete messages older than 24h
+  static const Duration _maxMessageAge = Duration(hours: 24);
 
   List<QueuedMessage> _queue = [];
   bool _isProcessing = false;
@@ -59,12 +59,9 @@ class MessageQueueService extends ChangeNotifier {
         final List<dynamic> decoded = json.decode(queueJson);
         _queue = decoded
             .map((m) => QueuedMessage.fromJson(m as Map<String, dynamic>))
-            .where((m) => _isMessageFresh(m)) // Remove expired messages
+            .where((m) => _isMessageFresh(m))
             .toList();
-
-        debugPrint('MessageQueueService: Loaded ${_queue.length} queued messages');
-      } catch (e) {
-        debugPrint('MessageQueueService: Error loading queue: $e');
+      } catch (_) {
         _queue = [];
       }
     }
@@ -86,8 +83,6 @@ class MessageQueueService extends ChangeNotifier {
     _queue.add(message);
     await _persist();
     notifyListeners();
-
-    debugPrint('MessageQueueService: Queued message ${message.id} for match ${message.matchId}');
   }
 
   /// Remove message from queue
@@ -98,7 +93,6 @@ class MessageQueueService extends ChangeNotifier {
     if (_queue.length != initialLength) {
       await _persist();
       notifyListeners();
-      debugPrint('MessageQueueService: Removed message $id from queue');
     }
   }
 
@@ -113,34 +107,25 @@ class MessageQueueService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final queueJson = json.encode(_queue.map((m) => m.toJson()).toList());
       await prefs.setString(_storageKey, queueJson);
-    } catch (e) {
-      debugPrint('MessageQueueService: Error persisting queue: $e');
-    }
+    } catch (_) {}
   }
 
   /// Process entire queue - send all queued messages
   Future<void> processQueue(SocketService socketService) async {
     if (_isProcessing) {
-      debugPrint('MessageQueueService: Already processing queue, skipping');
       return;
     }
 
     if (!socketService.isConnected || _queue.isEmpty) {
-      debugPrint('MessageQueueService: Cannot process - socket connected: ${socketService.isConnected}, queue empty: ${_queue.isEmpty}');
       return;
     }
 
     _isProcessing = true;
-    debugPrint('MessageQueueService: Processing ${_queue.length} queued messages');
 
     final messagesToSend = List<QueuedMessage>.from(_queue);
-    int successCount = 0;
-    int failureCount = 0;
 
     for (final message in messagesToSend) {
       try {
-        debugPrint('MessageQueueService: Sending queued message ${message.id} (retry ${message.retryCount})');
-
         await socketService.sendMessage(
           matchId: message.matchId,
           text: message.content,
@@ -148,36 +133,25 @@ class MessageQueueService extends ChangeNotifier {
         );
 
         await removeMessage(message.id);
-        successCount++;
 
-        // Small delay between messages to avoid overwhelming the server
         await Future.delayed(const Duration(milliseconds: 100));
-      } catch (e) {
-        debugPrint('MessageQueueService: Failed to send queued message: $e');
-        failureCount++;
-
-        // FIX: Increment retry count on the actual queue item, not the snapshot copy
+      } catch (_) {
         final queueIndex = _queue.indexWhere((m) => m.id == message.id);
         if (queueIndex != -1) {
           _queue[queueIndex].retryCount++;
 
-          // Remove message if max retries reached
           if (_queue[queueIndex].retryCount >= _maxRetries) {
-            debugPrint('MessageQueueService: Max retries reached for message ${message.id}, removing from queue');
             await removeMessage(message.id);
           } else {
-            // Persist updated retry count
             await _persist();
           }
         }
 
-        // If one fails, stop trying (probably connection issue)
         break;
       }
     }
 
     _isProcessing = false;
-    debugPrint('MessageQueueService: Queue processing complete - success: $successCount, failed: $failureCount, remaining: ${_queue.length}');
   }
 
   /// Clear all queued messages (e.g., user logout)
@@ -185,7 +159,6 @@ class MessageQueueService extends ChangeNotifier {
     _queue.clear();
     await _persist();
     notifyListeners();
-    debugPrint('MessageQueueService: Cleared all queued messages');
   }
 
   /// Clear queued messages for a specific match
@@ -196,7 +169,6 @@ class MessageQueueService extends ChangeNotifier {
     if (_queue.length != initialLength) {
       await _persist();
       notifyListeners();
-      debugPrint('MessageQueueService: Cleared ${initialLength - _queue.length} messages for match $matchId');
     }
   }
 }

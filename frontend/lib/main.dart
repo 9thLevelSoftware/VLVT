@@ -40,21 +40,21 @@ void main() async {
       };
     } else {
       // In debug mode, still initialize but don't send crashes
-      debugPrint('Firebase Crashlytics initialized in debug mode (not sending crashes)');
+      // // debugPrint('Firebase Crashlytics initialized in debug mode (not sending crashes)');
     }
 
     // Initialize Analytics
     // Analytics works in both debug and release mode
-    debugPrint('Firebase Analytics initialized');
+    // // debugPrint('Firebase Analytics initialized');
 
     // Note: Notification service initialization moved to AuthWrapper
     // to ensure AuthService is available from Provider tree
 
-    debugPrint('Firebase initialized successfully');
+    // // debugPrint('Firebase initialized successfully');
   } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
-    debugPrint('App will continue without crash reporting and analytics.');
-    debugPrint('To enable Firebase, follow instructions in FIREBASE_SETUP.md');
+    // // debugPrint('Firebase initialization failed: $e');
+    // // debugPrint('App will continue without crash reporting and analytics.');
+    // // debugPrint('To enable Firebase, follow instructions in FIREBASE_SETUP.md');
   }
 
   // Initialize Theme Service
@@ -69,11 +69,11 @@ void main() async {
 
 /// Handle notification tap - navigate to appropriate screen
 void _handleNotificationTap(Map<String, dynamic> data) {
-  debugPrint('Handling notification tap: $data');
+  // // debugPrint('Handling notification tap: $data');
 
   final navigatorState = navigatorKey.currentState;
   if (navigatorState == null) {
-    debugPrint('Navigator not ready - cannot handle notification tap');
+    // // debugPrint('Navigator not ready - cannot handle notification tap');
     return;
   }
 
@@ -83,7 +83,7 @@ void _handleNotificationTap(Map<String, dynamic> data) {
     // Navigate to chat screen for the specific match
     final matchId = data['matchId'];
     if (matchId == null || matchId.toString().isEmpty) {
-      debugPrint('Invalid matchId in notification data');
+      // // debugPrint('Invalid matchId in notification data');
       return;
     }
 
@@ -93,7 +93,7 @@ void _handleNotificationTap(Map<String, dynamic> data) {
         builder: (context) => ChatScreen(match: null, matchId: matchId.toString()),
       ),
     );
-    debugPrint('Navigating to chat screen for match: $matchId');
+    // // debugPrint('Navigating to chat screen for match: $matchId');
 
   } else if (type == 'match') {
     // Navigate to matches screen
@@ -116,9 +116,9 @@ void _handleNotificationTap(Map<String, dynamic> data) {
       ),
       (route) => false,
     );
-    debugPrint('Navigating to MainScreen for new match notification (hasPremiumAccess: $hasPremiumAccess)');
+    // // debugPrint('Navigating to MainScreen for new match notification (hasPremiumAccess: $hasPremiumAccess)');
   } else {
-    debugPrint('Unknown notification type: $type');
+    // // debugPrint('Unknown notification type: $type');
   }
 }
 
@@ -197,9 +197,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
       notificationService.onNotificationTap = (data) {
         _handleNotificationTap(data);
       };
-      debugPrint('Notification service initialized successfully');
+      // // debugPrint('Notification service initialized successfully');
     } catch (e) {
-      debugPrint('Notification service initialization failed: $e');
+      // // debugPrint('Notification service initialization failed: $e');
     }
   }
 

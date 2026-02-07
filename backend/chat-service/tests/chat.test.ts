@@ -43,6 +43,10 @@ jest.mock('../src/middleware/rate-limiter', () => ({
   messageLimiter: (req: any, res: any, next: any) => next(),
   reportLimiter: (req: any, res: any, next: any) => next(),
   verifyLimiter: (req: any, res: any, next: any) => next(),
+  userMessageLimiter: (req: any, res: any, next: any) => next(),
+  blockLimiter: (req: any, res: any, next: any) => next(),
+  sensitiveActionLimiter: (req: any, res: any, next: any) => next(),
+  initializeRateLimiting: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock Firebase to avoid initialization errors

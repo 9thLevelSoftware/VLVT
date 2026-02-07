@@ -46,7 +46,7 @@ class AfterHoursChatService extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        debugPrint('AfterHoursChatService: No auth token');
+        // debugPrint('AfterHoursChatService: No auth token');
         return [];
       }
 
@@ -77,10 +77,10 @@ class AfterHoursChatService extends ChangeNotifier {
         }
       }
 
-      debugPrint('AfterHoursChatService: Failed to get history: ${response.statusCode}');
+      // debugPrint('AfterHoursChatService: Failed to get history: ${response.statusCode}');
       return [];
     } catch (e) {
-      debugPrint('AfterHoursChatService: Error getting history: $e');
+      // debugPrint('AfterHoursChatService: Error getting history: $e');
       return [];
     }
   }
@@ -126,7 +126,7 @@ class AfterHoursChatService extends ChangeNotifier {
           await Future.delayed(Duration(milliseconds: _retryDelaysMs[attempts - 1]));
         }
       } catch (e) {
-        debugPrint('AfterHoursChatService: Send attempt $attempts failed: $e');
+        // debugPrint('AfterHoursChatService: Send attempt $attempts failed: $e');
         attempts++;
         if (attempts < _maxRetries) {
           await Future.delayed(Duration(milliseconds: _retryDelaysMs[attempts - 1]));
@@ -135,7 +135,7 @@ class AfterHoursChatService extends ChangeNotifier {
     }
 
     // All retries failed
-    debugPrint('AfterHoursChatService: All send retries failed');
+    // debugPrint('AfterHoursChatService: All send retries failed');
     return null;
   }
 
@@ -160,7 +160,7 @@ class AfterHoursChatService extends ChangeNotifier {
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        debugPrint('AfterHoursChatService: No auth token for save');
+        // debugPrint('AfterHoursChatService: No auth token for save');
         return SaveResult(success: false, error: 'Not authenticated');
       }
 
@@ -194,7 +194,7 @@ class AfterHoursChatService extends ChangeNotifier {
 
       return SaveResult(success: false, error: 'Failed to save match');
     } catch (e) {
-      debugPrint('AfterHoursChatService: Error saving match: $e');
+      // debugPrint('AfterHoursChatService: Error saving match: $e');
       return SaveResult(success: false, error: e.toString());
     }
   }

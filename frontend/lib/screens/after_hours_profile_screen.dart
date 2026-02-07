@@ -128,7 +128,7 @@ class _AfterHoursProfileScreenState extends State<AfterHoursProfileScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error picking image: $e');
+      // debugPrint('Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -213,7 +213,7 @@ class _AfterHoursProfileScreenState extends State<AfterHoursProfileScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error saving profile: $e');
+      // debugPrint('Error saving profile: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'An error occurred. Please try again.';

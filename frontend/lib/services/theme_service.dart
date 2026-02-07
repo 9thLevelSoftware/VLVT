@@ -34,7 +34,7 @@ class ThemeService extends ChangeNotifier {
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading theme preference: $e');
+      // debugPrint('Error loading theme preference: $e');
       _isInitialized = true;
     }
   }
@@ -50,7 +50,7 @@ class ThemeService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_themePreferenceKey, mode.index);
     } catch (e) {
-      debugPrint('Error saving theme preference: $e');
+      // debugPrint('Error saving theme preference: $e');
     }
   }
 

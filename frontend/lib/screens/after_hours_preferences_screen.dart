@@ -124,7 +124,7 @@ class _AfterHoursPreferencesScreenState
         });
       }
     } catch (e) {
-      debugPrint('Error saving preferences: $e');
+      // debugPrint('Error saving preferences: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'An error occurred. Please try again.';

@@ -60,17 +60,18 @@ const mockErrorCodes = {
     publicMessage: 'Authentication failed',
     internalMessage: 'Invalid credentials provided',
   },
-  AUTH_EMAIL_NOT_VERIFIED: {
-    code: 'AUTH_009',
-    httpStatus: 403,
-    publicMessage: 'Email not verified',
-    internalMessage: 'Email address has not been verified',
-  },
   AUTH_ACCOUNT_LOCKED: {
-    code: 'AUTH_007',
-    httpStatus: 429,
+    code: 'AUTH_006',
+    httpStatus: 423,
     publicMessage: 'Account temporarily locked',
-    internalMessage: 'Account locked due to failed login attempts',
+    internalMessage: 'Account locked due to excessive failed login attempts',
+    isAlertable: true,
+  },
+  AUTH_EMAIL_NOT_VERIFIED: {
+    code: 'AUTH_007',
+    httpStatus: 403,
+    publicMessage: 'Account verification required',
+    internalMessage: 'Email address has not been verified',
   },
 };
 
@@ -859,9 +860,9 @@ describe('Auth Service', () => {
         .expect(403);
 
       expect(response.body.success).toBe(false);
-      // New error system uses 'Email not verified' message
-      expect(response.body.error).toBe('Email not verified');
-      expect(response.body.code).toBe('AUTH_009');
+      // New error system uses 'Account verification required' message
+      expect(response.body.error).toBe('Account verification required');
+      expect(response.body.code).toBe('AUTH_007');
     });
 
     it('should reject non-existent email', async () => {

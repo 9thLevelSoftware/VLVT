@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 
 /// Analytics Service
@@ -26,10 +25,7 @@ class AnalyticsService {
   static Future<void> logLogin(String method) async {
     try {
       await _analytics.logLogin(loginMethod: method);
-      debugPrint('Analytics: Login success ($method)');
-    } catch (e) {
-      debugPrint('Analytics error logging login: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when login fails
@@ -42,30 +38,21 @@ class AnalyticsService {
           'reason': reason,
         },
       );
-      debugPrint('Analytics: Login failed ($method: $reason)');
-    } catch (e) {
-      debugPrint('Analytics error logging login failure: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user starts signup process
   static Future<void> logSignupStarted() async {
     try {
       await _analytics.logSignUp(signUpMethod: 'started');
-      debugPrint('Analytics: Signup started');
-    } catch (e) {
-      debugPrint('Analytics error logging signup start: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user completes signup
   static Future<void> logSignupCompleted(String method) async {
     try {
       await _analytics.logSignUp(signUpMethod: method);
-      debugPrint('Analytics: Signup completed ($method)');
-    } catch (e) {
-      debugPrint('Analytics error logging signup completion: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -76,10 +63,7 @@ class AnalyticsService {
   static Future<void> logProfileCreated() async {
     try {
       await _analytics.logEvent(name: 'profile_created');
-      debugPrint('Analytics: Profile created');
-    } catch (e) {
-      debugPrint('Analytics error logging profile creation: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user updates their profile
@@ -89,10 +73,7 @@ class AnalyticsService {
         name: 'profile_updated',
         parameters: fields,
       );
-      debugPrint('Analytics: Profile updated');
-    } catch (e) {
-      debugPrint('Analytics error logging profile update: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user views their own profile
@@ -102,10 +83,7 @@ class AnalyticsService {
         name: 'profile_viewed',
         parameters: {'type': 'own'},
       );
-      debugPrint('Analytics: Own profile viewed');
-    } catch (e) {
-      debugPrint('Analytics error logging own profile view: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -122,10 +100,7 @@ class AnalyticsService {
           'profile_id': profileId,
         },
       );
-      debugPrint('Analytics: Profile viewed ($profileId)');
-    } catch (e) {
-      debugPrint('Analytics error logging profile view: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user likes a profile
@@ -135,10 +110,7 @@ class AnalyticsService {
         name: 'profile_liked',
         parameters: {'profile_id': profileId},
       );
-      debugPrint('Analytics: Profile liked ($profileId)');
-    } catch (e) {
-      debugPrint('Analytics error logging profile like: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user passes on a profile
@@ -148,10 +120,7 @@ class AnalyticsService {
         name: 'profile_passed',
         parameters: {'profile_id': profileId},
       );
-      debugPrint('Analytics: Profile passed ($profileId)');
-    } catch (e) {
-      debugPrint('Analytics error logging profile pass: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user undoes last action
@@ -161,10 +130,7 @@ class AnalyticsService {
         name: 'profile_undo',
         parameters: {'action': action},
       );
-      debugPrint('Analytics: Profile undo ($action)');
-    } catch (e) {
-      debugPrint('Analytics error logging profile undo: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user applies discovery filters
@@ -174,10 +140,7 @@ class AnalyticsService {
         name: 'filters_applied',
         parameters: filters,
       );
-      debugPrint('Analytics: Filters applied');
-    } catch (e) {
-      debugPrint('Analytics error logging filters: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -191,10 +154,7 @@ class AnalyticsService {
         name: 'match_created',
         parameters: {'match_id': matchId},
       );
-      debugPrint('Analytics: Match created ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging match creation: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user opens/views a match
@@ -204,10 +164,7 @@ class AnalyticsService {
         name: 'match_opened',
         parameters: {'match_id': matchId},
       );
-      debugPrint('Analytics: Match opened ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging match open: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user unmatches
@@ -217,10 +174,7 @@ class AnalyticsService {
         name: 'unmatch',
         parameters: {'match_id': matchId},
       );
-      debugPrint('Analytics: Unmatch ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging unmatch: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -234,10 +188,7 @@ class AnalyticsService {
         name: 'message_sent',
         parameters: {'conversation_id': conversationId},
       );
-      debugPrint('Analytics: Message sent');
-    } catch (e) {
-      debugPrint('Analytics error logging message sent: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user opens a conversation
@@ -247,10 +198,7 @@ class AnalyticsService {
         name: 'conversation_opened',
         parameters: {'conversation_id': conversationId},
       );
-      debugPrint('Analytics: Conversation opened');
-    } catch (e) {
-      debugPrint('Analytics error logging conversation open: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -267,10 +215,7 @@ class AnalyticsService {
           'reason': reason,
         },
       );
-      debugPrint('Analytics: User reported ($reason)');
-    } catch (e) {
-      debugPrint('Analytics error logging user report: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user blocks another user
@@ -280,10 +225,7 @@ class AnalyticsService {
         name: 'user_blocked',
         parameters: {'blocked_user_id': blockedUserId},
       );
-      debugPrint('Analytics: User blocked');
-    } catch (e) {
-      debugPrint('Analytics error logging user block: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -297,10 +239,7 @@ class AnalyticsService {
         name: 'paywall_viewed',
         parameters: source != null ? {'source': source} : null,
       );
-      debugPrint('Analytics: Paywall viewed${source != null ? ' from $source' : ''}');
-    } catch (e) {
-      debugPrint('Analytics error logging paywall view: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user starts a subscription
@@ -313,10 +252,7 @@ class AnalyticsService {
           'price': price,
         },
       );
-      debugPrint('Analytics: Subscription started ($productId)');
-    } catch (e) {
-      debugPrint('Analytics error logging subscription start: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user cancels subscription
@@ -326,10 +262,7 @@ class AnalyticsService {
         name: 'subscription_cancelled',
         parameters: {'product_id': productId},
       );
-      debugPrint('Analytics: Subscription cancelled ($productId)');
-    } catch (e) {
-      debugPrint('Analytics error logging subscription cancel: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -340,10 +273,7 @@ class AnalyticsService {
   static Future<void> setUserId(String userId) async {
     try {
       await _analytics.setUserId(id: userId);
-      debugPrint('Analytics: User ID set');
-    } catch (e) {
-      debugPrint('Analytics error setting user ID: $e');
-    }
+    } catch (_) {}
   }
 
   /// Set user properties for segmentation
@@ -372,10 +302,7 @@ class AnalyticsService {
           value: signupDate.toIso8601String().split('T')[0],
         );
       }
-      debugPrint('Analytics: User properties set');
-    } catch (e) {
-      debugPrint('Analytics error setting user properties: $e');
-    }
+    } catch (_) {}
   }
 
   /// Calculate age group from date of birth
@@ -411,10 +338,7 @@ class AnalyticsService {
   static Future<void> logScreenView(String screenName) async {
     try {
       await _analytics.logScreenView(screenName: screenName);
-      debugPrint('Analytics: Screen view ($screenName)');
-    } catch (e) {
-      debugPrint('Analytics error logging screen view: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -432,10 +356,7 @@ class AnalyticsService {
           'duration_minutes': durationMinutes,
         },
       );
-      debugPrint('Analytics: After Hours session started ($durationMinutes min)');
-    } catch (e) {
-      debugPrint('Analytics error logging AH session start: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user receives an After Hours match
@@ -449,10 +370,7 @@ class AnalyticsService {
           'match_id': matchId,
         },
       );
-      debugPrint('Analytics: After Hours match received ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging AH match received: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user accepts match and enters chat
@@ -466,10 +384,7 @@ class AnalyticsService {
           'match_id': matchId,
         },
       );
-      debugPrint('Analytics: After Hours chat started ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging AH chat start: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when mutual save converts to permanent match
@@ -483,10 +398,7 @@ class AnalyticsService {
           'match_id': matchId,
         },
       );
-      debugPrint('Analytics: After Hours match saved ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging AH match saved: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when user declines an After Hours match
@@ -500,10 +412,7 @@ class AnalyticsService {
           'match_id': matchId,
         },
       );
-      debugPrint('Analytics: After Hours match declined ($matchId)');
-    } catch (e) {
-      debugPrint('Analytics error logging AH match declined: $e');
-    }
+    } catch (_) {}
   }
 
   /// Log when After Hours session ends (naturally or early)
@@ -519,10 +428,7 @@ class AnalyticsService {
           'end_reason': endReason,
         },
       );
-      debugPrint('Analytics: After Hours session ended ($endReason)');
-    } catch (e) {
-      debugPrint('Analytics error logging AH session end: $e');
-    }
+    } catch (_) {}
   }
 
   // ============================================================
@@ -536,9 +442,6 @@ class AnalyticsService {
   ) async {
     try {
       await _analytics.logEvent(name: eventName, parameters: parameters);
-      debugPrint('Analytics: Custom event ($eventName)');
-    } catch (e) {
-      debugPrint('Analytics error logging custom event: $e');
-    }
+    } catch (_) {}
   }
 }

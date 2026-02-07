@@ -219,7 +219,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         });
       }
     } catch (e) {
-      debugPrint('Error loading received likes: $e');
+      // debugPrint('Error loading received likes: $e');
       if (mounted) {
         setState(() => _likesCountLoading = false);
       }
@@ -554,16 +554,16 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
 
   Future<void> _onUndo() async {
     if (_lastProfile == null || _lastAction == null) {
-      debugPrint('Undo: No last profile or action to undo');
+      // debugPrint('Undo: No last profile or action to undo');
       return;
     }
     if (!mounted) {
-      debugPrint('Undo: Widget not mounted');
+      // debugPrint('Undo: Widget not mounted');
       return;
     }
 
-    debugPrint('Undo: Starting undo for ${_lastProfile?.userId}');
-    debugPrint('Undo: Current index: $_currentProfileIndex, profiles count: ${_filteredProfiles.length}');
+    // debugPrint('Undo: Starting undo for ${_lastProfile?.userId}');
+    // debugPrint('Undo: Current index: $_currentProfileIndex, profiles count: ${_filteredProfiles.length}');
 
     _undoTimer?.cancel();
 
@@ -573,24 +573,24 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
       // Track undo event (don't await to avoid blocking)
       AnalyticsService.logProfileUndo(_lastAction!);
 
-      debugPrint('Undo: Calling undoLastActionSilent...');
+      // debugPrint('Undo: Calling undoLastActionSilent...');
       // Remove the action from preferences using silent version to avoid triggering rebuild
       await prefsService.undoLastActionSilent();
-      debugPrint('Undo: undoLastActionSilent completed');
+      // debugPrint('Undo: undoLastActionSilent completed');
 
       if (!mounted) {
-        debugPrint('Undo: Widget unmounted after prefs update');
+        // debugPrint('Undo: Widget unmounted after prefs update');
         return;
       }
 
       // Calculate new index before setState
       final newIndex = _currentProfileIndex > 0 ? _currentProfileIndex - 1 : 0;
 
-      debugPrint('Undo: Setting new index to $newIndex (was $_currentProfileIndex)');
-      debugPrint('Undo: Profiles list length: ${_filteredProfiles.length}');
+      // debugPrint('Undo: Setting new index to $newIndex (was $_currentProfileIndex)');
+      // debugPrint('Undo: Profiles list length: ${_filteredProfiles.length}');
 
       if (newIndex >= _filteredProfiles.length) {
-        debugPrint('Undo: ERROR - newIndex $newIndex >= profiles length ${_filteredProfiles.length}');
+        // debugPrint('Undo: ERROR - newIndex $newIndex >= profiles length ${_filteredProfiles.length}');
         return;
       }
 
@@ -603,12 +603,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         _lastMatch = null;
       });
 
-      debugPrint('Undo: setState completed');
+      // debugPrint('Undo: setState completed');
 
       // Save index after setState
       _saveCurrentIndex();
 
-      debugPrint('Undo: Completed successfully. New index: $_currentProfileIndex');
+      // debugPrint('Undo: Completed successfully. New index: $_currentProfileIndex');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -619,8 +619,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
         );
       }
     } catch (e, stack) {
-      debugPrint('Undo: Error - $e');
-      debugPrint('Undo: Stack trace - $stack');
+      // debugPrint('Undo: Error - $e');
+      // debugPrint('Undo: Stack trace - $stack');
     }
   }
 

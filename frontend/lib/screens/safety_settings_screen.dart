@@ -52,7 +52,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
         try {
           profiles = await profileService.batchGetProfiles(blockedUserIds);
         } catch (e) {
-          debugPrint('Error batch loading blocked user profiles: $e');
+          // debugPrint('Error batch loading blocked user profiles: $e');
         }
       }
 

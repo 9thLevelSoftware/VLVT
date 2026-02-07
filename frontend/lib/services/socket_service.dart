@@ -94,13 +94,13 @@ class SocketService extends ChangeNotifier {
   /// Connect to Socket.IO server
   Future<void> connect() async {
     if (_isConnected || _isConnecting) {
-      debugPrint('Socket: Already connected or connecting');
+      // Socket: Already connected or connecting');
       return;
     }
 
     final token = await _authService.getToken();
     if (token == null) {
-      debugPrint('Socket: No auth token available');
+      // Socket: No auth token available');
       return;
     }
 
@@ -109,7 +109,7 @@ class SocketService extends ChangeNotifier {
 
     try {
       final chatUrl = AppConfig.chatServiceUrl;
-      debugPrint('Socket: Connecting to $chatUrl');
+      // Socket: Connecting to $chatUrl');
 
       _socket = socket_io.io(
         chatUrl,
@@ -129,7 +129,7 @@ class SocketService extends ChangeNotifier {
       _setupEventHandlers();
       _socket!.connect();
     } catch (e) {
-      debugPrint('Socket: Connection error: $e');
+      // Socket: Connection error: $e');
       _isConnecting = false;
       notifyListeners();
     }
@@ -141,7 +141,7 @@ class SocketService extends ChangeNotifier {
 
     // Connection events
     _socket!.onConnect((_) {
-      debugPrint('Socket: Connected successfully');
+      // Socket: Connected successfully');
       _isConnected = true;
       _isConnecting = false;
       _connectionController.add(true);
@@ -149,13 +149,13 @@ class SocketService extends ChangeNotifier {
 
       // FIX: Auto-process message queue on reconnection
       if (_messageQueueService != null) {
-        debugPrint('Socket: Triggering auto-process of message queue');
+        // Socket: Triggering auto-process of message queue');
         _messageQueueService!.processQueue(this);
       }
     });
 
     _socket!.onDisconnect((_) {
-      debugPrint('Socket: Disconnected');
+      // Socket: Disconnected');
       _isConnected = false;
       _isConnecting = false;
       _connectionController.add(false);
@@ -163,102 +163,102 @@ class SocketService extends ChangeNotifier {
     });
 
     _socket!.onConnectError((error) {
-      debugPrint('Socket: Connection error: $error');
+      // Socket: Connection error: $error');
       _isConnecting = false;
       notifyListeners();
     });
 
     _socket!.onError((error) {
-      debugPrint('Socket: Error: $error');
+      // Socket: Error: $error');
     });
 
     _socket!.on('connect_timeout', (_) {
-      debugPrint('Socket: Connection timeout');
+      // Socket: Connection timeout');
       _isConnecting = false;
       notifyListeners();
     });
 
     // Message events
     _socket!.on('new_message', (data) {
-      debugPrint('Socket: New message received');
+      // Socket: New message received');
       try {
         // Safe type check before casting
         if (data is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid new_message data type: ${data.runtimeType}');
+          // Socket: Invalid new_message data type: ${data.runtimeType}');
           return;
         }
         final message = Message.fromJson(data);
         _messageController.add(message);
       } catch (e) {
-        debugPrint('Socket: Error parsing new message: $e');
+        // Socket: Error parsing new message: $e');
       }
     });
 
     _socket!.on('messages_read', (data) {
-      debugPrint('Socket: Messages marked as read');
+      // Socket: Messages marked as read');
       try {
         // Safe type check before casting
         if (data is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid messages_read data type: ${data.runtimeType}');
+          // Socket: Invalid messages_read data type: ${data.runtimeType}');
           return;
         }
         _messageReadController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing read receipt: $e');
+        // Socket: Error parsing read receipt: $e');
       }
     });
 
     // Typing indicators
     _socket!.on('user_typing', (data) {
-      debugPrint('Socket: User typing indicator');
+      // Socket: User typing indicator');
       try {
         // Safe type check before casting
         if (data is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid user_typing data type: ${data.runtimeType}');
+          // Socket: Invalid user_typing data type: ${data.runtimeType}');
           return;
         }
         _typingController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing typing indicator: $e');
+        // Socket: Error parsing typing indicator: $e');
       }
     });
 
     // Online status
     _socket!.on('user_status_changed', (data) {
-      debugPrint('Socket: User status changed');
+      // Socket: User status changed');
       try {
         // Safe type check before casting
         if (data is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid user_status_changed data type: ${data.runtimeType}');
+          // Socket: Invalid user_status_changed data type: ${data.runtimeType}');
           return;
         }
         final status = UserStatus.fromJson(data);
         _statusController.add(status);
       } catch (e) {
-        debugPrint('Socket: Error parsing status: $e');
+        // Socket: Error parsing status: $e');
       }
     });
 
     // After Hours: New match found
     _socket!.on('after_hours:match', (data) {
-      debugPrint('Socket: After Hours match received');
+      // Socket: After Hours match received');
       try {
         if (data is! Map<String, dynamic>) return;
         _afterHoursMatchController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing After Hours match: $e');
+        // Socket: Error parsing After Hours match: $e');
       }
     });
 
     // After Hours: New message in chat
     _socket!.on('after_hours:new_message', (data) {
-      debugPrint('Socket: After Hours message received');
+      // Socket: After Hours message received');
       try {
         if (data is! Map<String, dynamic>) return;
         final message = Message.fromJson(data);
         _afterHoursMessageController.add(message);
       } catch (e) {
-        debugPrint('Socket: Error parsing After Hours message: $e');
+        // Socket: Error parsing After Hours message: $e');
       }
     });
 
@@ -268,7 +268,7 @@ class SocketService extends ChangeNotifier {
         if (data is! Map<String, dynamic>) return;
         _afterHoursTypingController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing After Hours typing: $e');
+        // Socket: Error parsing After Hours typing: $e');
       }
     });
 
@@ -278,29 +278,29 @@ class SocketService extends ChangeNotifier {
         if (data is! Map<String, dynamic>) return;
         _afterHoursReadController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing After Hours read receipt: $e');
+        // Socket: Error parsing After Hours read receipt: $e');
       }
     });
 
     // After Hours: Session expiring warning (2 min)
     _socket!.on('after_hours:session_expiring', (data) {
-      debugPrint('Socket: Session expiring warning');
+      // Socket: Session expiring warning');
       try {
         if (data is! Map<String, dynamic>) return;
         _sessionExpiringController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing session expiring: $e');
+        // Socket: Error parsing session expiring: $e');
       }
     });
 
     // After Hours: Session expired
     _socket!.on('after_hours:session_expired', (data) {
-      debugPrint('Socket: Session expired');
+      // Socket: Session expired');
       try {
         if (data is! Map<String, dynamic>) return;
         _sessionExpiredController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing session expired: $e');
+        // Socket: Error parsing session expired: $e');
       }
     });
 
@@ -310,40 +310,40 @@ class SocketService extends ChangeNotifier {
         if (data is! Map<String, dynamic>) return;
         _noMatchesController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing no matches: $e');
+        // Socket: Error parsing no matches: $e');
       }
     });
 
     // After Hours: Match expired (auto-decline)
     _socket!.on('after_hours:match_expired', (data) {
-      debugPrint('Socket: Match expired');
+      // Socket: Match expired');
       try {
         if (data is! Map<String, dynamic>) return;
         _matchExpiredController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing match expired: $e');
+        // Socket: Error parsing match expired: $e');
       }
     });
 
     // After Hours: Partner saved the match
     _socket!.on('after_hours:partner_saved', (data) {
-      debugPrint('Socket: Partner saved match');
+      // Socket: Partner saved match');
       try {
         if (data is! Map<String, dynamic>) return;
         _partnerSavedController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing partner saved: $e');
+        // Socket: Error parsing partner saved: $e');
       }
     });
 
     // After Hours: Match saved (mutual)
     _socket!.on('after_hours:match_saved', (data) {
-      debugPrint('Socket: Match saved (mutual)');
+      // Socket: Match saved (mutual)');
       try {
         if (data is! Map<String, dynamic>) return;
         _matchSavedController.add(data);
       } catch (e) {
-        debugPrint('Socket: Error parsing match saved: $e');
+        // Socket: Error parsing match saved: $e');
       }
     });
   }
@@ -355,7 +355,7 @@ class SocketService extends ChangeNotifier {
     String? tempId,
   }) async {
     if (!_isConnected || _socket == null) {
-      debugPrint('Socket: Cannot send message - not connected');
+      // Socket: Cannot send message - not connected');
       return null;
     }
 
@@ -365,7 +365,7 @@ class SocketService extends ChangeNotifier {
     // Timeout after 10 seconds
     Timer(const Duration(seconds: 10), () {
       if (!hasCompleted) {
-        debugPrint('Socket: Message send timed out');
+        // Socket: Message send timed out');
         hasCompleted = true;
         completer.complete(null);
       }
@@ -381,27 +381,27 @@ class SocketService extends ChangeNotifier {
       try {
         // Safe type check before casting
         if (response is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid send_message ack type: ${response.runtimeType}');
+          // Socket: Invalid send_message ack type: ${response.runtimeType}');
           completer.complete(null);
           return;
         }
-        debugPrint('Socket: Received ack response: $response');
+        // Socket: Received ack response: $response');
         if (response['success'] == true) {
           final messageData = response['message'];
           if (messageData is! Map<String, dynamic>) {
-            debugPrint('Socket: Invalid message data type in ack');
+            // Socket: Invalid message data type in ack');
             completer.complete(null);
             return;
           }
           final message = Message.fromJson(messageData);
-          debugPrint('Socket: Message sent successfully');
+          // Socket: Message sent successfully');
           completer.complete(message);
         } else {
-          debugPrint('Socket: Message send failed: ${response['error']}');
+          // Socket: Message send failed: ${response['error']}');
           completer.complete(null);
         }
       } catch (e) {
-        debugPrint('Socket: Error parsing send response: $e');
+        // Socket: Error parsing send response: $e');
         completer.complete(null);
       }
     });
@@ -415,7 +415,7 @@ class SocketService extends ChangeNotifier {
     List<String>? messageIds,
   }) async {
     if (!_isConnected || _socket == null) {
-      debugPrint('Socket: Cannot mark as read - not connected');
+      // Socket: Cannot mark as read - not connected');
       return false;
     }
 
@@ -428,15 +428,15 @@ class SocketService extends ChangeNotifier {
       try {
         // Safe type check before casting
         if (response is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid mark_read ack type: ${response.runtimeType}');
+          // Socket: Invalid mark_read ack type: ${response.runtimeType}');
           completer.complete(false);
           return;
         }
         final success = response['success'] == true;
-        debugPrint('Socket: Mark as read ${success ? 'succeeded' : 'failed'}');
+        // Socket: Mark as read ${success ? 'succeeded' : 'failed'}');
         completer.complete(success);
       } catch (e) {
-        debugPrint('Socket: Error parsing mark read response: $e');
+        // Socket: Error parsing mark read response: $e');
         completer.complete(false);
       }
     });
@@ -462,7 +462,7 @@ class SocketService extends ChangeNotifier {
   /// Get online status of users
   Future<List<UserStatus>> getOnlineStatus(List<String> userIds) async {
     if (!_isConnected || _socket == null) {
-      debugPrint('Socket: Cannot get status - not connected');
+      // Socket: Cannot get status - not connected');
       return [];
     }
 
@@ -474,14 +474,14 @@ class SocketService extends ChangeNotifier {
       try {
         // Safe type check before casting
         if (response is! Map<String, dynamic>) {
-          debugPrint('Socket: Invalid get_online_status ack type: ${response.runtimeType}');
+          // Socket: Invalid get_online_status ack type: ${response.runtimeType}');
           completer.complete([]);
           return;
         }
         if (response['success'] == true) {
           final statusesData = response['statuses'];
           if (statusesData is! List) {
-            debugPrint('Socket: Invalid statuses data type');
+            // Socket: Invalid statuses data type');
             completer.complete([]);
             return;
           }
@@ -494,7 +494,7 @@ class SocketService extends ChangeNotifier {
           completer.complete([]);
         }
       } catch (e) {
-        debugPrint('Socket: Error parsing status response: $e');
+        // Socket: Error parsing status response: $e');
         completer.complete([]);
       }
     });
@@ -513,7 +513,7 @@ class SocketService extends ChangeNotifier {
     String? tempId,
   }) async {
     if (!_isConnected || _socket == null) {
-      debugPrint('Socket: Cannot send After Hours message - not connected');
+      // Socket: Cannot send After Hours message - not connected');
       return null;
     }
 
@@ -547,7 +547,7 @@ class SocketService extends ChangeNotifier {
           }
           completer.complete(Message.fromJson(messageData));
         } else {
-          debugPrint('Socket: After Hours send failed: ${response['error']}');
+          // Socket: After Hours send failed: ${response['error']}');
           completer.complete(null);
         }
       } catch (e) {
@@ -612,7 +612,7 @@ class SocketService extends ChangeNotifier {
 
   /// Disconnect from Socket.IO server
   void disconnect() {
-    debugPrint('Socket: Disconnecting');
+    // Socket: Disconnecting');
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;

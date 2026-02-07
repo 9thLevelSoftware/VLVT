@@ -152,13 +152,13 @@ abstract class BaseApiService extends ChangeNotifier {
     var result = await request();
 
     if (result.statusCode == 401) {
-      debugPrint('BaseApiService: 401 received, attempting token refresh');
+      // debugPrint('BaseApiService: 401 received, attempting token refresh');
       final refreshed = await authService.refreshToken();
       if (refreshed) {
-        debugPrint('BaseApiService: Token refreshed, retrying request');
+        // debugPrint('BaseApiService: Token refreshed, retrying request');
         result = await request();
       } else {
-        debugPrint('BaseApiService: Token refresh failed, signing out');
+        // debugPrint('BaseApiService: Token refresh failed, signing out');
         await authService.signOut();
         return ApiResult.error('Session expired. Please sign in again.',
             statusCode: 401);
@@ -189,7 +189,7 @@ abstract class BaseApiService extends ChangeNotifier {
       return ApiResult.error(error.toString(),
           statusCode: response.statusCode, details: details);
     } catch (e) {
-      debugPrint('Error parsing response: $e');
+      // debugPrint('Error parsing response: $e');
       return ApiResult.error('Failed to parse response',
           statusCode: response.statusCode);
     }
@@ -205,10 +205,10 @@ abstract class BaseApiService extends ChangeNotifier {
     var response = await http.get(uri, headers: _authHeaders);
 
     if (response.statusCode == 401) {
-      debugPrint('Got 401, attempting token refresh...');
+      // debugPrint('Got 401, attempting token refresh...');
       final refreshed = await authService.refreshToken();
       if (refreshed) {
-        debugPrint('Token refreshed, retrying request...');
+        // debugPrint('Token refreshed, retrying request...');
         response = await http.get(uri, headers: _authHeaders);
       }
     }
@@ -223,10 +223,10 @@ abstract class BaseApiService extends ChangeNotifier {
     var response = await http.post(uri, headers: _authHeaders, body: encodedBody);
 
     if (response.statusCode == 401) {
-      debugPrint('Got 401, attempting token refresh...');
+      // debugPrint('Got 401, attempting token refresh...');
       final refreshed = await authService.refreshToken();
       if (refreshed) {
-        debugPrint('Token refreshed, retrying request...');
+        // debugPrint('Token refreshed, retrying request...');
         response = await http.post(uri, headers: _authHeaders, body: encodedBody);
       }
     }
@@ -241,10 +241,10 @@ abstract class BaseApiService extends ChangeNotifier {
     var response = await http.put(uri, headers: _authHeaders, body: encodedBody);
 
     if (response.statusCode == 401) {
-      debugPrint('Got 401, attempting token refresh...');
+      // debugPrint('Got 401, attempting token refresh...');
       final refreshed = await authService.refreshToken();
       if (refreshed) {
-        debugPrint('Token refreshed, retrying request...');
+        // debugPrint('Token refreshed, retrying request...');
         response = await http.put(uri, headers: _authHeaders, body: encodedBody);
       }
     }
@@ -258,10 +258,10 @@ abstract class BaseApiService extends ChangeNotifier {
     var response = await http.delete(uri, headers: _authHeaders);
 
     if (response.statusCode == 401) {
-      debugPrint('Got 401, attempting token refresh...');
+      // debugPrint('Got 401, attempting token refresh...');
       final refreshed = await authService.refreshToken();
       if (refreshed) {
-        debugPrint('Token refreshed, retrying request...');
+        // debugPrint('Token refreshed, retrying request...');
         response = await http.delete(uri, headers: _authHeaders);
       }
     }

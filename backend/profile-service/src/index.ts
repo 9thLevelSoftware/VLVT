@@ -67,7 +67,16 @@ import { validateProfile, validateProfileUpdate } from './middleware/validation'
 import logger from './utils/logger';
 import { generateMatchId } from './utils/id-generator';
 import { redactCoordinates } from './utils/geo-redact';
-import { generalLimiter, profileCreationLimiter, discoveryLimiter } from './middleware/rate-limiter';
+import {
+  generalLimiter,
+  profileCreationLimiter,
+  discoveryLimiter,
+  profileUpdateLimiter,
+  photoUploadLimiter,
+  swipeLimiter,
+  sensitiveActionLimiter,
+  initializeRateLimiting,
+} from './middleware/rate-limiter';
 import {
   initializeUploadDirectory,
   validateImage,
@@ -100,6 +109,8 @@ import {
   correlationMiddleware,
   // Request logger middleware (MON-05)
   createRequestLoggerMiddleware,
+  // Internal service authentication (HMAC-based)
+  createInternalServiceAuthMiddleware,
 } from '@vlvt/shared';
 import { createAfterHoursRouter } from './routes/after-hours';
 
@@ -388,23 +399,20 @@ app.get('/health', async (req: Request, res: Response): Promise<void> => {
 // ===== INTERNAL ENDPOINTS =====
 // These are called by other services, not directly by clients
 // NOT rate limited - internal network only
+// HMAC-signed for secure service-to-service authentication
+
+// Internal service auth middleware with custom logger
+const internalServiceAuth = createInternalServiceAuthMiddleware({ logger });
 
 /**
  * Internal endpoint for cleaning up user photos during account deletion
  * Called by auth-service DELETE /auth/account
  * GDPR Article 17 - Right to Erasure: Removes photos from R2 storage
+ *
+ * Security: Uses HMAC-SHA256 signature verification instead of simple header check
+ * Required headers: X-Internal-Signature, X-Internal-Timestamp, X-Internal-Service
  */
-app.post('/api/internal/cleanup-photos', async (req: Request, res: Response) => {
-  // Verify internal service header - simple shared secret for service-to-service auth
-  const internalHeader = req.headers['x-internal-service'];
-  if (internalHeader !== 'auth-service') {
-    logger.warn('Unauthorized internal endpoint access attempt', {
-      header: internalHeader,
-      ip: req.ip
-    });
-    return res.status(403).json({ success: false, error: 'Internal endpoint only' });
-  }
-
+app.post('/api/internal/cleanup-photos', internalServiceAuth, async (req: Request, res: Response) => {
   const { userId, photoKeys } = req.body;
 
   if (!userId || !Array.isArray(photoKeys)) {
@@ -606,7 +614,8 @@ app.get('/profile/:userId', authMiddleware, generalLimiter, async (req: Request,
 });
 
 // Update profile - Only allow users to update their own profile
-app.put('/profile/:userId', authMiddleware, generalLimiter, validateProfileUpdate, async (req: Request, res: Response) => {
+// Uses per-user rate limiting to prevent profile manipulation attacks
+app.put('/profile/:userId', authMiddleware, profileUpdateLimiter, validateProfileUpdate, async (req: Request, res: Response) => {
   try {
     const requestedUserId = req.params.userId;
     const authenticatedUserId = req.user!.userId;
@@ -672,7 +681,8 @@ app.put('/profile/:userId', authMiddleware, generalLimiter, validateProfileUpdat
 });
 
 // Delete profile - Only allow users to delete their own profile
-app.delete('/profile/:userId', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
+// Uses sensitive action limiter for irreversible operations
+app.delete('/profile/:userId', authMiddleware, sensitiveActionLimiter, async (req: Request, res: Response) => {
   try {
     const requestedUserId = req.params.userId;
     const authenticatedUserId = req.user!.userId;
@@ -800,7 +810,8 @@ app.put('/profile/:userId/location', authMiddleware, generalLimiter, async (req:
 // ===== PHOTO UPLOAD ENDPOINTS =====
 
 // Upload photo - Only allow users to upload photos to their own profile
-app.post('/profile/photos/upload', authMiddleware, generalLimiter, upload.single('photo'), async (req: Request, res: Response) => {
+// Uses per-user rate limiting to prevent upload spam
+app.post('/profile/photos/upload', authMiddleware, photoUploadLimiter, upload.single('photo'), async (req: Request, res: Response) => {
   try {
     const authenticatedUserId = req.user!.userId;
 
@@ -1592,7 +1603,8 @@ app.post('/profiles/search/count', authMiddleware, generalLimiter, async (req: R
 // ===== SWIPE ENDPOINTS =====
 
 // Record a swipe (like/pass) and check for mutual match
-app.post('/swipes', authMiddleware, generalLimiter, async (req: Request, res: Response) => {
+// Uses per-user rate limiting to prevent automated swiping
+app.post('/swipes', authMiddleware, swipeLimiter, async (req: Request, res: Response) => {
   try {
     const authenticatedUserId = req.user!.userId;
     const { targetUserId, action } = req.body;

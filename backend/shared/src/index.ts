@@ -75,6 +75,17 @@ export {
   correlationMiddleware,
 } from './middleware/correlation-id';
 
+// Internal Service Authentication (HMAC-based service-to-service auth)
+export {
+  createInternalServiceAuthMiddleware,
+  internalServiceAuthMiddleware,
+  signInternalServiceRequest,
+  verifyInternalServiceRequest,
+  getInternalServiceSecret,
+  type InternalServiceAuthOptions,
+  type InternalAuthResult,
+} from './middleware/internal-service-auth';
+
 // Request logging middleware (MON-05)
 export {
   createRequestLoggerMiddleware,

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -41,7 +40,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception('Failed to load profile: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting profile: $e');
+      // debugPrint('Error getting profile: $e');
       rethrow;
     }
   }
@@ -75,14 +74,14 @@ class ProfileApiService extends BaseApiService {
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
 
-      debugPrint('Discovery API: GET $uri');
-      debugPrint('Discovery API: Token present: ${authService.token != null}');
+      // debugPrint('Discovery API: GET $uri');
+      // debugPrint('Discovery API: Token present: ${authService.token != null}');
 
       final response = await authenticatedGet(uri);
 
-      debugPrint('Discovery API: Response status: ${response.statusCode}');
+      // debugPrint('Discovery API: Response status: ${response.statusCode}');
       if (response.statusCode != 200) {
-        debugPrint('Discovery API: Response body: ${response.body}');
+        // debugPrint('Discovery API: Response body: ${response.body}');
       }
 
       if (response.statusCode == 200) {
@@ -100,7 +99,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception('Failed to load discovery profiles: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting discovery profiles: $e');
+      // debugPrint('Error getting discovery profiles: $e');
       rethrow;
     }
   }
@@ -151,7 +150,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception('Failed to create profile: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error creating profile: $e');
+      // debugPrint('Error creating profile: $e');
       rethrow;
     }
   }
@@ -186,7 +185,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception(data['error'] ?? 'Failed to update profile: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error updating profile: $e');
+      // debugPrint('Error updating profile: $e');
       rethrow;
     }
   }
@@ -214,7 +213,7 @@ class ProfileApiService extends BaseApiService {
 
       return profileMap;
     } catch (e) {
-      debugPrint('Error batch getting profiles: $e');
+      // debugPrint('Error batch getting profiles: $e');
       rethrow;
     }
   }
@@ -240,7 +239,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception('Failed to search users: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error searching user count: $e');
+      // debugPrint('Error searching user count: $e');
       rethrow;
     }
   }
@@ -267,19 +266,19 @@ class ProfileApiService extends BaseApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
-          debugPrint('Location updated successfully');
+          // debugPrint('Location updated successfully');
           notifyListeners();
           return true;
         } else {
-          debugPrint('Location update failed: ${data['error']}');
+          // debugPrint('Location update failed: ${data['error']}');
           return false;
         }
       } else {
-        debugPrint('Location update failed with status: ${response.statusCode}');
+        // debugPrint('Location update failed with status: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      debugPrint('Error updating location: $e');
+      // debugPrint('Error updating location: $e');
       return false;
     }
   }
@@ -325,7 +324,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception(data['error'] ?? 'Failed to upload photo: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error uploading photo: $e');
+      // debugPrint('Error uploading photo: $e');
       rethrow;
     }
   }
@@ -350,7 +349,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception(data['error'] ?? 'Failed to delete photo: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error deleting photo: $e');
+      // debugPrint('Error deleting photo: $e');
       rethrow;
     }
   }
@@ -375,7 +374,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception(data['error'] ?? 'Failed to reorder photos: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error reordering photos: $e');
+      // debugPrint('Error reordering photos: $e');
       rethrow;
     }
   }
@@ -438,7 +437,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception(data['error'] ?? 'Failed to record swipe: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error recording swipe: $e');
+      // debugPrint('Error recording swipe: $e');
       rethrow;
     }
   }
@@ -461,7 +460,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception('Failed to get received likes: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting received likes: $e');
+      // debugPrint('Error getting received likes: $e');
       rethrow;
     }
   }
@@ -484,7 +483,7 @@ class ProfileApiService extends BaseApiService {
         throw Exception('Failed to get sent likes: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('Error getting sent likes: $e');
+      // debugPrint('Error getting sent likes: $e');
       rethrow;
     }
   }
@@ -564,7 +563,7 @@ class ProfileApiService extends BaseApiService {
         'message': message,
       };
     } catch (e) {
-      debugPrint('Error checking profile completion: $e');
+      // debugPrint('Error checking profile completion: $e');
       return {
         'success': false,
         'isComplete': false,

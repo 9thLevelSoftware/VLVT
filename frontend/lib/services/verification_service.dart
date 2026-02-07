@@ -121,7 +121,7 @@ class VerificationService extends ChangeNotifier {
         _error = 'Failed to load verification status';
       }
     } catch (e) {
-      debugPrint('Error loading verification status: $e');
+      // debugPrint('Error loading verification status: $e');
       _error = e.toString();
     }
 
@@ -153,7 +153,7 @@ class VerificationService extends ChangeNotifier {
 
       _error = 'Failed to get verification prompt';
     } catch (e) {
-      debugPrint('Error getting verification prompt: $e');
+      // debugPrint('Error getting verification prompt: $e');
       _error = e.toString();
     }
 
@@ -228,7 +228,7 @@ class VerificationService extends ChangeNotifier {
         'error': _error,
       };
     } catch (e) {
-      debugPrint('Error submitting verification: $e');
+      // debugPrint('Error submitting verification: $e');
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
