@@ -93,6 +93,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
       duration: const Duration(milliseconds: 300),
     );
 
+    // Initialize swipe animation with default value to avoid late initialization error
+    _swipeAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: Offset.zero,
+    ).animate(_swipeAnimationController);
+
     _initializeDiscovery();
   }
 

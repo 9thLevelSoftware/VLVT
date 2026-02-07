@@ -24,15 +24,52 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _refreshKey = 0;
   Map<String, dynamic>? _profileCompletionStatus;
+  Profile? _profile;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    final profileService = context.read<ProfileApiService>();
+    final authService = context.read<AuthService>();
+    final userId = authService.userId;
+    if (userId == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final profile = await profileService.getProfile(userId);
+      if (mounted) {
+        setState(() {
+          _profile = profile;
+          _isLoading = false;
+        });
+        _checkProfileCompletion();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
 
   void _refreshProfile() {
     setState(() {
-      _refreshKey++;
-      _profileCompletionStatus = null; // Reset completion status on refresh
+      _profileCompletionStatus = null;
     });
-    _checkProfileCompletion();
+    _loadProfile();
   }
 
   Future<void> _checkProfileCompletion() async {
@@ -67,7 +104,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final authService = context.watch<AuthService>();
     final subscriptionService = context.watch<SubscriptionService>();
-    final profileService = context.watch<ProfileApiService>();
     final userId = authService.userId;
 
     if (userId == null) {
@@ -106,45 +142,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: SafeArea(
-        child: FutureBuilder<Profile>(
-          key: ValueKey(_refreshKey),
-          future: profileService.getProfile(userId),
-          builder: (context, snapshot) {
-            // Check profile completion when profile loads
-            if (snapshot.hasData && _profileCompletionStatus == null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _checkProfileCompletion();
-              });
-            }
-            if (snapshot.connectionState == ConnectionState.waiting) {
+        child: Builder(
+          builder: (context) {
+            if (_isLoading) {
               return const Center(
                 child: VlvtLoader(),
               );
             }
 
-            if (snapshot.hasError) {
+            if (_error != null) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Error loading profile: ${snapshot.error}',
+                      'Error loading profile: $_error',
                       style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.crimson),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
                     VlvtButton.primary(
                       label: 'Retry',
-                      onPressed: () {
-                        setState(() {});
-                      },
+                      onPressed: _refreshProfile,
                     ),
                   ],
                 ),
               );
             }
 
-            final profile = snapshot.data;
+            final profile = _profile;
 
             return SingleChildScrollView(
               child: Padding(

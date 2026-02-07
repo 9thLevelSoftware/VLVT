@@ -82,79 +82,87 @@ class _MatchesScreenState extends State<MatchesScreen> {
       // 1. Get mutual matches
       final matches = await chatService.getMatches(userId);
       final matchedUserIds = <String>{};
+      final allUserIds = <String>[];
 
+      // Collect all user IDs for batch profile loading
       for (final match in matches) {
         final otherUserId = match.getOtherUserId(userId);
         matchedUserIds.add(otherUserId);
+        allUserIds.add(otherUserId);
+      }
 
-        Profile? profile;
-        try {
-          profile = await profileService.getProfile(otherUserId);
-        } catch (e) {
-          debugPrint('Failed to load profile for $otherUserId: $e');
+      // 2. Get received and sent likes
+      List<Map<String, dynamic>> receivedLikes = [];
+      List<Map<String, dynamic>> sentLikes = [];
+
+      try {
+        receivedLikes = await profileService.getReceivedLikes();
+        for (final like in receivedLikes) {
+          final likerUserId = like['userId'] as String;
+          if (!matchedUserIds.contains(likerUserId)) {
+            allUserIds.add(likerUserId);
+          }
         }
+      } catch (e) {
+        debugPrint('Failed to load received likes: $e');
+      }
 
+      try {
+        sentLikes = await profileService.getSentLikes();
+        for (final like in sentLikes) {
+          final targetUserId = like['target_user_id'] as String;
+          if (!matchedUserIds.contains(targetUserId)) {
+            allUserIds.add(targetUserId);
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to load sent likes: $e');
+      }
+
+      // 3. Batch load all profiles at once (fixes N+1)
+      Map<String, Profile> profilesMap = {};
+      if (allUserIds.isNotEmpty) {
+        try {
+          profilesMap = await profileService.batchGetProfiles(allUserIds);
+        } catch (e) {
+          debugPrint('Failed to batch load profiles: $e');
+        }
+      }
+
+      // 4. Build entries using pre-loaded profiles
+      for (final match in matches) {
+        final otherUserId = match.getOtherUserId(userId);
         entries.add(MatchEntry(
           odId: otherUserId,
-          profile: profile,
+          profile: profilesMap[otherUserId],
           status: MatchStatus.mutual,
           match: match,
           createdAt: match.createdAt,
         ));
       }
 
-      // 2. Get users who liked the current user (received likes)
-      try {
-        final receivedLikes = await profileService.getReceivedLikes();
-        for (final like in receivedLikes) {
-          final likerUserId = like['userId'] as String;
+      for (final like in receivedLikes) {
+        final likerUserId = like['userId'] as String;
+        if (matchedUserIds.contains(likerUserId)) continue;
 
-          // Skip if already matched
-          if (matchedUserIds.contains(likerUserId)) continue;
-
-          Profile? profile;
-          try {
-            profile = await profileService.getProfile(likerUserId);
-          } catch (e) {
-            debugPrint('Failed to load profile for $likerUserId: $e');
-          }
-
-          entries.add(MatchEntry(
-            odId: likerUserId,
-            profile: profile,
-            status: MatchStatus.likedYou,
-            createdAt: DateTime.tryParse(like['likedAt'] as String? ?? '') ?? DateTime.now(),
-          ));
-        }
-      } catch (e) {
-        debugPrint('Failed to load received likes: $e');
+        entries.add(MatchEntry(
+          odId: likerUserId,
+          profile: profilesMap[likerUserId],
+          status: MatchStatus.likedYou,
+          createdAt: DateTime.tryParse(like['likedAt'] as String? ?? '') ?? DateTime.now(),
+        ));
       }
 
-      // 3. Get users the current user liked (sent likes) - requires backend endpoint
-      try {
-        final sentLikes = await profileService.getSentLikes();
-        for (final like in sentLikes) {
-          final targetUserId = like['target_user_id'] as String;
+      for (final like in sentLikes) {
+        final targetUserId = like['target_user_id'] as String;
+        if (matchedUserIds.contains(targetUserId)) continue;
 
-          // Skip if already matched
-          if (matchedUserIds.contains(targetUserId)) continue;
-
-          Profile? profile;
-          try {
-            profile = await profileService.getProfile(targetUserId);
-          } catch (e) {
-            debugPrint('Failed to load profile for $targetUserId: $e');
-          }
-
-          entries.add(MatchEntry(
-            odId: targetUserId,
-            profile: profile,
-            status: MatchStatus.liked,
-            createdAt: DateTime.tryParse(like['created_at'] as String? ?? '') ?? DateTime.now(),
-          ));
-        }
-      } catch (e) {
-        debugPrint('Failed to load sent likes: $e');
+        entries.add(MatchEntry(
+          odId: targetUserId,
+          profile: profilesMap[targetUserId],
+          status: MatchStatus.liked,
+          createdAt: DateTime.tryParse(like['created_at'] as String? ?? '') ?? DateTime.now(),
+        ));
       }
 
       // Sort by created date (most recent first)

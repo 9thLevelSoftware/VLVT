@@ -69,7 +69,7 @@ class DiscoveryProfileCard extends StatelessWidget {
                       return Column(
                         children: [
                           SizedBox(
-                            height: 300,
+                            height: MediaQuery.of(context).size.height * 0.65,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: PageView.builder(
@@ -136,6 +136,8 @@ class DiscoveryProfileCard extends StatelessWidget {
                 Text(
                   profile.bio ?? 'No bio available',
                   textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 3,
                   style: VlvtTextStyles.bodyLarge.copyWith(
                     color: VlvtColors.textSecondary,
                   ),
@@ -202,10 +204,14 @@ class _ProfileHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
-          style: VlvtTextStyles.displayMedium.copyWith(
-            color: VlvtColors.textPrimary,
+        Flexible(
+          child: Text(
+            '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: VlvtTextStyles.displayMedium.copyWith(
+              color: VlvtColors.textPrimary,
+            ),
           ),
         ),
         if (profile.isVerified) ...[

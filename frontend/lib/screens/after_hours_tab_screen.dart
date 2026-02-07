@@ -47,6 +47,9 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
   /// Prevents duplicate modals when state change fires multiple times.
   bool _isMatchCardShowing = false;
 
+  /// Track if expired SnackBar has been shown to prevent repeated triggers.
+  bool _hasShownExpiredSnackBar = false;
+
   @override
   void initState() {
     super.initState();
@@ -100,14 +103,19 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
       }
     }
 
-    // Handle session expiry notification
-    if (service.state == AfterHoursState.expired) {
+    // Handle session expiry notification (only show once)
+    if (service.state == AfterHoursState.expired && !_hasShownExpiredSnackBar) {
+      _hasShownExpiredSnackBar = true;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Your After Hours session has ended'),
           duration: Duration(seconds: 3),
         ),
       );
+    }
+    // Reset flag when session is restarted
+    if (service.state == AfterHoursState.inactive) {
+      _hasShownExpiredSnackBar = false;
     }
   }
 

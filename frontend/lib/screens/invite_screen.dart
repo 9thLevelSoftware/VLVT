@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart' show SharePlus, ShareParams;
 import '../services/tickets_service.dart';
 import '../theme/vlvt_colors.dart';
+import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
+import '../utils/error_handler.dart';
 
 class InviteScreen extends StatefulWidget {
   const InviteScreen({super.key});
@@ -51,9 +53,10 @@ class _InviteScreenState extends State<InviteScreen> {
         builder: (context) => _ShareCodeSheet(code: code, shareUrl: shareUrl),
       );
     } else {
+      final errorMsg = result['error'] as String? ?? 'Failed to create invite code';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result['error'] ?? 'Failed to create invite code'),
+          content: Text(ErrorHandler.getShortMessage(errorMsg)),
           backgroundColor: VlvtColors.error,
         ),
       );
@@ -96,12 +99,7 @@ class _InviteScreenState extends State<InviteScreen> {
                     if (ticketsService.codes.isNotEmpty) ...[
                       Text(
                         'Your Invite Codes',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Montserrat',
-                          color: VlvtColors.textPrimary,
-                        ),
+                        style: VlvtTextStyles.h3,
                       ),
                       const SizedBox(height: 12),
                       ...ticketsService.codes.map((code) => _InviteCodeTile(code: code)),
@@ -113,12 +111,7 @@ class _InviteScreenState extends State<InviteScreen> {
                     if (ticketsService.history.isNotEmpty) ...[
                       Text(
                         'Ticket History',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Montserrat',
-                          color: VlvtColors.textPrimary,
-                        ),
+                        style: VlvtTextStyles.h3,
                       ),
                       const SizedBox(height: 12),
                       ...ticketsService.history.map((tx) => _TransactionTile(transaction: tx)),
@@ -180,9 +173,7 @@ class _BalanceCard extends StatelessWidget {
 
           Text(
             'Golden Tickets',
-            style: TextStyle(
-              fontSize: 14,
-              fontFamily: 'Montserrat',
+            style: VlvtTextStyles.bodySmall.copyWith(
               color: VlvtColors.textSecondary,
             ),
           ),
@@ -191,11 +182,11 @@ class _BalanceCard extends StatelessWidget {
 
           Text(
             '$balance',
-            style: TextStyle(
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
+            style: VlvtTextStyles.displayLarge.copyWith(
               fontFamily: 'Montserrat',
+              fontStyle: FontStyle.normal,
               color: VlvtColors.gold,
+              fontWeight: FontWeight.bold,
             ),
           ),
 
@@ -204,9 +195,7 @@ class _BalanceCard extends StatelessWidget {
           Text(
             'Use tickets to invite friends to VLVT',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontFamily: 'Montserrat',
+            style: VlvtTextStyles.bodySmall.copyWith(
               color: VlvtColors.textSecondary,
             ),
           ),
@@ -225,9 +214,7 @@ class _BalanceCard extends StatelessWidget {
             Text(
               'Earn tickets by completing activities below',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontFamily: 'Montserrat',
+              style: VlvtTextStyles.caption.copyWith(
                 color: VlvtColors.textMuted,
               ),
             ),
@@ -246,12 +233,7 @@ class _EarnTicketsSection extends StatelessWidget {
       children: [
         Text(
           'How to Earn Tickets',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Montserrat',
-            color: VlvtColors.textPrimary,
-          ),
+          style: VlvtTextStyles.h3,
         ),
         const SizedBox(height: 12),
         _EarnItem(
@@ -311,18 +293,11 @@ class _EarnItem extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: 'Montserrat',
-                    color: VlvtColors.textPrimary,
-                  ),
+                  style: VlvtTextStyles.labelMedium,
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'Montserrat',
+                  style: VlvtTextStyles.caption.copyWith(
                     color: VlvtColors.textSecondary,
                   ),
                 ),
@@ -373,11 +348,7 @@ class _InviteCodeTile extends StatelessWidget {
               children: [
                 Text(
                   code.code,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Montserrat',
-                    color: VlvtColors.textPrimary,
+                  style: VlvtTextStyles.h4.copyWith(
                     letterSpacing: 1,
                   ),
                 ),
@@ -385,9 +356,7 @@ class _InviteCodeTile extends StatelessWidget {
                   code.used
                       ? 'Used by ${code.usedBy ?? 'someone'}'
                       : 'Ready to share',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'Montserrat',
+                  style: VlvtTextStyles.caption.copyWith(
                     color: VlvtColors.textSecondary,
                   ),
                 ),
@@ -439,10 +408,7 @@ class _TransactionTile extends StatelessWidget {
             child: Center(
               child: Text(
                 isPositive ? '+${transaction.amount}' : '${transaction.amount}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Montserrat',
+                style: VlvtTextStyles.labelSmall.copyWith(
                   color: isPositive ? VlvtColors.success : VlvtColors.error,
                 ),
               ),
@@ -452,18 +418,12 @@ class _TransactionTile extends StatelessWidget {
           Expanded(
             child: Text(
               transaction.reasonDisplayText,
-              style: TextStyle(
-                fontSize: 14,
-                fontFamily: 'Montserrat',
-                color: VlvtColors.textPrimary,
-              ),
+              style: VlvtTextStyles.bodySmall,
             ),
           ),
           Text(
             _formatDate(transaction.createdAt),
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: 'Montserrat',
+            style: VlvtTextStyles.caption.copyWith(
               color: VlvtColors.textMuted,
             ),
           ),
@@ -522,12 +482,7 @@ class _ShareCodeSheet extends StatelessWidget {
 
           Text(
             'Invite Created!',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Montserrat',
-              color: VlvtColors.textPrimary,
-            ),
+            style: VlvtTextStyles.h1,
           ),
 
           const SizedBox(height: 8),
@@ -541,10 +496,10 @@ class _ShareCodeSheet extends StatelessWidget {
             ),
             child: Text(
               code,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+              style: VlvtTextStyles.displaySmall.copyWith(
                 fontFamily: 'Montserrat',
+                fontStyle: FontStyle.normal,
+                fontWeight: FontWeight.bold,
                 color: VlvtColors.gold,
                 letterSpacing: 2,
               ),

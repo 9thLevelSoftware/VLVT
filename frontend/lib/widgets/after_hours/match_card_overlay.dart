@@ -92,10 +92,11 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
 
       setState(() {
         _timeRemaining = widget.match.autoDeclineAt!.difference(DateTime.now());
-        if (_timeRemaining.isNegative) {
+        if (_timeRemaining.isNegative || _timeRemaining == Duration.zero) {
           _timeRemaining = Duration.zero;
           timer.cancel();
-          // Auto-decline handled by backend, just close overlay
+          // Auto-dismiss overlay when timer reaches zero
+          widget.onDecline();
         }
       });
     });

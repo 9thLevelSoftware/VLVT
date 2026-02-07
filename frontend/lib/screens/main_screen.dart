@@ -29,6 +29,9 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   late int _currentIndex;
+  Profile? _userProfile;
+  bool _isLoadingProfile = true;
+  bool _profileLoadError = false;
 
   void setTab(int index) {
     setState(() {
@@ -43,7 +46,37 @@ class MainScreenState extends State<MainScreen> {
     // Defer subscription initialization to avoid calling notifyListeners during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeSubscription();
+      _loadProfile();
     });
+  }
+
+  Future<void> _loadProfile() async {
+    final authService = context.read<AuthService>();
+    final profileService = context.read<ProfileApiService>();
+    final userId = authService.userId;
+    if (userId == null) return;
+
+    setState(() {
+      _isLoadingProfile = true;
+      _profileLoadError = false;
+    });
+
+    try {
+      final profile = await profileService.getProfile(userId);
+      if (mounted) {
+        setState(() {
+          _userProfile = profile;
+          _isLoadingProfile = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingProfile = false;
+          _profileLoadError = true;
+        });
+      }
+    }
   }
 
   Future<void> _initializeSubscription() async {
@@ -63,8 +96,6 @@ class MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final subscriptionService = context.watch<SubscriptionService>();
     final authService = context.watch<AuthService>();
-    final profileService = context.watch<ProfileApiService>();
-
     // Loading state - use VLVT loader
     if (subscriptionService.isLoading) {
       return Scaffold(
@@ -84,121 +115,109 @@ class MainScreenState extends State<MainScreen> {
       );
     }
 
+    // Loading state for profile
+    if (_isLoadingProfile) {
+      return Scaffold(
+        backgroundColor: VlvtColors.background,
+        body: const Center(
+          child: VlvtLoader(),
+        ),
+      );
+    }
+
     // Check if profile setup is needed
-    return FutureBuilder<Profile>(
-      future: profileService.getProfile(userId),
-      builder: (context, snapshot) {
-        // Loading state - use VLVT loader
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            backgroundColor: VlvtColors.background,
-            body: const Center(
-              child: VlvtLoader(),
-            ),
-          );
-        }
+    final profile = _userProfile;
+    final needsSetup = _profileLoadError ||
+                      profile == null ||
+                      profile.name == null ||
+                      profile.age == null;
 
-        // Check if profile needs setup
-        // Profile not found (404) or incomplete profile data
-        final profile = snapshot.data;
-        final hasError = snapshot.hasError;
-        final needsSetup = hasError ||
-                          profile == null ||
-                          profile.name == null ||
-                          profile.age == null;
+    if (needsSetup) {
+      return const ProfileSetupScreen();
+    }
 
-        if (needsSetup) {
-          // Allow profile creation without ID verification
-          // ID verification will be required for messaging instead
-          return const ProfileSetupScreen();
-        }
+    // Profile is complete, show main app
+    final hasPremium = subscriptionService.hasPremiumAccess;
 
-        // Profile is complete, show main app
-        // Different navigation based on premium status
-        final hasPremium = subscriptionService.hasPremiumAccess;
+    final List<Widget> screens;
+    final List<BottomNavigationBarItem> navItems;
 
-        // Premium users: Discovery, Matches, Profile
-        // Free users: Search, Profile
-        final List<Widget> screens;
-        final List<BottomNavigationBarItem> navItems;
+    if (hasPremium) {
+      screens = const [
+        DiscoveryScreen(),
+        AfterHoursTabScreen(),
+        MatchesScreen(),
+        ChatsScreen(),
+        ProfileScreen(),
+      ];
+      navItems = const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.explore),
+          label: 'Discovery',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.nightlife),
+          label: 'After Hours',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.favorite),
+          label: 'Matches',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat_bubble),
+          label: 'Chats',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Profile',
+        ),
+      ];
+    } else {
+      screens = const [
+        SearchScreen(),
+        ProfileScreen(),
+      ];
+      navItems = const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.search),
+          label: 'Search',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Profile',
+        ),
+      ];
+    }
 
-        if (hasPremium) {
-          screens = const [
-            DiscoveryScreen(),
-            AfterHoursTabScreen(),
-            MatchesScreen(),
-            ChatsScreen(),
-            ProfileScreen(),
-          ];
-          navItems = const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore),
-              label: 'Discovery',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.nightlife),
-              label: 'After Hours',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite),
-              label: 'Matches',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble),
-              label: 'Chats',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ];
-        } else {
-          screens = const [
-            SearchScreen(),
-            ProfileScreen(),
-          ];
-          navItems = const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              label: 'Search',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ];
-        }
+    // Ensure current index is valid for current nav items
+    final safeIndex = _currentIndex.clamp(0, screens.length - 1);
+    if (safeIndex != _currentIndex) {
+      _currentIndex = safeIndex;
+    }
 
-        // Ensure current index is valid for current nav items without triggering extra rebuilds
-        final safeIndex = _currentIndex.clamp(0, screens.length - 1);
-        if (safeIndex != _currentIndex) {
-          _currentIndex = safeIndex;
-        }
-
-        return Scaffold(
-          backgroundColor: VlvtColors.background,
-          extendBody: true,
-          body: Column(
-            children: [
-              // Show upgrade banner for free users
-              if (!hasPremium) const UpgradeBanner(),
-              // Main content
-              Expanded(
-                child: screens[safeIndex],
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: VlvtColors.background,
+      extendBody: true,
+      body: Column(
+        children: [
+          if (!hasPremium) const UpgradeBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: safeIndex,
+              children: screens,
+            ),
           ),
-          bottomNavigationBar: _buildFrostedNavBar(
-            currentIndex: safeIndex,
-            items: navItems,
-            onTap: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-          ),
-        );
-      },
+        ],
+      ),
+      bottomNavigationBar: _buildFrostedNavBar(
+        currentIndex: safeIndex,
+        items: navItems,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      ),
     );
   }
 

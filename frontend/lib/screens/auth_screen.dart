@@ -227,9 +227,12 @@ class _AuthScreenState extends State<AuthScreen>
     return Scaffold(
       extendBodyBehindAppBar: true,
       extendBody: true,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.transparent,
-      body: Stack(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Stack(
           fit: StackFit.expand,
           children: [
             // Background image with blur effect
@@ -315,6 +318,7 @@ class _AuthScreenState extends State<AuthScreen>
                               VlvtInput(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
                                 autocorrect: false,
                                 blur: false,
                                 hintText: 'Email',
@@ -338,6 +342,7 @@ class _AuthScreenState extends State<AuthScreen>
                               VlvtInput(
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.done,
                                 autocorrect: false,
                                 blur: false,
                                 hintText: 'Password',
@@ -524,6 +529,7 @@ class _AuthScreenState extends State<AuthScreen>
             ),
           ],
         ),
+      ),
     );
   }
 

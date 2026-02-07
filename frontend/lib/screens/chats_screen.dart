@@ -524,57 +524,21 @@ class _ChatsScreenState extends State<ChatsScreen> {
             ),
           ],
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: VlvtTextStyles.bodySmall.copyWith(
-                color: lastMessage != null ? VlvtColors.textPrimary : VlvtColors.textSecondary,
-                fontStyle: lastMessage != null ? FontStyle.normal : FontStyle.italic,
-                fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
-              ),
-            ),
-            if (lastMessage != null)
-              Text(
-                formatTimestamp(lastMessage.timestamp),
-                style: VlvtTextStyles.labelSmall.copyWith(
-                  color: VlvtColors.textMuted,
-                ),
-              ),
-          ],
+        subtitle: Text(
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: VlvtTextStyles.bodySmall.copyWith(
+            color: lastMessage != null ? VlvtColors.textPrimary : VlvtColors.textSecondary,
+            fontStyle: lastMessage != null ? FontStyle.normal : FontStyle.italic,
+            fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+          ),
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatTimestamp(lastMessage?.timestamp ?? match.createdAt),
-              style: VlvtTextStyles.labelSmall.copyWith(
-                color: VlvtColors.textMuted,
-              ),
-            ),
-            if (unreadCount > 0)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: VlvtColors.gold,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  unreadCount > 9 ? '9+' : unreadCount.toString(),
-                  style: const TextStyle(
-                    color: VlvtColors.textOnGold,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Montserrat',
-                  ),
-                ),
-              ),
-          ],
+        trailing: Text(
+          formatTimestamp(lastMessage?.timestamp ?? match.createdAt),
+          style: VlvtTextStyles.labelSmall.copyWith(
+            color: VlvtColors.textMuted,
+          ),
         ),
         onTap: () async {
           await Navigator.push<bool>(
@@ -658,6 +622,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
                       setState(() {
                         _isSearching = true;
                       });
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _searchFocusNode.requestFocus();
+                      });
                     },
                   ),
                   IconButton(
@@ -674,7 +641,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: VlvtInput(
                     controller: _searchController,
-                    focusNode: _searchFocusNode..requestFocus(),
+                    focusNode: _searchFocusNode,
                     hintText: 'Search chats...',
                     blur: false,
                     onChanged: (value) {

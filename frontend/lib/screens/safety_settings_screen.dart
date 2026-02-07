@@ -10,6 +10,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
+import '../widgets/confirmation_dialog.dart';
 import '../utils/error_handler.dart';
 import 'consent_settings_screen.dart';
 import 'legal_document_viewer.dart';
@@ -44,14 +45,14 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
 
       final blockedUsers = await safetyService.getBlockedUsersWithProfiles();
 
-      // Load profiles for blocked users
-      final Map<String, Profile> profiles = {};
-      for (final blocked in blockedUsers) {
+      // Batch load profiles for blocked users (fixes N+1)
+      final blockedUserIds = blockedUsers.map((b) => b['blockedUserId'] as String).toList();
+      Map<String, Profile> profiles = {};
+      if (blockedUserIds.isNotEmpty) {
         try {
-          final profile = await profileService.getProfile(blocked['blockedUserId']);
-          profiles[blocked['blockedUserId']] = profile;
+          profiles = await profileService.batchGetProfiles(blockedUserIds);
         } catch (e) {
-          debugPrint('Error loading profile for ${blocked['blockedUserId']}: $e');
+          debugPrint('Error batch loading blocked user profiles: $e');
         }
       }
 
@@ -323,13 +324,13 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                   backgroundColor: VlvtColors.surface,
                   child: Text(
                     name[0].toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
+                    style: VlvtTextStyles.labelMedium.copyWith(color: Colors.white),
                   ),
                 ),
                 title: Text(name),
                 subtitle: Text(
                   'Blocked on ${_formatDate(blocked['createdAt'])}',
-                  style: const TextStyle(fontSize: 12),
+                  style: VlvtTextStyles.caption,
                 ),
                 trailing: VlvtButton.secondary(
                   label: 'Unblock',
@@ -531,56 +532,72 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
   }
 
   Future<void> _handleDeleteAccount() async {
-    // First confirmation
-    final firstConfirm = await showDialog<bool>(
+    // First confirmation using ConfirmationDialog
+    final firstConfirm = await ConfirmationDialog.showDestructive(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account?'),
-        content: const Text(
-          'This will permanently delete your account, including:\n\n'
+      title: 'Delete Account?',
+      message: 'This will permanently delete your account, including:\n\n'
           '• Your profile and photos\n'
           '• All matches and conversations\n'
-          '• Your subscription (you\'ll need to cancel separately)\n\n'
-          'This action cannot be undone.',
-        ),
-        actions: [
-          VlvtButton.text(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          VlvtButton.primary(
-            label: 'Continue',
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      ),
+          '• Your subscription (you\'ll need to cancel separately)',
+      consequences: 'This action cannot be undone.',
+      confirmText: 'Continue',
+      icon: Icons.delete_forever,
     );
 
     if (firstConfirm != true || !mounted) return;
 
-    // Second confirmation with explicit text
+    // Second confirmation with DELETE text input
+    final deleteController = TextEditingController();
     final secondConfirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text(
-          'Are you absolutely sure?',
-          style: TextStyle(color: VlvtColors.crimson),
-        ),
-        content: const Text(
-          'Type "DELETE" to confirm permanent account deletion.',
-        ),
-        actions: [
-          VlvtButton.text(
-            label: 'Cancel',
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          VlvtButton.primary(
-            label: 'Delete Forever',
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            final isValid = deleteController.text == 'DELETE';
+            return AlertDialog(
+              title: Text(
+                'Are you absolutely sure?',
+                style: VlvtTextStyles.h2.copyWith(color: VlvtColors.crimson),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Type "DELETE" to confirm permanent account deletion.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: deleteController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Type DELETE',
+                      border: const OutlineInputBorder(),
+                      errorText: deleteController.text.isNotEmpty && !isValid
+                          ? 'Please type DELETE exactly'
+                          : null,
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                ],
+              ),
+              actions: [
+                VlvtButton.text(
+                  label: 'Cancel',
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                ),
+                VlvtButton.danger(
+                  label: 'Delete Forever',
+                  onPressed: isValid
+                      ? () => Navigator.of(dialogContext).pop(true)
+                      : null,
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
+    deleteController.dispose();
 
     if (secondConfirm != true || !mounted) return;
 

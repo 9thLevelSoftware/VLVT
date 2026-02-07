@@ -67,38 +67,20 @@ class ThemeToggleWidget extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
+              RadioListTile<ThemeMode>(
                 title: const Text('Light'),
                 subtitle: const Text('Always use light theme'),
-                leading: const Radio<ThemeMode>(
-                  value: ThemeMode.light,
-                ),
-                onTap: () {
-                  themeService.setThemeMode(ThemeMode.light);
-                  Navigator.of(context).pop();
-                },
+                value: ThemeMode.light,
               ),
-              ListTile(
+              RadioListTile<ThemeMode>(
                 title: const Text('Dark'),
                 subtitle: const Text('Always use dark theme'),
-                leading: const Radio<ThemeMode>(
-                  value: ThemeMode.dark,
-                ),
-                onTap: () {
-                  themeService.setThemeMode(ThemeMode.dark);
-                  Navigator.of(context).pop();
-                },
+                value: ThemeMode.dark,
               ),
-              ListTile(
+              RadioListTile<ThemeMode>(
                 title: const Text('System'),
                 subtitle: const Text('Follow system theme'),
-                leading: const Radio<ThemeMode>(
-                  value: ThemeMode.system,
-                ),
-                onTap: () {
-                  themeService.setThemeMode(ThemeMode.system);
-                  Navigator.of(context).pop();
-                },
+                value: ThemeMode.system,
               ),
             ],
           ),

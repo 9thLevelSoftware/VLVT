@@ -21,6 +21,7 @@ import '../widgets/quick_report_dialog.dart';
 import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_input.dart';
 import '../widgets/vlvt_loader.dart';
+import '../widgets/message_status_indicator.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
@@ -68,10 +69,13 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
 
   // Typing
   Timer? _typingTimer;
+  Timer? _typingIndicatorTimer;
   bool _isTyping = false;
 
   static const int _maxCharacters = 500;
   static const Duration _typingTimeout = Duration(seconds: 2);
+  static const Duration _typingIndicatorTimeout = Duration(seconds: 3);
+  static const double _nearBottomThreshold = 100.0;
 
   @override
   void initState() {
@@ -91,6 +95,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _cancelSocketListeners();
     _typingTimer?.cancel();
+    _typingIndicatorTimer?.cancel();
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
@@ -134,6 +139,12 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
       if (userId == context.read<AuthService>().userId) return;
       final isTyping = data['isTyping'] as bool? ?? false;
       setState(() => _otherUserTyping = isTyping);
+      if (isTyping) {
+        _typingIndicatorTimer?.cancel();
+        _typingIndicatorTimer = Timer(_typingIndicatorTimeout, () {
+          if (mounted) setState(() => _otherUserTyping = false);
+        });
+      }
     });
 
     _readSubscription = socketService.onAfterHoursMessagesRead.listen((data) {
@@ -286,7 +297,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
         setState(() {
           _isSending = false;
           _messages = _messages.map((m) => m.id == tempId
-              ? m.copyWith(status: MessageStatus.failed, error: e.toString())
+              ? m.copyWith(status: MessageStatus.failed, error: ErrorHandler.getShortMessage(e))
               : m).toList();
         });
       }
@@ -354,10 +365,11 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
 
   void _showMutualSaveSuccess(String? permanentMatchId) {
     HapticFeedback.heavyImpact();
+    final outerNavigator = Navigator.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: VlvtColors.surface,
         title: Row(
           children: [
@@ -382,14 +394,15 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close chat
-              // Navigate to matches (handled by main screen)
+              Navigator.pop(dialogContext); // Close dialog
+              if (mounted) {
+                outerNavigator.pop(); // Close chat
+              }
             },
             child: const Text('View Matches'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Keep Chatting'),
           ),
         ],
@@ -398,10 +411,11 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
   }
 
   void _handleSessionExpired() {
+    final outerNavigator = Navigator.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: VlvtColors.surface,
         title: const Text('Session Ended'),
         content: Text(
@@ -412,8 +426,10 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close chat
+              Navigator.pop(dialogContext); // Close dialog
+              if (mounted) {
+                outerNavigator.pop(); // Close chat
+              }
             },
             child: const Text('OK'),
           ),
@@ -502,7 +518,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
 
   bool _isNearBottom() {
     if (!_scrollController.hasClients) return true;
-    return _scrollController.position.pixels < 100.0;
+    return _scrollController.position.pixels < _nearBottomThreshold;
   }
 
   void _scrollToBottom({bool animated = false}) {
@@ -710,6 +726,46 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
     );
   }
 
+  Future<void> _retryMessage(Message failedMessage) async {
+    final chatService = context.read<AfterHoursChatService>();
+
+    setState(() {
+      _messages = _messages.map((m) => m.id == failedMessage.id
+          ? m.copyWith(status: MessageStatus.sending, error: null)
+          : m).toList();
+    });
+
+    try {
+      final sentMessage = await chatService.sendMessageWithRetry(
+        matchId: widget.match.id,
+        text: failedMessage.text,
+        tempId: failedMessage.id,
+      );
+
+      if (mounted) {
+        if (sentMessage != null) {
+          setState(() {
+            _messages = _messages.where((m) => m.id != failedMessage.id).toList()..add(sentMessage);
+          });
+        } else {
+          setState(() {
+            _messages = _messages.map((m) => m.id == failedMessage.id
+                ? m.copyWith(status: MessageStatus.failed)
+                : m).toList();
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages = _messages.map((m) => m.id == failedMessage.id
+              ? m.copyWith(status: MessageStatus.failed, error: ErrorHandler.getShortMessage(e))
+              : m).toList();
+        });
+      }
+    }
+  }
+
   Widget _buildMessageBubble(Message message, bool isCurrentUser) {
     final isFailed = message.status == MessageStatus.failed;
 
@@ -727,47 +783,59 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
             bottomRight: Radius.circular(20),
           );
 
-    return Align(
-      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(top: 8),
+    return GestureDetector(
+      onTap: isFailed ? () => _retryMessage(message) : null,
+      child: Align(
+        alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.7,
-          ),
-          decoration: BoxDecoration(
-            color: isFailed
-                ? VlvtColors.error.withValues(alpha: 0.1)
-                : (isCurrentUser ? VlvtColors.chatBubbleSent : VlvtColors.chatBubbleReceived),
-            borderRadius: borderRadius,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                message.text,
-                style: VlvtTextStyles.bodyMedium.copyWith(
-                  color: isFailed
-                      ? VlvtColors.error
-                      : (isCurrentUser ? VlvtColors.chatTextSent : VlvtColors.chatTextReceived),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                formatTimestamp(message.timestamp),
-                style: VlvtTextStyles.overline.copyWith(
-                  color: isFailed
-                      ? VlvtColors.error.withValues(alpha: 0.8)
-                      : (isCurrentUser ? VlvtColors.chatTimestampSent : VlvtColors.chatTimestampReceived),
-                ),
-              ),
-              if (isFailed)
+          margin: const EdgeInsets.only(top: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.7,
+            ),
+            decoration: BoxDecoration(
+              color: isFailed
+                  ? VlvtColors.error.withValues(alpha: 0.1)
+                  : (isCurrentUser ? VlvtColors.chatBubbleSent : VlvtColors.chatBubbleReceived),
+              borderRadius: borderRadius,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  'Failed to send - tap to retry',
-                  style: VlvtTextStyles.overline.copyWith(color: VlvtColors.error, fontWeight: FontWeight.bold),
+                  message.text,
+                  style: VlvtTextStyles.bodyMedium.copyWith(
+                    color: isFailed
+                        ? VlvtColors.error
+                        : (isCurrentUser ? VlvtColors.chatTextSent : VlvtColors.chatTextReceived),
+                  ),
                 ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formatTimestamp(message.timestamp),
+                      style: VlvtTextStyles.overline.copyWith(
+                        color: isFailed
+                            ? VlvtColors.error.withValues(alpha: 0.8)
+                            : (isCurrentUser ? VlvtColors.chatTimestampSent : VlvtColors.chatTimestampReceived),
+                      ),
+                    ),
+                    if (isCurrentUser && !isFailed) ...[
+                      const SizedBox(width: 4),
+                      MessageStatusIndicator(status: message.status, size: 14),
+                    ],
+                  ],
+                ),
+                if (isFailed)
+                  Text(
+                    'Failed to send - tap to retry',
+                    style: VlvtTextStyles.overline.copyWith(color: VlvtColors.error, fontWeight: FontWeight.bold),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -806,7 +874,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
             IconButton(
               onPressed: _sendMessage,
               icon: _isSending
-                  ? const VlvtProgressIndicator(size: 24, strokeWidth: 2)
+                  ? const VlvtProgressIndicator(size: 16, strokeWidth: 2)
                   : const Icon(Icons.send),
               color: VlvtColors.gold,
               iconSize: 28,

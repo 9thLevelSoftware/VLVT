@@ -123,7 +123,7 @@ class _ReportDialogState extends State<ReportDialog> {
             ),
             const SizedBox(height: 16),
             RadioGroup<String>(
-              groupValue: _selectedReason,
+              groupValue: _selectedReason ?? '',
               onChanged: (value) {
                 if (!_isSubmitting) {
                   setState(() {
@@ -134,22 +134,13 @@ class _ReportDialogState extends State<ReportDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: _reportReasons.map((reason) {
-                  return ListTile(
+                  return RadioListTile<String>(
                     title: Text(reason['label']!),
                     subtitle: Text(
                       reason['description']!,
                       style: const TextStyle(fontSize: 12),
                     ),
-                    leading: Radio<String>(
-                      value: reason['value']!,
-                    ),
-                    onTap: _isSubmitting
-                        ? null
-                        : () {
-                            setState(() {
-                              _selectedReason = reason['value'];
-                            });
-                          },
+                    value: reason['value']!,
                     contentPadding: EdgeInsets.zero,
                     dense: true,
                   );

@@ -198,6 +198,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _onTextChanged() {
+    if (_match == null) return;
     final socketService = context.read<SocketService>();
     if (_messageController.text.trim().isNotEmpty && !_isTyping) {
       setState(() => _isTyping = true);
@@ -205,7 +206,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     _typingTimer?.cancel();
     _typingTimer = Timer(_typingTimeout, () {
-      if (mounted) {
+      if (mounted && _match != null) {
         setState(() => _isTyping = false);
         socketService.sendTypingIndicator(matchId: _match!.id, isTyping: false);
       }

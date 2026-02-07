@@ -141,12 +141,8 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Theme.of(context).brightness == Brightness.dark
-                    ? VlvtColors.primaryDark
-                    : VlvtColors.primary,
-                Theme.of(context).brightness == Brightness.dark
-                    ? VlvtColors.primaryDark.withValues(alpha: 0.7)
-                    : VlvtColors.primary.withValues(alpha: 0.7),
+                VlvtColors.primary,
+                VlvtColors.primary.withValues(alpha: 0.7),
               ],
             ),
           ),
