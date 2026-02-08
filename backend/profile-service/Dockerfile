@@ -9,29 +9,30 @@ WORKDIR /app/shared
 RUN npm install
 COPY shared/ ./
 RUN npm run build
+# Create tarball to avoid symlink issues with file: dependencies
+RUN npm pack
 
 # Copy service package
 WORKDIR /app/profile-service
 COPY profile-service/package*.json ./
 
-# Update package.json to use local shared package path
-RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared"|g' package.json
+# Install from tarball instead of file: reference
+RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared/vlvt-shared-1.0.0.tgz"|g' package.json
 
 RUN npm install
 
 COPY profile-service/ ./
 RUN npm run build
 
+# Clean up for production
+RUN npm prune --production
+
 # Production stage
 FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy shared package dist
-COPY --from=builder /app/shared/dist ./shared/dist
-COPY --from=builder /app/shared/package.json ./shared/
-
-# Copy service
+# Copy service with all dependencies baked in
 COPY --from=builder /app/profile-service/dist ./dist
 COPY --from=builder /app/profile-service/package*.json ./
 COPY --from=builder /app/profile-service/node_modules ./node_modules
