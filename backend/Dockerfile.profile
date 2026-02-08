@@ -1,13 +1,7 @@
-# Multi-service Dockerfile for VLVT backend
-# Usage: Set SERVICE_NAME build arg to auth-service, profile-service, or chat-service
-#
-# Example: docker build --build-arg SERVICE_NAME=auth-service .
-
-ARG SERVICE_NAME=auth-service
+# Profile-service Dockerfile for Railway deployment
+# This is used by VLVTProfiles Railway service (via railway.json dockerfilePath)
 
 FROM node:18-alpine
-
-ARG SERVICE_NAME
 
 WORKDIR /app
 
@@ -23,16 +17,16 @@ RUN npm run build
 RUN npm pack
 
 # ============================================================================
-# Step 2: Build the service using the shared tarball
+# Step 2: Build the profile-service using the shared tarball
 # ============================================================================
 WORKDIR /app/service
-COPY ${SERVICE_NAME}/package*.json ./
+COPY profile-service/package*.json ./
 
 # Replace the file:../shared reference with the tarball
 RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared/vlvt-shared-1.0.0.tgz"|g' package.json
 
 RUN npm install
-COPY ${SERVICE_NAME}/ ./
+COPY profile-service/ ./
 RUN npm run build
 
 # ============================================================================
@@ -46,6 +40,6 @@ RUN rm -rf /app/shared
 
 WORKDIR /app/service
 
-EXPOSE 3001 3002 3003
+EXPOSE 3002
 
 CMD ["npm", "start"]
