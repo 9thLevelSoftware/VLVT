@@ -1,42 +1,30 @@
-# Build stage - uses backend as context (set dockerfilePath in railway.json)
-FROM node:18-alpine AS builder
+# Profile-service Dockerfile
+# Build context: backend/
+
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy shared package first
+# Build shared package and create tarball
 COPY shared/package*.json ./shared/
 WORKDIR /app/shared
 RUN npm install
 COPY shared/ ./
 RUN npm run build
-# Create tarball to avoid symlink issues with file: dependencies
 RUN npm pack
 
-# Copy service package
-WORKDIR /app/profile-service
+# Build profile-service using the tarball
+WORKDIR /app/service
 COPY profile-service/package*.json ./
-
-# Install from tarball instead of file: reference
 RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared/vlvt-shared-1.0.0.tgz"|g' package.json
-
 RUN npm install
-
 COPY profile-service/ ./
 RUN npm run build
 
 # Clean up for production
 RUN npm prune --production
+RUN rm -rf /app/shared
 
-# Production stage
-FROM node:18-alpine
-
-WORKDIR /app
-
-# Copy service with all dependencies baked in
-COPY --from=builder /app/profile-service/dist ./dist
-COPY --from=builder /app/profile-service/package*.json ./
-COPY --from=builder /app/profile-service/node_modules ./node_modules
-
+WORKDIR /app/service
 EXPOSE 3002
-
 CMD ["npm", "start"]

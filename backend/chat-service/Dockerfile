@@ -1,41 +1,30 @@
-# Build stage - uses backend as context (set dockerfilePath in railway.json)
-FROM node:18-alpine AS builder
+# Chat-service Dockerfile
+# Build context: backend/
+
+FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy shared package first
+# Build shared package and create tarball
 COPY shared/package*.json ./shared/
 WORKDIR /app/shared
 RUN npm install
 COPY shared/ ./
 RUN npm run build
+RUN npm pack
 
-# Copy service package
-WORKDIR /app/chat-service
+# Build chat-service using the tarball
+WORKDIR /app/service
 COPY chat-service/package*.json ./
-
-# Update package.json to use local shared package path
-RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared"|g' package.json
-
+RUN sed -i 's|"@vlvt/shared": "file:../shared"|"@vlvt/shared": "file:/app/shared/vlvt-shared-1.0.0.tgz"|g' package.json
 RUN npm install
-
 COPY chat-service/ ./
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine
+# Clean up for production
+RUN npm prune --production
+RUN rm -rf /app/shared
 
-WORKDIR /app
-
-# Copy shared package dist
-COPY --from=builder /app/shared/dist ./shared/dist
-COPY --from=builder /app/shared/package.json ./shared/
-
-# Copy service
-COPY --from=builder /app/chat-service/dist ./dist
-COPY --from=builder /app/chat-service/package*.json ./
-COPY --from=builder /app/chat-service/node_modules ./node_modules
-
+WORKDIR /app/service
 EXPOSE 3003
-
 CMD ["npm", "start"]
