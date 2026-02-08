@@ -3,7 +3,7 @@
 #
 # Example: docker build --build-arg SERVICE_NAME=auth-service .
 
-ARG SERVICE_NAME=auth-service
+ARG SERVICE_NAME=profile-service
 
 FROM node:18-alpine
 
