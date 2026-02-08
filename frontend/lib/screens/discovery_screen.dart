@@ -618,7 +618,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
           ),
         );
       }
-    } catch (e, stack) {
+    } catch (e) {
       // debugPrint('Undo: Error - $e');
       // debugPrint('Undo: Stack trace - $stack');
     }

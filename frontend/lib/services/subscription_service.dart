@@ -267,7 +267,7 @@ class SubscriptionService extends ChangeNotifier {
       notifyListeners();
 
       return _hasPremiumAccess;
-    } on PurchasesErrorCode catch (e) {
+    } on PurchasesErrorCode {
       // // debugPrint('RevenueCat: Purchase error code - $e');
       _isLoading = false;
       notifyListeners();
