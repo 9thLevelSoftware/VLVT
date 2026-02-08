@@ -51,14 +51,21 @@ if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
 /**
  * Creates a new RedisStore instance for a rate limiter.
  * Each limiter MUST have its own store instance with a unique prefix.
+ * Returns undefined if Redis is not ready (falls back to in-memory).
  */
 function createRedisStore(prefix: string): RedisStore | undefined {
-  if (!redisClient) return undefined;
+  // Only create store if client exists and is ready
+  if (!redisClient || !redisReady) return undefined;
 
-  return new RedisStore({
-    sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
-    prefix: `rl:${prefix}:`
-  });
+  try {
+    return new RedisStore({
+      sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
+      prefix: `rl:${prefix}:`
+    });
+  } catch (err) {
+    logger.warn(`Failed to create Redis store for ${prefix}, using memory`, { error: err });
+    return undefined;
+  }
 }
 
 /**

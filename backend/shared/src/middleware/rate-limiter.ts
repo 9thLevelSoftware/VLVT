@@ -136,11 +136,17 @@ export async function createRedisStore(prefix: string): Promise<Store | undefine
 /**
  * Create a new Redis store synchronously (after client initialization).
  * Each rate limiter MUST have its own store instance.
- * Returns undefined if Redis is not available.
+ * Returns undefined if Redis is not available or not yet connected.
+ *
+ * Note: Rate limiters created at module load time will use in-memory store
+ * since Redis won't be connected yet. This is acceptable for single-instance
+ * deployments. For multi-instance with distributed rate limiting, use
+ * lazy initialization or createRedisStore() async version.
  */
 export function createRedisStoreSync(prefix: string): Store | undefined {
   const client = getRedisClientSync();
-  if (!client) return undefined;
+  // Only create store if client exists and is connected
+  if (!client || !redisInitialized) return undefined;
 
   // Dynamic import not available synchronously, so we need to use require
   // This is only called in production where redis is installed
@@ -151,7 +157,8 @@ export function createRedisStoreSync(prefix: string): Store | undefined {
       sendCommand: (...args: string[]) => client.sendCommand(args),
       prefix: `vlvt:rl:${prefix}:`,
     });
-  } catch {
+  } catch (err) {
+    rateLimitLogger.warn(`Failed to create Redis store for ${prefix}, using memory`);
     return undefined;
   }
 }
