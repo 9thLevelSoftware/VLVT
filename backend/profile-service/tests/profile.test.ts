@@ -42,6 +42,8 @@ jest.mock('@vlvt/shared', () => ({
   CURRENT_API_VERSION: 'v1',
   // After Hours auth middleware (requires premium subscription + ID verification + consent)
   createAfterHoursAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  // Internal service auth middleware (HMAC-based service-to-service auth)
+  createInternalServiceAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
 }));
 
 // Mock R2/S3 client for photo operations
@@ -100,6 +102,11 @@ jest.mock('../src/middleware/rate-limiter', () => ({
   generalLimiter: (req: any, res: any, next: any) => next(),
   profileCreationLimiter: (req: any, res: any, next: any) => next(),
   discoveryLimiter: (req: any, res: any, next: any) => next(),
+  profileUpdateLimiter: (req: any, res: any, next: any) => next(),
+  photoUploadLimiter: (req: any, res: any, next: any) => next(),
+  swipeLimiter: (req: any, res: any, next: any) => next(),
+  sensitiveActionLimiter: (req: any, res: any, next: any) => next(),
+  initializeRateLimiting: jest.fn().mockResolvedValue(undefined),
 }));
 
 // Mock FCM service
