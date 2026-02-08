@@ -147,7 +147,14 @@ class ProfileApiService extends BaseApiService {
         }
         throw Exception(data['error'] ?? 'Invalid profile data');
       } else {
-        throw Exception('Failed to create profile: ${response.statusCode}');
+        // Extract server error message for better diagnostics
+        try {
+          final data = json.decode(response.body);
+          throw Exception(data['error'] ?? 'Failed to create profile (${response.statusCode})');
+        } catch (e) {
+          if (e is Exception && e.toString().contains('Failed to create profile')) rethrow;
+          throw Exception('Failed to create profile (${response.statusCode})');
+        }
       }
     } catch (e) {
       // debugPrint('Error creating profile: $e');

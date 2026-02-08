@@ -90,6 +90,13 @@ class ErrorHandler {
       );
     }
 
+    // Exception - extract the message and route through string handler
+    if (error is Exception) {
+      // Exception.toString() returns "Exception: message", extract just the message
+      final message = error.toString().replaceFirst('Exception: ', '');
+      return _handleStringError(message);
+    }
+
     // Generic error
     return UserFriendlyError(
       message: 'Something went wrong',
