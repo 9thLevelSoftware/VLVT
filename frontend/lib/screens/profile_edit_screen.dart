@@ -10,6 +10,7 @@ import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
+import 'main_screen.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final Profile? existingProfile;
@@ -163,7 +164,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
       );
 
-      Navigator.of(context).pop(updatedProfile);
+      if (widget.isFirstTimeSetup) {
+        // For first-time setup, reload profile in MainScreen to show main app
+        // ProfileSetupScreen is rendered inline, not pushed, so pop() is wrong
+        final mainScreenState = context.findAncestorStateOfType<MainScreenState>();
+        mainScreenState?.reloadProfile();
+      } else {
+        Navigator.of(context).pop(updatedProfile);
+      }
     } catch (e) {
       if (!mounted) return;
 

@@ -50,6 +50,11 @@ class MainScreenState extends State<MainScreen> {
     });
   }
 
+  /// Reload the user profile - called after profile creation/update
+  Future<void> reloadProfile() async {
+    return _loadProfile();
+  }
+
   Future<void> _loadProfile() async {
     final authService = context.read<AuthService>();
     final profileService = context.read<ProfileApiService>();
