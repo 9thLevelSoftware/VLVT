@@ -1,17 +1,18 @@
 import { Request } from 'express';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
-import { createClient } from 'redis';
+import { createClient, RedisClientType } from 'redis';
 import * as Sentry from '@sentry/node';
 import logger from '../utils/logger';
 
-// Performance optimization: Implement Redis-based rate limiting for production
-let rateLimitStore: any;
+// Redis client for rate limiting (shared connection, but each limiter gets its own store)
+let redisClient: RedisClientType | null = null;
+let redisReady = false;
 
 // Initialize Redis client for rate limiting
 if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
   try {
-    const redisClient = createClient({
+    redisClient = createClient({
       url: process.env.REDIS_URL,
       socket: {
         reconnectStrategy: (retries) => Math.min(retries * 100, 5000) // Exponential backoff
@@ -20,27 +21,44 @@ if (process.env.REDIS_URL && process.env.NODE_ENV === 'production') {
 
     redisClient.on('error', (err) => {
       logger.error('Redis rate limiting client error', { error: err });
+      redisReady = false;
     });
 
     redisClient.on('connect', () => {
       logger.info('Redis rate limiting client connected');
     });
 
-    // Use Redis store for production
-    rateLimitStore = new RedisStore({
-      sendCommand: (...args: string[]) => redisClient.sendCommand(args),
-      prefix: 'rl:'
+    redisClient.on('ready', () => {
+      redisReady = true;
+    });
+
+    // Connect asynchronously - don't block startup
+    redisClient.connect().catch((err) => {
+      logger.error('Failed to connect Redis for rate limiting', { error: err });
+      redisClient = null;
     });
 
     logger.info('Using Redis store for rate limiting (production)');
   } catch (err) {
     logger.error('Failed to initialize Redis rate limiting', { error: err });
     logger.warn('Falling back to memory store for rate limiting');
-    rateLimitStore = undefined;
+    redisClient = null;
   }
 } else {
   logger.info('Using memory store for rate limiting (development/single-instance)');
-  rateLimitStore = undefined;
+}
+
+/**
+ * Creates a new RedisStore instance for a rate limiter.
+ * Each limiter MUST have its own store instance with a unique prefix.
+ */
+function createRedisStore(prefix: string): RedisStore | undefined {
+  if (!redisClient) return undefined;
+
+  return new RedisStore({
+    sendCommand: (...args: string[]) => redisClient!.sendCommand(args),
+    prefix: `rl:${prefix}:`
+  });
 }
 
 /**
@@ -77,7 +95,7 @@ export const generalLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  store: rateLimitStore, // Use Redis store if available
+  store: createRedisStore('general'), // Each limiter gets its own store
   handler: (req, res) => {
     logger.warn('Rate limit exceeded', {
       ip: req.ip,
@@ -106,7 +124,7 @@ export const authLimiter = rateLimit({
   message: 'Too many authentication attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  store: rateLimitStore, // Use Redis store if available
+  store: createRedisStore('auth'),
   handler: (req, res) => {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
@@ -151,7 +169,7 @@ export const verifyLimiter = rateLimit({
   message: 'Too many verification requests, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  store: rateLimitStore, // Use Redis store if available
+  store: createRedisStore('verify'),
   handler: (req, res) => {
     logger.warn('Verify rate limit exceeded', {
       ip: req.ip,
@@ -172,7 +190,7 @@ export const strictLimiter = rateLimit({
   message: 'Too many requests for this sensitive operation, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  store: rateLimitStore, // Use Redis store if available
+  store: createRedisStore('strict'),
   handler: (req, res) => {
     logger.warn('Strict rate limit exceeded', {
       ip: req.ip,
@@ -197,7 +215,7 @@ export const userRateLimiter = rateLimit({
   message: 'Too many requests, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
-  store: rateLimitStore,
+  store: createRedisStore('user-general'),
   keyGenerator: createUserKeyGenerator('user-general'),
   handler: (req, res) => {
     logger.warn('User rate limit exceeded', {
@@ -224,7 +242,7 @@ export const sensitiveActionLimiter = rateLimit({
   message: 'Too many sensitive action attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
-  store: rateLimitStore,
+  store: createRedisStore('user-sensitive'),
   keyGenerator: createUserKeyGenerator('user-sensitive'),
   handler: (req, res) => {
     logger.warn('Sensitive action rate limit exceeded', {

@@ -33,22 +33,22 @@ const rateLimitLogger = {
 };
 
 /**
- * Redis store singleton for distributed rate limiting.
- * Initialized lazily when first rate limiter is created in production.
+ * Redis client for rate limiting (shared connection).
+ * Each limiter creates its own RedisStore with a unique prefix.
  */
-let redisStorePromise: Promise<Store | undefined> | null = null;
-let redisStoreResolved: Store | undefined = undefined;
+let redisClient: any = null;
+let redisClientPromise: Promise<any> | null = null;
 let redisInitialized = false;
 
 /**
- * Initialize Redis store for distributed rate limiting.
- * Only initializes once, returns cached result on subsequent calls.
+ * Initialize Redis client for distributed rate limiting.
+ * Only initializes once, returns cached client on subsequent calls.
  * Gracefully falls back to memory store if Redis is unavailable.
  */
-async function initializeRedisStore(): Promise<Store | undefined> {
+async function initializeRedisClient(): Promise<any> {
   // Return cached result if already initialized
   if (redisInitialized) {
-    return redisStoreResolved;
+    return redisClient;
   }
 
   // Only use Redis in production with REDIS_URL set
@@ -57,73 +57,113 @@ async function initializeRedisStore(): Promise<Store | undefined> {
       reason: !process.env.REDIS_URL ? 'REDIS_URL not set' : 'not in production',
     });
     redisInitialized = true;
-    redisStoreResolved = undefined;
-    return undefined;
+    redisClient = null;
+    return null;
   }
 
   try {
     // Dynamically import Redis dependencies to avoid requiring them in dev
-    const [{ default: RedisStore }, { createClient }] = await Promise.all([
-      import('rate-limit-redis'),
-      import('redis'),
-    ]);
+    const { createClient } = await import('redis');
 
-    const redisClient = createClient({
+    const client = createClient({
       url: process.env.REDIS_URL,
       socket: {
         reconnectStrategy: (retries: number) => Math.min(retries * 100, 5000),
       },
     });
 
-    redisClient.on('error', (err: Error) => {
+    client.on('error', (err: Error) => {
       rateLimitLogger.error('Redis rate limiting client error', { error: err.message });
     });
 
-    redisClient.on('connect', () => {
+    client.on('connect', () => {
       rateLimitLogger.info('Redis rate limiting client connected');
     });
 
     // Connect to Redis
-    await redisClient.connect();
+    await client.connect();
 
-    // Create Redis store
-    const store = new RedisStore({
-      sendCommand: (...args: string[]) => redisClient.sendCommand(args),
-      prefix: 'vlvt:rl:',
-    });
-
-    rateLimitLogger.info('Using Redis store for rate limiting (production)');
+    rateLimitLogger.info('Redis client ready for rate limiting (production)');
     redisInitialized = true;
-    redisStoreResolved = store;
-    return store;
+    redisClient = client;
+    return client;
   } catch (err) {
-    rateLimitLogger.error('Failed to initialize Redis rate limiting', {
+    rateLimitLogger.error('Failed to initialize Redis for rate limiting', {
       error: err instanceof Error ? err.message : 'Unknown error',
     });
     rateLimitLogger.warn('Falling back to memory store for rate limiting');
     redisInitialized = true;
-    redisStoreResolved = undefined;
+    redisClient = null;
+    return null;
+  }
+}
+
+/**
+ * Get or initialize Redis client.
+ * Uses a promise to ensure only one initialization happens.
+ */
+export function getRedisClient(): Promise<any> {
+  if (!redisClientPromise) {
+    redisClientPromise = initializeRedisClient();
+  }
+  return redisClientPromise;
+}
+
+/**
+ * Get the current Redis client synchronously (after initialization).
+ * Returns null if not initialized or if using memory store.
+ */
+export function getRedisClientSync(): any {
+  return redisClient;
+}
+
+/**
+ * Create a new Redis store with a unique prefix.
+ * Each rate limiter MUST have its own store instance.
+ * Returns undefined if Redis is not available.
+ */
+export async function createRedisStore(prefix: string): Promise<Store | undefined> {
+  const client = await getRedisClient();
+  if (!client) return undefined;
+
+  const { default: RedisStore } = await import('rate-limit-redis');
+  return new RedisStore({
+    sendCommand: (...args: string[]) => client.sendCommand(args),
+    prefix: `vlvt:rl:${prefix}:`,
+  });
+}
+
+/**
+ * Create a new Redis store synchronously (after client initialization).
+ * Each rate limiter MUST have its own store instance.
+ * Returns undefined if Redis is not available.
+ */
+export function createRedisStoreSync(prefix: string): Store | undefined {
+  const client = getRedisClientSync();
+  if (!client) return undefined;
+
+  // Dynamic import not available synchronously, so we need to use require
+  // This is only called in production where redis is installed
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const RedisStore = require('rate-limit-redis').default;
+    return new RedisStore({
+      sendCommand: (...args: string[]) => client.sendCommand(args),
+      prefix: `vlvt:rl:${prefix}:`,
+    });
+  } catch {
     return undefined;
   }
 }
 
-/**
- * Get or initialize Redis store.
- * Uses a promise to ensure only one initialization happens.
- */
+// Backwards compatibility - deprecated, use createRedisStoreSync instead
 export function getRedisStore(): Promise<Store | undefined> {
-  if (!redisStorePromise) {
-    redisStorePromise = initializeRedisStore();
-  }
-  return redisStorePromise;
+  return createRedisStore('legacy');
 }
 
-/**
- * Get the current Redis store synchronously (after initialization).
- * Returns undefined if not initialized or if using memory store.
- */
+// Backwards compatibility - deprecated
 export function getRedisStoreSync(): Store | undefined {
-  return redisStoreResolved;
+  return createRedisStoreSync('legacy');
 }
 
 export interface RateLimiterOptions {
@@ -199,8 +239,10 @@ export const createRateLimiter = (options: RateLimiterOptions = {}): RateLimitRe
     finalKeyGenerator = createUserKeyGenerator('rl');
   }
 
-  // Use provided store or the Redis store if available
-  const finalStore = store ?? getRedisStoreSync();
+  // Use provided store or create a new Redis store with unique prefix
+  // Each limiter MUST have its own store instance
+  const storePrefix = keyPrefix || `limiter-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const finalStore = store ?? createRedisStoreSync(storePrefix);
 
   return rateLimit({
     windowMs,
@@ -232,7 +274,8 @@ export const createUserRateLimiter = (options: RateLimiterOptions = {}): RateLim
     handler,
   } = options;
 
-  const finalStore = store ?? getRedisStoreSync();
+  // Each limiter MUST have its own store instance with unique prefix
+  const finalStore = store ?? createRedisStoreSync(keyPrefix);
 
   return rateLimit({
     windowMs,
@@ -256,6 +299,7 @@ export const generalLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Too many requests from this IP, please try again after 15 minutes',
+  keyPrefix: 'general',
 });
 
 /**
@@ -265,6 +309,7 @@ export const strictLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: 'Too many attempts, please try again later',
+  keyPrefix: 'strict',
 });
 
 /**
@@ -282,6 +327,7 @@ export const authLimiter = rateLimit({
   message: { success: false, error: 'Too many authentication attempts, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStoreSync('auth'),
   handler: (req: Request, res: Response, next, options) => {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
@@ -323,6 +369,7 @@ export const profileCreationLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 3,
   message: 'Too many profile creation attempts, please try again later',
+  keyPrefix: 'profile-creation',
 });
 
 /**
@@ -332,6 +379,7 @@ export const discoveryLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 60,
   message: 'Too many discovery requests, please slow down',
+  keyPrefix: 'discovery',
 });
 
 /**
@@ -341,6 +389,7 @@ export const messageLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 30,
   message: 'Too many messages, please slow down',
+  keyPrefix: 'message',
 });
 
 /**
@@ -350,6 +399,7 @@ export const uploadLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   max: 10,
   message: 'Too many uploads, please try again later',
+  keyPrefix: 'upload',
 });
 
 /**
@@ -421,6 +471,7 @@ export const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
   message: 'Too many login attempts, please try again later',
+  keyPrefix: 'login',
   perUser: false, // IP-based for login since no auth yet
 });
 
