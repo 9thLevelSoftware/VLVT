@@ -47,6 +47,9 @@
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
+		<!-- Camera permission for ID verification (KYCAID document + liveness check) -->
+		<key>NSCameraUsageDescription</key>
+		<string>VLVT needs camera access to verify your identity by scanning your government ID and taking a selfie.</string>
 		<!-- Location permissions for dating app geolocation features -->
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>VLVT needs your location to show you potential matches nearby and calculate distances.</string>

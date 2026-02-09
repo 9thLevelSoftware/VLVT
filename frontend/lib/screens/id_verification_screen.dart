@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../services/auth_service.dart';
@@ -173,8 +174,25 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
     }
   }
 
-  void _openVerificationWebView(String url) {
-    _webViewController = WebViewController()
+  Future<void> _openVerificationWebView(String url) async {
+    // Request camera permission before opening WebView
+    // KYCAID needs camera for document scanning and liveness check
+    final cameraStatus = await Permission.camera.request();
+    if (!mounted) return;
+
+    if (cameraStatus.isDenied || cameraStatus.isPermanentlyDenied) {
+      setState(() {
+        _errorMessage =
+            'Camera permission is required for ID verification. Please enable it in Settings.';
+      });
+      return;
+    }
+
+    _webViewController = WebViewController(
+      onPermissionRequest: (WebViewPermissionRequest request) {
+        request.grant();
+      },
+    )
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(VlvtColors.background)
       ..setNavigationDelegate(

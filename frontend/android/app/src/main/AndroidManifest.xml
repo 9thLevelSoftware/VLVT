@@ -64,6 +64,9 @@
     <!-- Internet permission -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Camera permission for ID verification (KYCAID document + liveness check) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <!-- Location permissions for geolocation features -->
     <!-- Used to show nearby matches and calculate distance -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
