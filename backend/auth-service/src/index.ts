@@ -3122,16 +3122,7 @@ app.post('/auth/kycaid/start', generalLimiter, async (req: Request, res: Respons
       });
     }
 
-    // Check for existing pending verification
-    const pendingResult = await pool.query(
-      `SELECT kycaid_verification_id FROM kycaid_verifications
-       WHERE user_id = $1 AND status = 'pending'
-       ORDER BY created_at DESC LIMIT 1`,
-      [userId]
-    );
-
     let applicantId = user.kycaid_applicant_id;
-    let verificationId: string;
 
     // Create or get KYCAID applicant
     if (!applicantId) {
@@ -3145,38 +3136,16 @@ app.post('/auth/kycaid/start', generalLimiter, async (req: Request, res: Respons
       );
     }
 
-    // Create verification if none pending, or return existing
-    if (pendingResult.rows.length > 0) {
-      verificationId = pendingResult.rows[0].kycaid_verification_id;
-    } else {
-      // Create new verification
-      const callbackUrl = `${process.env.API_BASE_URL || 'https://auth-service-production.up.railway.app'}/auth/kycaid/webhook`;
-      const verification = await kycaidService.createVerification(applicantId, callbackUrl);
-      verificationId = verification.verification_id;
+    // Get a one-time hosted form URL from KYCAID
+    // The user completes document upload + liveness check through KYCAID's UI
+    const formResult = await kycaidService.getFormUrl(applicantId, userId);
 
-      // Store verification record
-      await pool.query(
-        `INSERT INTO kycaid_verifications
-         (user_id, kycaid_applicant_id, kycaid_verification_id, kycaid_form_id, status)
-         VALUES ($1, $2, $3, $4, 'pending')`,
-        [userId, applicantId, verificationId, verification.form_id]
-      );
-    }
+    logger.info('KYCAID form URL generated', { userId, applicantId });
 
-    logger.info('KYCAID verification started', { userId, applicantId, verificationId });
-
-    // Return credentials for the mobile SDK
     res.json({
       success: true,
-      verificationId,
+      formUrl: formResult.form_url,
       applicantId,
-      formId: process.env.KYCAID_FORM_ID,
-      // These are needed for the SDK initialization
-      sdkConfig: {
-        applicantId,
-        verificationId,
-        // SDK will use these to complete verification
-      }
     });
   } catch (error) {
     logger.error('Failed to start KYCAID verification', { error, userId });

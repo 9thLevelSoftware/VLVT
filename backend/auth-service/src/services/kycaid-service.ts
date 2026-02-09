@@ -215,6 +215,45 @@ export async function createOrGetApplicant(
 }
 
 /**
+ * Get a one-time form URL for hosted verification
+ * Uses POST /forms/{form_id}/urls - the user completes verification through KYCAID's hosted UI
+ */
+export async function getFormUrl(
+  applicantId: string,
+  externalApplicantId?: string
+): Promise<{ form_url: string }> {
+  if (!KYCAID_FORM_ID) {
+    throw new Error('KYCAID_FORM_ID not configured');
+  }
+
+  const body: Record<string, string> = {
+    applicant_id: applicantId,
+  };
+
+  if (externalApplicantId) {
+    body.external_applicant_id = externalApplicantId;
+  }
+
+  try {
+    const response = await kycaidRequest<{ form_url: string }>(
+      'POST',
+      `/forms/${KYCAID_FORM_ID}/urls`,
+      body
+    );
+
+    logger.info('KYCAID form URL retrieved', {
+      applicantId,
+      formId: KYCAID_FORM_ID,
+    });
+
+    return response;
+  } catch (error) {
+    logger.error('Failed to get KYCAID form URL', { applicantId, error });
+    throw error;
+  }
+}
+
+/**
  * Create a verification request for an applicant
  */
 export async function createVerification(

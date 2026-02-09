@@ -152,16 +152,16 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
           }
         });
       } else {
-        final verificationId = result['verificationId'] as String?;
-        if (verificationId != null) {
+        final formUrl = result['formUrl'] as String?;
+        if (formUrl != null) {
           setState(() {
             _isStarting = false;
           });
-          _openVerificationWebView(authService.getKycaidVerificationUrl(verificationId));
+          _openVerificationWebView(formUrl);
         } else {
           setState(() {
             _isStarting = false;
-            _errorMessage = 'Failed to get verification ID';
+            _errorMessage = 'Failed to get verification URL';
           });
         }
       }

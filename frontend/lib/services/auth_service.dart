@@ -674,16 +674,15 @@ class AuthService extends ChangeNotifier {
 
         return {
           'success': true,
-          'verificationId': data['verificationId'],
+          'formUrl': data['formUrl'],
           'applicantId': data['applicantId'],
-          'formId': data['formId'],
-          'sdkConfig': data['sdkConfig'],
         };
       }
 
+      debugPrint('KYCAID start failed (${response.statusCode}): ${response.body}');
       return {'success': false, 'error': data['error'] ?? 'Failed to start verification'};
     } catch (e) {
-      // // debugPrint('Error starting ID verification: $e');
+      debugPrint('KYCAID start error: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -716,9 +715,10 @@ class AuthService extends ChangeNotifier {
         };
       }
 
+      debugPrint('KYCAID status failed (${response.statusCode}): ${response.body}');
       return {'success': false, 'error': data['error'] ?? 'Failed to check status'};
     } catch (e) {
-      // // debugPrint('Error checking ID verification status: $e');
+      debugPrint('KYCAID status error: $e');
       return {'success': false, 'error': e.toString()};
     }
   }
