@@ -10,26 +10,22 @@ import '../../theme/vlvt_text_styles.dart';
 import '../verified_badge.dart';
 import '../vlvt_loader.dart';
 
-/// A reusable profile card widget for the discovery screen
-/// Displays profile photo carousel, name, age, bio, and interests
+/// A full-bleed photo card with overlaid profile info for the discovery screen.
+/// Tapping opens ProfileDetailScreen for the full profile view.
 class DiscoveryProfileCard extends StatelessWidget {
   final Profile profile;
   final int currentPhotoIndex;
   final PageController? photoPageController;
-  final bool isExpanded;
   final Alignment parallaxAlignment;
   final ValueChanged<int>? onPhotoChanged;
-  final VoidCallback? onInitPhotoController;
 
   const DiscoveryProfileCard({
     super.key,
     required this.profile,
     required this.currentPhotoIndex,
     this.photoPageController,
-    this.isExpanded = false,
     this.parallaxAlignment = Alignment.center,
     this.onPhotoChanged,
-    this.onInitPhotoController,
   });
 
   @override
@@ -44,131 +40,136 @@ class DiscoveryProfileCard extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              VlvtColors.primary.withValues(alpha: 0.4),
-              VlvtColors.surface,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Photo carousel or default icon
-                if (profile.photos != null && profile.photos!.isNotEmpty) ...[
-                  Builder(
-                    builder: (context) {
-                      onInitPhotoController?.call();
-                      return Column(
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.65,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: PageView.builder(
-                                controller: photoPageController,
-                                onPageChanged: (index) {
-                                  HapticFeedback.selectionClick();
-                                  onPhotoChanged?.call(index);
-                                },
-                                itemCount: profile.photos!.length,
-                                itemBuilder: (context, index) {
-                                  final photoUrl = profile.photos![index];
-                                  final profileService = context.read<ProfileApiService>();
-                                  return Hero(
-                                    tag: 'discovery_${profile.userId}',
-                                    child: CachedNetworkImage(
-                                      imageUrl: photoUrl.startsWith('http')
-                                          ? photoUrl
-                                          : '${profileService.baseUrl}$photoUrl',
-                                      fit: BoxFit.cover,
-                                      alignment: parallaxAlignment,
-                                      memCacheWidth: 800,
-                                      placeholder: (context, url) => ExcludeSemantics(
-                                        child: Container(
-                                          color: Colors.white.withValues(alpha: 0.2),
-                                          child: const Center(
-                                            child: VlvtProgressIndicator(size: 32),
-                                          ),
-                                        ),
-                                      ),
-                                      errorWidget: (context, url, error) => Container(
-                                        color: Colors.white.withValues(alpha: 0.2),
-                                        child: const Icon(
-                                          Icons.broken_image,
-                                          size: 80,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          if (profile.photos!.length > 1) ...[
-                            const SizedBox(height: 12),
-                            _PhotoIndicators(
-                              count: profile.photos!.length,
-                              currentIndex: currentPhotoIndex,
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ] else
-                  const Icon(
-                    Icons.person,
-                    size: 120,
-                    color: Colors.white,
-                  ),
-                const SizedBox(height: 24),
-                _ProfileHeader(profile: profile),
-                const SizedBox(height: 16),
-                Text(
-                  profile.bio ?? 'No bio available',
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 3,
-                  style: VlvtTextStyles.bodyLarge.copyWith(
-                    color: VlvtColors.textSecondary,
-                  ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Full-bleed photo carousel (or fallback icon)
+          if (profile.photos != null && profile.photos!.isNotEmpty)
+            _PhotoCarousel(
+              profile: profile,
+              photoPageController: photoPageController,
+              parallaxAlignment: parallaxAlignment,
+              onPhotoChanged: onPhotoChanged,
+            )
+          else
+            Container(
+              color: VlvtColors.primary.withValues(alpha: 0.4),
+              child: const Center(
+                child: Icon(Icons.person, size: 120, color: Colors.white),
+              ),
+            ),
+
+          // Bar-style photo indicators at top
+          if (profile.photos != null && profile.photos!.length > 1)
+            Positioned(
+              top: 12,
+              left: 12,
+              right: 12,
+              child: _PhotoBarIndicators(
+                count: profile.photos!.length,
+                currentIndex: currentPhotoIndex,
+              ),
+            ),
+
+          // Gradient overlay at bottom
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 200,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.black.withValues(alpha: 0.4),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
                 ),
-                if (profile.interests != null && profile.interests!.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Divider(color: VlvtColors.gold.withValues(alpha: 0.3)),
-                  const SizedBox(height: 16),
-                  _InterestsSection(interests: profile.interests!),
-                ],
-                if (isExpanded) ...[
-                  const SizedBox(height: 24),
-                  Divider(color: VlvtColors.gold.withValues(alpha: 0.3)),
-                  const SizedBox(height: 16),
-                  _ExpandedInfo(profile: profile),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
+
+          // Profile info overlay at bottom
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: _OverlayInfo(profile: profile),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _PhotoIndicators extends StatelessWidget {
+class _PhotoCarousel extends StatelessWidget {
+  final Profile profile;
+  final PageController? photoPageController;
+  final Alignment parallaxAlignment;
+  final ValueChanged<int>? onPhotoChanged;
+
+  const _PhotoCarousel({
+    required this.profile,
+    this.photoPageController,
+    required this.parallaxAlignment,
+    this.onPhotoChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final profileService = context.read<ProfileApiService>();
+
+    return PageView.builder(
+      controller: photoPageController,
+      onPageChanged: (index) {
+        HapticFeedback.selectionClick();
+        onPhotoChanged?.call(index);
+      },
+      itemCount: profile.photos!.length,
+      itemBuilder: (context, index) {
+        final photoUrl = profile.photos![index];
+        return Hero(
+          tag: 'discovery_${profile.userId}',
+          child: CachedNetworkImage(
+            imageUrl: photoUrl.startsWith('http')
+                ? photoUrl
+                : '${profileService.baseUrl}$photoUrl',
+            fit: BoxFit.cover,
+            alignment: parallaxAlignment,
+            memCacheWidth: 800,
+            placeholder: (context, url) => ExcludeSemantics(
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.2),
+                child: const Center(
+                  child: VlvtProgressIndicator(size: 32),
+                ),
+              ),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: Colors.white.withValues(alpha: 0.2),
+              child: const Icon(
+                Icons.broken_image,
+                size: 80,
+                color: Colors.white70,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PhotoBarIndicators extends StatelessWidget {
   final int count;
   final int currentIndex;
 
-  const _PhotoIndicators({
+  const _PhotoBarIndicators({
     required this.count,
     required this.currentIndex,
   });
@@ -176,127 +177,112 @@ class _PhotoIndicators extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(
-        count,
-        (index) => AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: currentIndex == index ? 10 : 8,
-          height: currentIndex == index ? 10 : 8,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: currentIndex == index
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.4),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  final Profile profile;
-
-  const _ProfileHeader({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: Text(
-            '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: VlvtTextStyles.displayMedium.copyWith(
-              color: VlvtColors.textPrimary,
+      children: List.generate(count, (index) {
+        return Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            height: 3,
+            decoration: BoxDecoration(
+              color: index == currentIndex
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-        ),
-        if (profile.isVerified) ...[
-          const SizedBox(width: 8),
-          const VerifiedIcon(size: 24),
-        ],
-      ],
+        );
+      }),
     );
   }
 }
 
-class _InterestsSection extends StatelessWidget {
-  final List<String> interests;
-
-  const _InterestsSection({required this.interests});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          'Interests',
-          style: VlvtTextStyles.h3.copyWith(
-            color: VlvtColors.gold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: interests.map((interest) {
-            return Chip(
-              label: Text(interest),
-              backgroundColor: VlvtColors.gold.withValues(alpha: 0.15),
-              labelStyle: VlvtTextStyles.labelSmall.copyWith(
-                color: VlvtColors.gold,
-              ),
-              side: BorderSide(
-                color: VlvtColors.gold.withValues(alpha: 0.3),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-}
-
-class _ExpandedInfo extends StatelessWidget {
+class _OverlayInfo extends StatelessWidget {
   final Profile profile;
 
-  const _ExpandedInfo({required this.profile});
+  const _OverlayInfo({required this.profile});
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
+        // Name, age, verified badge
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.info_outline, color: VlvtColors.textSecondary, size: 20),
-            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                '${profile.name ?? 'Anonymous'}, ${profile.age ?? '?'}',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: VlvtTextStyles.displayMedium.copyWith(
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (profile.isVerified) ...[
+              const SizedBox(width: 8),
+              const VerifiedIcon(size: 24),
+            ],
+          ],
+        ),
+
+        // Distance
+        if (profile.distance != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                size: 14,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                LocationService.formatDistance(profile.distance! * 1000),
+                style: VlvtTextStyles.bodySmall.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        // Bio snippet
+        if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            profile.bio!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: VlvtTextStyles.bodyMedium.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+        ],
+
+        // View profile hint
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Icon(
+              Icons.keyboard_arrow_up,
+              size: 16,
+              color: Colors.white.withValues(alpha: 0.6),
+            ),
+            const SizedBox(width: 4),
             Text(
-              'More Info',
-              style: VlvtTextStyles.labelMedium.copyWith(
-                color: VlvtColors.textSecondary,
+              'Tap for full profile',
+              style: VlvtTextStyles.labelSmall.copyWith(
+                color: Colors.white.withValues(alpha: 0.6),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          profile.distance != null
-              ? 'Distance: ${LocationService.formatDistance(profile.distance! * 1000)}'
-              : 'Distance: Not available',
-          style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textSecondary),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Tap card to collapse',
-          style: VlvtTextStyles.bodySmall.copyWith(color: VlvtColors.textMuted),
         ),
       ],
     );

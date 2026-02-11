@@ -22,6 +22,7 @@ import '../theme/vlvt_text_styles.dart';
 import 'discovery_filters_screen.dart';
 import 'matches_screen.dart';
 import '../utils/error_handler.dart';
+import 'profile_detail_screen.dart';
 import 'dart:async';
 
 class DiscoveryScreen extends StatefulWidget {
@@ -44,11 +45,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   Match? _lastMatch;
   Timer? _undoTimer;
   bool _showUndoButton = false;
-
-  // Animation
-  late AnimationController _cardAnimationController;
-  late Animation<double> _cardAnimation;
-  bool _isExpanded = false;
 
   // Photo carousel
   PageController? _photoPageController;
@@ -78,15 +74,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   @override
   void initState() {
     super.initState();
-    _cardAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _cardAnimation = CurvedAnimation(
-      parent: _cardAnimationController,
-      curve: Curves.easeInOut,
-    );
-
     // Initialize swipe animation controller
     _swipeAnimationController = AnimationController(
       vsync: this,
@@ -105,7 +92,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   @override
   void dispose() {
     _undoTimer?.cancel();
-    _cardAnimationController.dispose();
     _swipeAnimationController.dispose();
     _photoPageController?.dispose();
     super.dispose();
@@ -708,15 +694,18 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
     }
   }
 
-  void _toggleExpanded() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-      if (_isExpanded) {
-        _cardAnimationController.forward();
-      } else {
-        _cardAnimationController.reverse();
-      }
-    });
+  void _openFullProfile() {
+    if (_filteredProfiles.isEmpty || _currentProfileIndex >= _filteredProfiles.length) return;
+    final profile = _filteredProfiles[_currentProfileIndex];
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfileDetailScreen(
+          profile: profile,
+          showLikeAction: true,
+          onLike: () => _onLike(),
+        ),
+      ),
+    );
   }
 
   int get _remainingProfiles {
@@ -733,21 +722,19 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   }
 
   Widget _buildProfileCard(Profile profile) {
-    return ScaleTransition(
-      scale: _cardAnimation.drive(Tween(begin: 1.0, end: 1.02)),
-      child: DiscoveryProfileCard(
-        profile: profile,
-        currentPhotoIndex: _currentPhotoIndex,
-        photoPageController: _photoPageController,
-        isExpanded: _isExpanded,
-        parallaxAlignment: _getParallaxAlignment(),
-        onPhotoChanged: (index) {
-          setState(() {
-            _currentPhotoIndex = index;
-          });
-        },
-        onInitPhotoController: () => _initPhotoController(profile.photos?.length ?? 0),
-      ),
+    // Initialize photo controller if needed
+    _initPhotoController(profile.photos?.length ?? 0);
+
+    return DiscoveryProfileCard(
+      profile: profile,
+      currentPhotoIndex: _currentPhotoIndex,
+      photoPageController: _photoPageController,
+      parallaxAlignment: _getParallaxAlignment(),
+      onPhotoChanged: (index) {
+        setState(() {
+          _currentPhotoIndex = index;
+        });
+      },
     );
   }
 
@@ -1019,12 +1006,12 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                         // Main card
                         Semantics(
                           label: 'Profile card for ${profile.name ?? "user"}. Swipe right to like, left to pass, or use buttons below.',
-                          hint: 'Double tap to expand profile details',
+                          hint: 'Double tap to view full profile',
                           child: GestureDetector(
                             onPanStart: _onPanStart,
                             onPanUpdate: _onPanUpdate,
                             onPanEnd: _onPanEnd,
-                            onTap: _toggleExpanded,
+                            onTap: _openFullProfile,
                             child: AnimatedBuilder(
                             animation: _swipeAnimationController,
                             child: _buildProfileCard(profile),
