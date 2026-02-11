@@ -162,8 +162,18 @@ class _AfterHoursProfileScreenState extends State<AfterHoursProfileScreen> {
     try {
       final service = context.read<AfterHoursProfileService>();
 
-      // Upload photo first if a new one was selected
-      if (_selectedImage != null) {
+      // Create or update profile first (photo upload requires profile to exist)
+      AfterHoursProfile? result;
+      if (service.profile?.id != null) {
+        // Update existing profile
+        result = await service.updateProfile(bio: bio);
+      } else {
+        // Create new profile
+        result = await service.createProfile(bio: bio);
+      }
+
+      // Upload photo after profile exists
+      if (_selectedImage != null && result != null) {
         setState(() {
           _isUploadingPhoto = true;
         });
@@ -181,22 +191,11 @@ class _AfterHoursProfileScreenState extends State<AfterHoursProfileScreen> {
               ),
             );
           }
-          // Continue anyway - photo is optional for saving
         }
 
         setState(() {
           _isUploadingPhoto = false;
         });
-      }
-
-      // Create or update profile
-      AfterHoursProfile? result;
-      if (service.profile?.id != null) {
-        // Update existing profile
-        result = await service.updateProfile(bio: bio);
-      } else {
-        // Create new profile
-        result = await service.createProfile(bio: bio);
       }
 
       if (result != null && mounted) {

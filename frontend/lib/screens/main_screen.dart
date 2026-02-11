@@ -279,7 +279,7 @@ class MainScreenState extends State<MainScreen> {
                         child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                        horizontal: 12,
                         vertical: 8,
                       ),
                       child: Column(
