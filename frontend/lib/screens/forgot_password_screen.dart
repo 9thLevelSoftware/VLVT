@@ -82,6 +82,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
             SnackBar(
               content: Text(error.message),
               backgroundColor: VlvtColors.error,
+              persist: false,
               action: SnackBarAction(
                 label: 'Retry',
                 textColor: Colors.white,
@@ -147,7 +148,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                       child: Align(
                         alignment: Alignment.topLeft,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon:
+                              const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
@@ -160,159 +162,165 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Spacing.verticalLg,
-                      // Icon
-                      Container(
-                        padding: Spacing.paddingXl,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.lock_reset,
-                          size: 80,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Spacing.verticalXl,
-                      // Title
-                      Text(
-                        'Forgot Password?',
-                        textAlign: TextAlign.center,
-                        style: VlvtTextStyles.displaySmall.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Spacing.verticalMd,
-                      // Description
-                      Padding(
-                        padding: Spacing.horizontalPaddingXl,
-                        child: Text(
-                          _emailSent
-                              ? 'Check your email for a password reset link'
-                              : 'Enter your email address and we\'ll send you a link to reset your password',
-                          textAlign: TextAlign.center,
-                          style: VlvtTextStyles.bodyMedium.copyWith(
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ),
-                      Spacing.verticalXxl,
-                      // Content based on state
-                      if (_emailSent)
-                        // Success message
-                        Container(
-                          padding: Spacing.paddingXl,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: Spacing.borderRadiusLg,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              width: 2,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.check_circle_outline,
-                                size: 64,
+                            // Icon
+                            Container(
+                              padding: Spacing.paddingXl,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lock_reset,
+                                size: 80,
                                 color: Colors.white,
                               ),
-                              Spacing.verticalMd,
-                              Text(
-                                'Email Sent!',
-                                style: VlvtTextStyles.h3.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            ),
+                            Spacing.verticalXl,
+                            // Title
+                            Text(
+                              'Forgot Password?',
+                              textAlign: TextAlign.center,
+                              style: VlvtTextStyles.displaySmall.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Spacing.verticalSm,
-                              Text(
-                                'We\'ve sent a password reset link to:',
+                            ),
+                            Spacing.verticalMd,
+                            // Description
+                            Padding(
+                              padding: Spacing.horizontalPaddingXl,
+                              child: Text(
+                                _emailSent
+                                    ? 'Check your email for a password reset link'
+                                    : 'Enter your email address and we\'ll send you a link to reset your password',
                                 textAlign: TextAlign.center,
                                 style: VlvtTextStyles.bodyMedium.copyWith(
                                   color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
-                              Spacing.verticalSm,
-                              Text(
-                                _emailController.text.trim(),
-                                textAlign: TextAlign.center,
-                                style: VlvtTextStyles.bodyMedium.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Spacing.verticalMd,
-                              Text(
-                                'Please check your inbox (and spam folder) for the reset link.',
-                                textAlign: TextAlign.center,
-                                style: VlvtTextStyles.bodySmall.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      else if (_isLoading)
-                        // Loading indicator
-                        Center(
-                          child: Container(
-                            padding: Spacing.paddingXl,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: Spacing.borderRadiusLg,
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const VlvtProgressIndicator(),
-                                Spacing.verticalMd,
-                                Text(
-                                  'Sending reset link...',
-                                  style: VlvtTextStyles.bodyMedium.copyWith(
-                                    color: Colors.white,
+                            Spacing.verticalXxl,
+                            // Content based on state
+                            if (_emailSent)
+                              // Success message
+                              Container(
+                                padding: Spacing.paddingXl,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: Spacing.borderRadiusLg,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                    width: 2,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        // Email input form
-                        Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Email input
-                              VlvtInput(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                autocorrect: false,
-                                hintText: 'Email',
-                                prefixIcon: Icons.email_outlined,
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your email';
-                                  }
-                                  if (!value.contains('@') || !value.contains('.')) {
-                                    return 'Please enter a valid email';
-                                  }
-                                  return null;
-                                },
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_outline,
+                                      size: 64,
+                                      color: Colors.white,
+                                    ),
+                                    Spacing.verticalMd,
+                                    Text(
+                                      'Email Sent!',
+                                      style: VlvtTextStyles.h3.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Spacing.verticalSm,
+                                    Text(
+                                      'We\'ve sent a password reset link to:',
+                                      textAlign: TextAlign.center,
+                                      style: VlvtTextStyles.bodyMedium.copyWith(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
+                                      ),
+                                    ),
+                                    Spacing.verticalSm,
+                                    Text(
+                                      _emailController.text.trim(),
+                                      textAlign: TextAlign.center,
+                                      style: VlvtTextStyles.bodyMedium.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Spacing.verticalMd,
+                                    Text(
+                                      'Please check your inbox (and spam folder) for the reset link.',
+                                      textAlign: TextAlign.center,
+                                      style: VlvtTextStyles.bodySmall.copyWith(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (_isLoading)
+                              // Loading indicator
+                              Center(
+                                child: Container(
+                                  padding: Spacing.paddingXl,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: Spacing.borderRadiusLg,
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const VlvtProgressIndicator(),
+                                      Spacing.verticalMd,
+                                      Text(
+                                        'Sending reset link...',
+                                        style:
+                                            VlvtTextStyles.bodyMedium.copyWith(
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            else
+                              // Email input form
+                              Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    // Email input
+                                    VlvtInput(
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      autocorrect: false,
+                                      hintText: 'Email',
+                                      prefixIcon: Icons.email_outlined,
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Please enter your email';
+                                        }
+                                        if (!value.contains('@') ||
+                                            !value.contains('.')) {
+                                          return 'Please enter a valid email';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    Spacing.verticalMd,
+                                    // Send Reset Link button
+                                    VlvtButton.primary(
+                                      label: 'Send Reset Link',
+                                      onPressed: _sendResetLink,
+                                      expanded: true,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              Spacing.verticalMd,
-                              // Send Reset Link button
-                              VlvtButton.primary(
-                                label: 'Send Reset Link',
-                                onPressed: _sendResetLink,
-                                expanded: true,
-                              ),
-                            ],
-                          ),
-                        ),
                             Spacing.verticalXxl,
                             // Back to login link
                             VlvtButton.text(

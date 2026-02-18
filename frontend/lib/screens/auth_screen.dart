@@ -118,7 +118,8 @@ class _AuthScreenState extends State<AuthScreen> {
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Apple Sign-In failed. Please try again or use another method.'),
+            content: const Text(
+                'Apple Sign-In failed. Please try again or use another method.'),
             backgroundColor: VlvtColors.error,
             duration: const Duration(seconds: 4),
             showCloseIcon: true,
@@ -130,14 +131,16 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) {
         // Check if user cancelled the sign-in
         final errorString = e.toString().toLowerCase();
-        if (errorString.contains('cancel') || errorString.contains('user denied')) {
+        if (errorString.contains('cancel') ||
+            errorString.contains('user denied')) {
           // User cancelled - no error message needed
           return;
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Apple Sign-In is not available. Please use email or Google sign-in.'),
+            content: const Text(
+                'Apple Sign-In is not available. Please use email or Google sign-in.'),
             backgroundColor: VlvtColors.error,
             duration: const Duration(seconds: 4),
             showCloseIcon: true,
@@ -166,6 +169,7 @@ class _AuthScreenState extends State<AuthScreen> {
             content: Text(error.message),
             backgroundColor: VlvtColors.error,
             duration: const Duration(seconds: 6),
+            persist: false,
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
@@ -251,10 +255,11 @@ class _AuthScreenState extends State<AuthScreen> {
               child: SafeArea(
                 bottom: false,
                 child: SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.manual,
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Logo - larger size for better branding
@@ -381,7 +386,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => const RegisterScreen(),
+                                        builder: (context) =>
+                                            const RegisterScreen(),
                                       ),
                                     );
                                   },
@@ -393,18 +399,23 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ),
                                     child: RichText(
                                       text: TextSpan(
-                                        style: VlvtTextStyles.bodyMedium.copyWith(
-                                          color: Colors.white.withValues(alpha: 0.8),
+                                        style:
+                                            VlvtTextStyles.bodyMedium.copyWith(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.8),
                                         ),
                                         children: [
-                                          const TextSpan(text: "Don't have an account? "),
+                                          const TextSpan(
+                                              text: "Don't have an account? "),
                                           TextSpan(
                                             text: 'Get on the list',
                                             style: TextStyle(
                                               color: const Color(0xFFD4AF37),
                                               fontWeight: FontWeight.w600,
-                                              decoration: TextDecoration.underline,
-                                              decorationColor: const Color(0xFFD4AF37),
+                                              decoration:
+                                                  TextDecoration.underline,
+                                              decorationColor:
+                                                  const Color(0xFFD4AF37),
                                             ),
                                           ),
                                         ],
@@ -469,7 +480,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                 color: Colors.white.withValues(alpha: 0.7),
                               ),
                               children: [
-                                const TextSpan(text: 'By signing in, you agree to our '),
+                                const TextSpan(
+                                    text: 'By signing in, you agree to our '),
                                 TextSpan(
                                   text: 'Terms',
                                   style: const TextStyle(
@@ -483,7 +495,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               const LegalDocumentViewer(
-                                            documentType: LegalDocumentType.termsOfService,
+                                            documentType: LegalDocumentType
+                                                .termsOfService,
                                           ),
                                         ),
                                       );
@@ -503,7 +516,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                         MaterialPageRoute(
                                           builder: (context) =>
                                               const LegalDocumentViewer(
-                                            documentType: LegalDocumentType.privacyPolicy,
+                                            documentType:
+                                                LegalDocumentType.privacyPolicy,
                                           ),
                                         ),
                                       );

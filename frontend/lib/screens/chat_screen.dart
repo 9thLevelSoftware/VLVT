@@ -335,13 +335,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               'Please complete your profile to start messaging'),
           backgroundColor: VlvtColors.error,
           duration: const Duration(seconds: 4),
+          persist: false,
           action: SnackBarAction(
             label: 'Complete Profile',
             textColor: Colors.white,
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
+                MaterialPageRoute(
+                    builder: (context) => const ProfileEditScreen()),
               );
             },
           ),
@@ -777,7 +779,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           TextButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProfileEditScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const ProfileEditScreen()),
             ),
             child: Text(
               'Complete',
@@ -866,15 +869,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (_messages == null || _messages!.isEmpty) {
       return Center(
           child: SingleChildScrollView(
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.chat_bubble_outline, size: 64, color: VlvtColors.textMuted),
-        const SizedBox(height: 12),
-        Text('No messages yet',
-            style: TextStyle(fontSize: 16, color: VlvtColors.textSecondary)),
-        const SizedBox(height: 4),
-        Text('Say hi to ${_otherUserProfile?.name ?? 'your match'}!',
-            style: TextStyle(fontSize: 13, color: VlvtColors.textMuted)),
-      ])));
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+            Icon(Icons.chat_bubble_outline,
+                size: 64, color: VlvtColors.textMuted),
+            const SizedBox(height: 12),
+            Text('No messages yet',
+                style:
+                    TextStyle(fontSize: 16, color: VlvtColors.textSecondary)),
+            const SizedBox(height: 4),
+            Text('Say hi to ${_otherUserProfile?.name ?? 'your match'}!',
+                style: TextStyle(fontSize: 13, color: VlvtColors.textMuted)),
+          ])));
     }
 
     // Build items list: typing indicator (if any) + messages in REVERSE order

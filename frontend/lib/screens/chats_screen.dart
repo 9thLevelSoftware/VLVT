@@ -109,9 +109,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
       if (!mounted) return;
 
       // Step 2: Batch load all profiles (this fixes the N+1 query problem!)
-      final userIds = matches
-          .map((match) => match.getOtherUserId(userId))
-          .toList();
+      final userIds =
+          matches.map((match) => match.getOtherUserId(userId)).toList();
 
       Map<String, Profile> profiles = {};
       if (userIds.isNotEmpty) {
@@ -128,7 +127,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
         // Batch fetch uncached profiles
         if (uncachedUserIds.isNotEmpty) {
-          final fetchedProfiles = await profileService.batchGetProfiles(uncachedUserIds);
+          final fetchedProfiles =
+              await profileService.batchGetProfiles(uncachedUserIds);
           profiles.addAll(fetchedProfiles);
           cacheService.cacheProfiles(fetchedProfiles);
         }
@@ -154,7 +154,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
 
         // Batch fetch uncached last messages
         if (uncachedMatchIds.isNotEmpty) {
-          final fetchedMessages = await chatService.batchGetLastMessages(uncachedMatchIds);
+          final fetchedMessages =
+              await chatService.batchGetLastMessages(uncachedMatchIds);
           lastMessages.addAll(fetchedMessages);
           cacheService.cacheLastMessages(fetchedMessages);
         }
@@ -262,7 +263,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: VlvtColors.surfaceElevated,
-        title: Text('Sort by', style: VlvtTextStyles.h3.copyWith(color: VlvtColors.gold)),
+        title: Text('Sort by',
+            style: VlvtTextStyles.h3.copyWith(color: VlvtColors.gold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -346,6 +348,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Unmatched with $name'),
+          persist: false,
           action: SnackBarAction(
             label: 'Undo',
             onPressed: () {
@@ -468,14 +471,15 @@ class _ChatsScreenState extends State<ChatsScreen> {
         leading: Stack(
           children: [
             Hero(
-              tag: 'avatar_$otherUserId', // Consistent tag for hero animation to ChatScreen
+              tag:
+                  'avatar_$otherUserId', // Consistent tag for hero animation to ChatScreen
               child: CircleAvatar(
                 backgroundColor: VlvtColors.primary,
                 backgroundImage: profile?.photos?.isNotEmpty == true
-                    ? CachedNetworkImageProvider(
-                        profile!.photos!.first.startsWith('http')
-                            ? profile.photos!.first
-                            : '${context.read<ProfileApiService>().baseUrl}${profile.photos!.first}')
+                    ? CachedNetworkImageProvider(profile!.photos!.first
+                            .startsWith('http')
+                        ? profile.photos!.first
+                        : '${context.read<ProfileApiService>().baseUrl}${profile.photos!.first}')
                     : null,
                 child: profile?.photos?.isNotEmpty == true
                     ? null
@@ -519,7 +523,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
               child: Text(
                 '$name, $age',
                 style: VlvtTextStyles.bodyLarge.copyWith(
-                  fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                  fontWeight:
+                      unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                   color: VlvtColors.textPrimary,
                 ),
               ),
@@ -531,8 +536,11 @@ class _ChatsScreenState extends State<ChatsScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: VlvtTextStyles.bodySmall.copyWith(
-            color: lastMessage != null ? VlvtColors.textPrimary : VlvtColors.textSecondary,
-            fontStyle: lastMessage != null ? FontStyle.normal : FontStyle.italic,
+            color: lastMessage != null
+                ? VlvtColors.textPrimary
+                : VlvtColors.textSecondary,
+            fontStyle:
+                lastMessage != null ? FontStyle.normal : FontStyle.italic,
             fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
           ),
         ),
@@ -572,7 +580,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
           title: Text('Chats', style: VlvtTextStyles.h2),
         ),
         body: Center(
-          child: Text('User not authenticated', style: VlvtTextStyles.bodyMedium),
+          child:
+              Text('User not authenticated', style: VlvtTextStyles.bodyMedium),
         ),
       );
     }
@@ -608,7 +617,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
               actions: [
                 if (_isSearching)
                   IconButton(
-                    icon: const Icon(Icons.clear, color: VlvtColors.textSecondary),
+                    icon: const Icon(Icons.clear,
+                        color: VlvtColors.textSecondary),
                     onPressed: () {
                       setState(() {
                         _isSearching = false;
@@ -724,7 +734,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
           child: ChatsEmptyState.noChats(
             onGoToDiscovery: () {
               // Navigate to discovery tab (index 0) in MainScreen
-              final mainScreenState = context.findAncestorStateOfType<MainScreenState>();
+              final mainScreenState =
+                  context.findAncestorStateOfType<MainScreenState>();
               if (mainScreenState != null && mainScreenState.mounted) {
                 mainScreenState.setTab(0);
               }
@@ -753,7 +764,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
             child: Center(
               child: Text(
                 'Updated ${_getRelativeTime(_lastUpdated!)}',
-                style: VlvtTextStyles.labelSmall.copyWith(color: VlvtColors.textMuted),
+                style: VlvtTextStyles.labelSmall
+                    .copyWith(color: VlvtColors.textMuted),
               ),
             ),
           ),

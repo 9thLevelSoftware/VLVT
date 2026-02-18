@@ -200,8 +200,7 @@ mixin ConnectivityMixin<T extends StatefulWidget> on State<T> {
   /// Check if device is currently online
   Future<bool> isOnline() async {
     final result = await _connectivity.checkConnectivity();
-    return result.isNotEmpty &&
-        result.any((r) => r != ConnectivityResult.none);
+    return result.isNotEmpty && result.any((r) => r != ConnectivityResult.none);
   }
 }
 
@@ -212,8 +211,7 @@ class ConnectivityChecker {
   /// Check if device is currently online
   static Future<bool> isOnline() async {
     final result = await _connectivity.checkConnectivity();
-    return result.isNotEmpty &&
-        result.any((r) => r != ConnectivityResult.none);
+    return result.isNotEmpty && result.any((r) => r != ConnectivityResult.none);
   }
 
   /// Get a stream of connectivity changes
@@ -234,6 +232,7 @@ class ConnectivityChecker {
             ],
           ),
           backgroundColor: VlvtColors.error,
+          persist: false,
           action: SnackBarAction(
             label: 'Dismiss',
             textColor: Colors.white,
