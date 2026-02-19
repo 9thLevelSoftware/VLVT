@@ -20,12 +20,11 @@ import logger from '../utils/logger';
 function getEncryptionKey(): string {
   const key = process.env.KYCAID_ENCRYPTION_KEY;
   if (!key) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('KYCAID_ENCRYPTION_KEY must be set in production');
-    }
-    // Allow dev without encryption key (logs warning)
-    console.warn('[SECURITY] KYCAID_ENCRYPTION_KEY not set - encryption disabled in development');
-    return '';
+    const errorMessage = process.env.NODE_ENV === 'development'
+      ? 'KYCAID_ENCRYPTION_KEY is required in all environments. Please set it in your .env file, or disable KYCAID features for development.'
+      : 'KYCAID_ENCRYPTION_KEY must be set in production';
+    logger.error(errorMessage);
+    throw new Error(errorMessage);
   }
   return key;
 }
