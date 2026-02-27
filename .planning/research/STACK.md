@@ -1,641 +1,622 @@
-# Technology Stack: VLVT Production Readiness
+# Technology Stack: VLVT v2.0 Beta Readiness
 
-**Project:** VLVT Dating App - Production Readiness for Beta Launch
-**Researched:** 2026-01-24
+**Project:** VLVT Dating App - Operational Resilience, Accessibility, UX Polish
+**Researched:** 2026-02-27
 **Overall Confidence:** HIGH
 
 ## Executive Summary
 
-This document recommends the tools, libraries, and services needed to make VLVT production-ready for beta launch. The recommendations cover six key areas: security scanning and auditing, testing frameworks, monitoring and alerting, GDPR compliance tooling, database backup solutions, and logging best practices. The existing stack (Node.js/TypeScript + Flutter + PostgreSQL + Redis + Railway) is solid; these additions harden it for production use with sensitive dating app data.
+This document covers the targeted stack additions needed for v2.0: resilient database pooling, graceful shutdown, Flutter tooltip accessibility, and page transitions. The key finding is that **no new npm packages are needed** for any of the backend work. The existing `pg` Pool (v8.16.3) has all the configuration options required for resilient reconnection, and Express/Node.js provides everything needed for graceful shutdown natively. On the Flutter side, the built-in `Tooltip` widget and `PageRouteBuilder` class handle both features without additional packages.
+
+This is a "configuration and patterns" milestone, not a "new dependencies" milestone.
 
 ---
 
-## 1. Security Scanning & Auditing
+## 1. Resilient Database Pool (Backend)
 
-### Recommended Tools
+### Recommended Approach: Enhanced pg Pool Configuration
 
 | Technology | Version | Purpose | Why | Confidence |
 |------------|---------|---------|-----|------------|
-| **Snyk CLI** | ^1.1302.0+ | Dependency & code vulnerability scanning | Developer-first, supports SAST + SCA, Yarn 4/pnpm support, CI/CD integration | HIGH |
-| **npm audit** | (built-in) | Quick dependency vulnerability check | Zero-config baseline, catches known CVEs | HIGH |
-| **eslint-plugin-security** | ^3.0.1 | Static code security linting | Catches common Node.js security anti-patterns | HIGH |
-| **Socket.dev** | (online) | Pre-install package vetting | Flags network access, install scripts, obfuscated code | MEDIUM |
+| **pg (Pool)** | ^8.16.3 (current) | Connection pooling | Already in stack; has all needed resilience features built-in since v8.12+ | HIGH |
 
-**Rationale:**
+**No new packages needed.** The `pg` Pool already handles:
+- Automatic eviction of dead connections (via `pool.on('error')` -- connections that error while idle are automatically removed from the pool)
+- Lazy connection creation on next `pool.query()` or `pool.connect()`
+- Connection lifetime management via `maxLifetimeSeconds` (prevents Railway/GKE 60-minute connection resets)
+- Pool exhaustion protection via `connectionTimeoutMillis`
 
-The npm ecosystem saw 2,168+ malicious package reports in 2024, with 56% designed for data exfiltration in Q1 2025. A dating app handling location, photos, and intimate messages is a high-value target. Multi-layer security scanning is essential.
+### Current State (What Exists)
 
-**Why Snyk over alternatives:**
-- **vs npm audit alone**: Snyk provides SAST (code analysis), not just SCA (dependency scanning)
-- **vs SonarQube**: SonarQube requires self-hosting; Snyk is SaaS with free tier
-- **vs Semgrep**: Snyk has better Node.js/TypeScript coverage out-of-box
-- Snyk Code finds vulnerabilities in custom code (XSS, injection, auth bypass)
-- Supports lockfile v3, Yarn 4, pnpm (recent additions in v1.1302.0)
+All three services use identical pool config:
 
-**eslint-plugin-security catches:**
-- `detect-eval-with-expression` - eval() with user input
-- `detect-non-literal-fs-filename` - path traversal risks
-- `detect-no-csrf-before-method-override` - CSRF vulnerabilities
-- `detect-possible-timing-attacks` - timing attacks in auth
+```typescript
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+  ssl: process.env.DATABASE_URL?.includes('railway')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
-**Implementation:**
-
-```bash
-# Install security tooling (each service)
-npm install -D eslint-plugin-security@^3.0.1 snyk@latest
-
-# Add to CI pipeline
-npm audit --audit-level=high
-npx snyk test --severity-threshold=high
-npx snyk code test
-
-# Pre-commit check (package.json scripts)
-"lint:security": "eslint --plugin security --ext .ts src/"
+pool.on('error', (err, client) => {
+  logger.error('Unexpected database connection error', { error: err.message, stack: err.stack });
+});
 ```
 
-**ESLint flat config (eslint.config.js):**
+### What to Add
 
-```javascript
-import pluginSecurity from 'eslint-plugin-security';
+```typescript
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: parseInt(process.env.DATABASE_POOL_MAX || '20', 10),
+  min: parseInt(process.env.DATABASE_POOL_MIN || '2', 10),                    // NEW: Warm pool prevents cold-start latency
+  idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
+  connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT_MS || '5000', 10), // CHANGED: 2s -> 5s for Railway cold starts
+  maxLifetimeSeconds: parseInt(process.env.DATABASE_MAX_LIFETIME_S || '1800', 10),            // NEW: 30min, forces rotation before Railway timeouts
+  allowExitOnIdle: false,                                                      // NEW: Keep pool alive even when idle
+  ssl: process.env.DATABASE_URL?.includes('railway')
+    ? { rejectUnauthorized: false }
+    : false,
+});
+```
 
-export default [
-  pluginSecurity.configs.recommended,
-  // ... other configs
+Key changes:
+1. **`min: 2`** -- Keeps 2 warm connections to avoid cold-start latency on first request after idle period
+2. **`connectionTimeoutMillis: 5000`** -- Increase from 2s to 5s; Railway cold starts can take 3-4s
+3. **`maxLifetimeSeconds: 1800`** -- Force connection rotation every 30 minutes; prevents stale connections from Railway infrastructure resets (60-min timeout documented in cloud PostgreSQL providers)
+4. **`allowExitOnIdle: false`** -- Prevents Node.js event loop from exiting when all connections are idle (important for long-running services)
+
+### Query Retry Wrapper
+
+For handling transient connection failures during Railway deploys or database restarts, add a retry wrapper to `backend/shared/`:
+
+```typescript
+// backend/shared/src/utils/resilient-pool.ts
+import { Pool, PoolConfig, QueryResult, QueryResultRow } from 'pg';
+import logger from './logger';
+
+const RETRYABLE_ERROR_CODES = [
+  '57P01', // admin_shutdown
+  '57P02', // crash_shutdown
+  '57P03', // cannot_connect_now
+  '08000', // connection_exception
+  '08003', // connection_does_not_exist
+  '08006', // connection_failure
+  '08001', // sqlclient_unable_to_establish_sqlconnection
+  '08004', // sqlserver_rejected_establishment_of_sqlconnection
 ];
-```
 
-**Sources:**
-- [Snyk npm package](https://www.npmjs.com/package/snyk)
-- [Snyk Product Updates](https://updates.snyk.io/)
-- [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security)
-- [Geekflare Node.js Security Tools](https://geekflare.com/nodejs-security-scanner/)
-- [npm Security Guide](https://blog.cyberdesserts.com/npm-security-vulnerabilities/)
+export async function queryWithRetry<T extends QueryResultRow = any>(
+  pool: Pool,
+  text: string,
+  params?: any[],
+  maxRetries = 3,
+  baseDelayMs = 100
+): Promise<QueryResult<T>> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await pool.query<T>(text, params);
+    } catch (err: any) {
+      const isRetryable = RETRYABLE_ERROR_CODES.includes(err.code) ||
+        err.message?.includes('Connection terminated') ||
+        err.message?.includes('connection refused') ||
+        err.message?.includes('ECONNRESET');
 
----
+      if (!isRetryable || attempt === maxRetries) {
+        throw err;
+      }
 
-## 2. Testing Frameworks
-
-### Backend Testing (Node.js/TypeScript)
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Jest** | ^29.7.0 | Unit & integration testing | Already in stack, fast, excellent TypeScript support | HIGH |
-| **Supertest** | ^7.1.4 | HTTP API testing | Already in stack, integrates seamlessly with Jest | HIGH |
-| **testcontainers** | ^10.x | Integration test containers | Spin up real PostgreSQL/Redis for tests, ensures parity with production | HIGH |
-
-**Note:** Jest and Supertest are already installed across all services. Focus on improving coverage and adding integration tests with real databases.
-
-**Coverage targets (update jest config):**
-
-```json
-"coverageThreshold": {
-  "global": {
-    "branches": 70,
-    "functions": 70,
-    "lines": 70,
-    "statements": 70
+      const delay = baseDelayMs * Math.pow(2, attempt - 1); // Exponential backoff: 100ms, 200ms, 400ms
+      logger.warn('Retrying database query after transient error', {
+        attempt,
+        maxRetries,
+        errorCode: err.code,
+        errorMessage: err.message,
+        delayMs: delay,
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+  throw new Error('Unreachable');
 }
 ```
 
-**Why testcontainers:**
-- Mocking PostgreSQL/Redis leads to false confidence
-- testcontainers spins up actual containers for tests
-- Tests match production behavior exactly
-- Clean slate per test run
+### Alternatives Considered
 
-### Frontend Testing (Flutter)
+| Option | Recommended | Alternative | Why Not |
+|--------|-------------|-------------|---------|
+| Connection pooling | `pg` Pool (built-in) | `postgres-pool` npm package | postgres-pool adds retry features but is a less-maintained fork (last updated 2023); pg Pool's built-in eviction + our retry wrapper achieves the same result without adding a dependency |
+| Connection pooling | `pg` Pool | PgBouncer (external) | Railway recommends PgBouncer for "more important use cases," but with 3 services at max 20 connections each = 60 total, well within PostgreSQL's default 100 limit. PgBouncer adds operational complexity (separate service to deploy/monitor) for no benefit at beta scale |
+| Pool wrapper | Custom retry wrapper | `knex` ORM with retry | Would require rewriting all ~200+ raw SQL queries. Massive scope creep for a config improvement |
 
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **flutter_test** | (SDK) | Unit & widget testing | Built-in, fast, excellent widget testing | HIGH |
-| **Patrol** | ^3.11.0 | E2E/integration testing | Flutter-first, handles native UI (permissions, notifications) | HIGH |
-| **integration_test** | (SDK) | Basic integration testing | Built-in, but limited native interaction | MEDIUM |
+### Health Check Integration
 
-**Why Patrol over alternatives:**
-
-Patrol is the recommended E2E testing framework for Flutter apps with native interactions. Key advantages:
-- Interacts with native permission dialogs, notifications, WebViews
-- Written in pure Dart (vs Maestro's YAML)
-- Uses UIAutomator (Android) and XCUITest (iOS) under the hood
-- Supports Firebase Test Lab, BrowserStack, LambdaTest
-- Hot restart support for faster test development
-
-**vs flutter integration_test:** Built-in integration_test cannot interact with platform dialogs. A dating app needs to test:
-- Location permission flows
-- Push notification permission
-- Camera/photo library permissions
-- OAuth login WebViews
-
-Patrol handles all of these from Dart code.
-
-**Installation:**
-
-```yaml
-# pubspec.yaml
-dev_dependencies:
-  patrol: ^3.11.0
-```
-
-```bash
-# Install patrol_cli
-dart pub global activate patrol_cli
-```
-
-**Minimum requirements:**
-- Flutter SDK >= 3.24.0
-- Dart SDK >= 3.5.0
-
-**Coverage reporting:**
-
-```bash
-# Generate coverage
-flutter test --coverage
-
-# Generate HTML report (requires lcov)
-genhtml coverage/lcov.info -o coverage/html
-
-# CI integration with Codecov/SonarQube
-# SonarQube: set sonar.dart.lcov.reportPaths=coverage/lcov.info
-```
-
-**Sources:**
-- [Patrol documentation](https://patrol.leancode.co/)
-- [Patrol pub.dev](https://pub.dev/packages/patrol)
-- [Flutter Test Coverage Guide](https://codewithandrea.com/articles/flutter-test-coverage/)
-- [Allure for Flutter Test Reports](https://www.verygood.ventures/blog/elevating-flutter-test-reports-with-allure)
-
----
-
-## 3. Monitoring & Alerting
-
-### Application Performance Monitoring (APM)
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Sentry** | ^10.34.0 | Error tracking & APM | Already integrated (@sentry/node), excellent Node.js support, continuous profiling | HIGH |
-| **Railway Metrics** | (platform) | Infrastructure metrics | Built-in, zero-config, CPU/memory/network | HIGH |
-| **Railway Alerts** | (platform) | Threshold-based alerting | Sends to Slack/Discord/email when conditions met | HIGH |
-
-**Why keep Sentry (already in stack):**
-
-Sentry is already installed in all three backend services (`@sentry/node: ^10.25.0`). Upgrade to latest (^10.34.0) for:
-- Vercel AI SDK v6 support
-- GraphQL persisted operations support
-- Continuous profiling (no time limits)
-- OpenTelemetry integration
-
-**Sentry configuration for production:**
+The existing `/health` endpoints already check pool connectivity via `pool.query('SELECT 1')`. Enhance to report pool metrics:
 
 ```typescript
-import * as Sentry from '@sentry/node';
+app.get('/health', async (req, res) => {
+  const health = { /* existing fields */ };
 
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.2,  // 20% of transactions for APM
-  profilesSampleRate: 0.1, // 10% of transactions for profiling
-  integrations: [
-    Sentry.httpIntegration(),
-    Sentry.expressIntegration(),
-    Sentry.postgresIntegration(),
-    Sentry.redisIntegration(),
-  ],
-});
-```
-
-**Railway alerting setup:**
-
-Railway provides built-in monitoring with alerts to Slack/Discord/email. Configure thresholds:
-- CPU > 80% for 5 minutes
-- Memory > 85%
-- Response time p95 > 2s
-- Error rate > 1%
-
-**Webhook integration for custom alerts:**
-
-```
-Deployment state changes -> Slack/Discord webhook
-Custom events -> Railway webhooks with auto-transform
-```
-
-### Uptime Monitoring
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Better Uptime** | (SaaS) | External uptime checks | Simple, free tier, integrates with incident management | MEDIUM |
-| **StatusGator** | (SaaS) | Railway status aggregation | Monitors Railway platform status, proactive alerts | LOW |
-
-**Sources:**
-- [Sentry Node.js SDK](https://docs.sentry.io/platforms/node/)
-- [@sentry/node npm](https://www.npmjs.com/package/@sentry/node)
-- [Railway Monitoring Docs](https://docs.railway.com/guides/monitoring)
-- [Better Stack Node.js APM Comparison](https://betterstack.com/community/comparisons/nodejs-application-monitoring-tools/)
-- [Sentry Alternatives Comparison](https://last9.io/blog/the-best-sentry-alternatives/)
-
----
-
-## 4. GDPR Compliance Tooling
-
-### Data Subject Request (DSAR) Implementation
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Custom DSAR API** | N/A | Handle access/deletion requests | Core GDPR requirement, must be built in-house | HIGH |
-| **gdpr-subject-rights-api** | (OpenAPI spec) | API design reference | F-Secure open-source spec for DSAR endpoints | MEDIUM |
-
-**GDPR requirements for dating apps:**
-
-GDPR enforcement intensified with 2,245 fines totaling 5.65B EUR by March 2025. Dating apps with sensitive data (location, photos, messages, After Hours Mode content) face heightened scrutiny.
-
-**Required capabilities:**
-1. **Right of Access** - Export all user data within 30 days
-2. **Right to Erasure** - Delete all user data on request
-3. **Right to Rectification** - Allow users to correct data
-4. **Data Portability** - Export in machine-readable format (JSON)
-5. **Consent Management** - Track and honor consent choices
-
-**API endpoints to implement:**
-
-```typescript
-// DSAR endpoints (auth-service or dedicated service)
-POST   /api/v1/dsar/access-request    // Request data export
-GET    /api/v1/dsar/access-request/:id // Check request status
-POST   /api/v1/dsar/deletion-request  // Request account deletion
-GET    /api/v1/dsar/deletion-request/:id
-GET    /api/v1/me/data-export        // Immediate data download
-DELETE /api/v1/me/account            // Self-service deletion
-
-// Response within 30 days (extendable to 90 for complex cases)
-```
-
-### Data Encryption
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **pgcrypto** | (PostgreSQL extension) | Column-level encryption | Encrypt sensitive fields (messages, exact location) | HIGH |
-| **Node.js crypto** | (built-in) | Application-level encryption | Encrypt before database storage | HIGH |
-
-**Encryption strategy:**
-
-```
-Storage-level:  Railway PostgreSQL has encryption at rest (platform level)
-Application-level: Encrypt sensitive columns before INSERT
-                   - exact_latitude/exact_longitude (store fuzzed in clear)
-                   - after_hours_messages.content
-                   - Any PII beyond profile basics
-```
-
-**Application-level encryption pattern:**
-
-```typescript
-import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-
-const ALGORITHM = 'aes-256-gcm';
-const KEY = Buffer.from(process.env.ENCRYPTION_KEY!, 'hex'); // 32 bytes
-
-export function encrypt(plaintext: string): { ciphertext: string; iv: string; tag: string } {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv(ALGORITHM, KEY, iv);
-  let ciphertext = cipher.update(plaintext, 'utf8', 'hex');
-  ciphertext += cipher.final('hex');
-  return {
-    ciphertext,
-    iv: iv.toString('hex'),
-    tag: cipher.getAuthTag().toString('hex'),
+  // Add pool metrics
+  health.checks.pool = {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
   };
+
+  // Pool exhaustion warning
+  if (pool.waitingCount > 0) {
+    health.status = 'degraded';
+    logger.warn('Database pool has waiting clients', {
+      waiting: pool.waitingCount,
+      total: pool.totalCount,
+      idle: pool.idleCount,
+    });
+  }
+});
+```
+
+### Sources
+
+- [node-postgres Pool API](https://node-postgres.com/apis/pool) -- Official docs confirming `maxLifetimeSeconds`, `min`, `allowExitOnIdle` config options, pool event semantics
+- [node-postgres Issue #1324: Reconnection handling](https://github.com/brianc/node-postgres/issues/1324) -- Confirms pool auto-evicts errored idle clients
+- [node-postgres Issue #2027: maxLifetimeSeconds](https://github.com/brianc/node-postgres/issues/2027) -- Feature addition for connection rotation
+- [Railway Database Connection Pooling Guide](https://blog.railway.com/p/database-connection-pooling) -- Railway's own recommendations
+- [Connection Pooling Best Practices 2026](https://oneuptime.com/blog/post/2026-01-06-nodejs-connection-pooling-postgresql-mysql/view) -- Production pool config patterns
+
+---
+
+## 2. Graceful Shutdown (Backend)
+
+### Recommended Approach: Native Node.js Pattern (No Library)
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Node.js http.Server.close()** | (built-in) | Stop accepting connections | Native, zero dependencies, recommended by Express official docs | HIGH |
+| **pg Pool.end()** | ^8.16.3 (current) | Drain connection pool | Built into pg, waits for active queries to complete | HIGH |
+
+**No new packages needed.** The official [Express graceful shutdown documentation](https://expressjs.com/en/advanced/healthcheck-graceful-shutdown.html) explicitly recommends the native `server.close()` pattern without any third-party library.
+
+### Current State
+
+| Service | Has Shutdown Handler | Closes Server | Drains Pool | Closes Jobs |
+|---------|---------------------|---------------|-------------|-------------|
+| auth-service | NO | NO | NO | N/A |
+| profile-service | YES (partial) | NO | NO | YES (schedulers) |
+| chat-service | YES (partial) | YES | NO | YES (cleanup job) |
+
+**Critical gaps:**
+- **auth-service** has no shutdown handler at all
+- **profile-service** closes schedulers but not the HTTP server or pool
+- **chat-service** closes the HTTP server but not the pool
+- **None** of the services call `pool.end()` -- connections are orphaned on every Railway deploy
+
+### Implementation Pattern
+
+Create a shared utility in `backend/shared/`:
+
+```typescript
+// backend/shared/src/utils/graceful-shutdown.ts
+import { Server } from 'http';
+import { Pool } from 'pg';
+import logger from './logger';
+
+interface ShutdownOptions {
+  server: Server;
+  pool: Pool;
+  timeoutMs?: number;
+  onShutdown?: () => Promise<void>; // Custom cleanup (close schedulers, Redis, etc.)
+}
+
+export function setupGracefulShutdown(options: ShutdownOptions): void {
+  const { server, pool, timeoutMs = 15000, onShutdown } = options;
+  let isShuttingDown = false;
+
+  const shutdown = async (signal: string) => {
+    if (isShuttingDown) return; // Prevent double shutdown
+    isShuttingDown = true;
+
+    logger.info(`${signal} received, starting graceful shutdown...`);
+
+    // Force exit after timeout
+    const forceTimer = setTimeout(() => {
+      logger.error('Graceful shutdown timed out, forcing exit');
+      process.exit(1);
+    }, timeoutMs);
+    forceTimer.unref(); // Don't keep process alive just for this timer
+
+    try {
+      // 1. Stop accepting new connections
+      await new Promise<void>((resolve) => {
+        server.close(() => {
+          logger.info('HTTP server closed, no longer accepting connections');
+          resolve();
+        });
+      });
+
+      // 2. Run custom cleanup (schedulers, Redis, etc.)
+      if (onShutdown) {
+        await onShutdown();
+        logger.info('Custom cleanup completed');
+      }
+
+      // 3. Drain database pool (waits for active queries)
+      await pool.end();
+      logger.info('Database pool drained');
+
+      process.exit(0);
+    } catch (err) {
+      logger.error('Error during graceful shutdown', {
+        error: err instanceof Error ? err.message : 'Unknown',
+      });
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 ```
 
-### GDPR-Compliant Logging
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Winston** | ^3.18.3 | Structured logging | Already in stack, supports log rotation | HIGH |
-
-**GDPR logging requirements:**
-- Never log PII in plain text (user IDs OK, emails/names NOT OK)
-- Implement log rotation (30-day retention max for non-audit logs)
-- Anonymize/pseudonymize before logging
-- Encrypt logs at rest
-
-**Sources:**
-- [GDPR Subject Rights API (F-Secure)](https://github.com/F-Secure/gdpr-subject-rights-api)
-- [API Data Protection GDPR Guide](https://complydog.com/blog/api-data-protection-developers-gdpr-implementation-guide)
-- [GDPR Compliance Software Comparison](https://sprinto.com/blog/gdpr-compliance-software/)
-- [GDPR-Compliant Logging Checklist](https://www.bytehide.com/blog/gdpr-compliant-logging-a-javascript-developers-checklist)
-- [PostgreSQL Encryption Best Practices](https://www.enterprisedb.com/postgresql-best-practices-encryption-monitoring)
-
----
-
-## 5. Database Backup Solutions
-
-### Railway PostgreSQL Backups
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Railway Postgres Daily Backups** | (template) | Automated daily backups | Official template, version-aware pg_dump, retention policies | HIGH |
-| **PostgreSQL S3 Backups** | (template) | Backup to Cloudflare R2 | Compatible with R2 (already used for photos), TypeScript-based | HIGH |
-
-**Why use Railway templates:**
-
-Railway provides official templates that:
-- Auto-detect PostgreSQL version (15-17)
-- Use correct pg_dump version for compatibility
-- Organize backups with date-based directories
-- Include Prometheus metrics for monitoring
-- Support respawn protection (prevent excessive backups)
-- Allow custom retention policies
-
-**Recommended setup:**
-
-Since VLVT already uses Cloudflare R2 for photo storage, use the same bucket (or separate backup bucket) for database backups.
-
-**Configuration:**
-
-```
-BACKUP_DATABASE_URL=postgresql://...  # Railway connection string
-BACKUP_CRON_EXPRESSION=0 3 * * *      # Daily at 3 AM UTC
-AWS_S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
-AWS_S3_BUCKET=vlvt-backups
-AWS_ACCESS_KEY_ID=<R2 access key>
-AWS_SECRET_ACCESS_KEY=<R2 secret>
-BACKUP_RETENTION_DAYS=30
-```
-
-**Restoration process:**
-
-```bash
-# Download and decompress backup
-gunzip backup-2026-01-24.tar.gz
-
-# Restore to database
-pg_restore -d $DATABASE_URL backup-2026-01-24.tar
-```
-
-**Point-in-time recovery (PITR):**
-
-Railway's managed PostgreSQL includes WAL archiving for point-in-time recovery on higher tiers. For beta launch, daily backups with 30-day retention is sufficient.
-
-**Sources:**
-- [Railway PostgreSQL Backup Guide](https://blog.railway.com/p/postgre-backup)
-- [Automated PostgreSQL Backups](https://blog.railway.com/p/automated-postgresql-backups)
-- [postgres-s3-backups template](https://github.com/railwayapp-templates/postgres-s3-backups)
-
----
-
-## 6. Logging Best Practices
-
-### Recommended Stack
-
-| Technology | Version | Purpose | Why | Confidence |
-|------------|---------|---------|-----|------------|
-| **Winston** | ^3.18.3 | Structured logging | Already in stack, mature, flexible transports | HIGH |
-| **OR Pino** | ^9.x | High-performance logging | 5-10x faster than Winston, JSON-native, better for high-throughput | HIGH |
-
-**Winston vs Pino decision:**
-
-- **Keep Winston if:** Existing logging works, you need multiple transports (file, console, external), flexibility is priority
-- **Switch to Pino if:** Performance is critical, you prefer JSON-first approach, microservices need minimal logging overhead
-
-**Recommendation:** Keep Winston for now (already integrated), but configure it properly for production.
-
-### Production Logging Configuration
-
-**Winston configuration (recommended):**
+**Usage per service:**
 
 ```typescript
-import winston from 'winston';
+// auth-service/src/index.ts
+import { setupGracefulShutdown } from '@vlvt/shared';
 
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
+const server = app.listen(PORT, () => { ... });
+
+setupGracefulShutdown({
+  server,
+  pool,
+  timeoutMs: 15000,
+});
+```
+
+```typescript
+// profile-service/src/index.ts
+setupGracefulShutdown({
+  server,
+  pool,
+  timeoutMs: 15000,
+  onShutdown: async () => {
+    await closeMatchingScheduler();
+    await closeSessionScheduler();
+    await closeSessionCleanupJob();
+  },
+});
+```
+
+```typescript
+// chat-service/src/index.ts
+setupGracefulShutdown({
+  server: httpServer,
+  pool,
+  timeoutMs: 15000,
+  onShutdown: async () => {
+    await closeMessageCleanupJob();
+    // Socket.IO closes automatically with server.close()
+  },
+});
+```
+
+### Alternatives Considered
+
+| Option | Recommended | Alternative | Why Not |
+|--------|-------------|-------------|---------|
+| Shutdown handler | Custom shared utility | `http-terminator` (v3.2.0) | Last published 4+ years ago. It tracks individual socket connections and sends `Connection: close` headers, which is useful for long-lived HTTP/1.1 keep-alive connections. But Railway's proxy layer already handles this. Adding a dependency for no benefit. |
+| Shutdown handler | Custom shared utility | `lightship` | Designed for Kubernetes readiness/liveness probes. VLVT uses Railway, which has its own health check mechanism via the existing `/health` endpoint. Lightship adds a separate HTTP server (extra port, extra complexity) for a problem already solved. |
+| Shutdown handler | Custom shared utility | `http-graceful-shutdown` | More recent (v4.x) but still a wrapper around `server.close()` + timeout. The 30-line shared utility above does the same thing with zero dependencies. |
+
+### Shutdown Order
+
+The order matters to prevent errors:
+
+```
+1. SIGTERM received
+2. server.close()         -- Stop accepting NEW requests (in-flight complete)
+3. Custom cleanup         -- Close schedulers, background jobs, Redis
+4. pool.end()             -- Wait for active queries, then close all connections
+5. process.exit(0)        -- Clean exit
+```
+
+If `pool.end()` is called before `server.close()`, in-flight requests will fail with connection errors.
+
+### Sources
+
+- [Express Official: Health Checks and Graceful Shutdown](https://expressjs.com/en/advanced/healthcheck-graceful-shutdown.html) -- Recommends native `server.close()` pattern, no third-party libraries
+- [Graceful Shutdown in Express](https://www.codeconcisely.com/posts/graceful-shutdown-in-express/) -- Detailed pattern with connection tracking
+- [Node.js Graceful Shutdown Handler 2026](https://oneuptime.com/blog/post/2026-01-06-nodejs-graceful-shutdown-handler/view) -- Modern patterns with timeout protection
+- [http-terminator npm](https://www.npmjs.com/package/http-terminator) -- Evaluated and rejected (stale, unnecessary for Railway)
+
+---
+
+## 3. Flutter Tooltip Accessibility
+
+### Recommended Approach: IconButton.tooltip Property
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **Flutter Tooltip** | (SDK, Flutter 3.38.3) | Screen reader labels for icon buttons | Built-in, serves as both visual tooltip and semantic label; single property change per button | HIGH |
+
+**No new packages needed.** The `IconButton` widget has a built-in `tooltip` property that simultaneously:
+1. Shows a visual tooltip on long-press/hover
+2. Provides a semantic label for TalkBack (Android) and VoiceOver (iOS)
+3. Adds the button to the accessibility tree with a descriptive label
+
+### Current State
+
+The project has **37 IconButton instances across 19 files**. Some already have tooltips (e.g., in design system widgets), but approximately 20 are missing them based on the milestone requirements.
+
+### Implementation Pattern
+
+**Simple case -- just add the tooltip property:**
+
+```dart
+// BEFORE (inaccessible)
+IconButton(
+  icon: const Icon(Icons.arrow_back),
+  onPressed: () => Navigator.pop(context),
+)
+
+// AFTER (accessible)
+IconButton(
+  icon: const Icon(Icons.arrow_back),
+  onPressed: () => Navigator.pop(context),
+  tooltip: 'Go back',
+)
+```
+
+**Dynamic state labels:**
+
+```dart
+IconButton(
+  icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+  onPressed: toggleFavorite,
+  tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+)
+```
+
+### Tooltip vs Semantics: When to Use Which
+
+| Widget Type | Use Tooltip | Use Semantics | Why |
+|-------------|-------------|---------------|-----|
+| `IconButton` | YES (via `tooltip:` property) | NO | Tooltip auto-provides semantic label; adding Semantics wrapper causes duplicate announcements in TalkBack |
+| `FloatingActionButton` | YES (via `tooltip:` property) | NO | Same as IconButton |
+| `PopupMenuButton` | YES (via `tooltip:` property) | NO | Same as IconButton |
+| Custom `GestureDetector` | NO | YES (wrap in Semantics) | No built-in tooltip support |
+| `Container` with `onTap` | NO | YES (wrap in Semantics) | Not semantically a button |
+
+**IMPORTANT: Do NOT wrap IconButtons in Semantics widgets.** This creates duplicate announcements where TalkBack reads the custom semantics AND then separately announces the IconButton -- confusing for screen reader users.
+
+### Known Issue: Android TalkBack (Flutter Issue #167174)
+
+There is an open P2 issue ([flutter/flutter#167174](https://github.com/flutter/flutter/issues/167174)) where TalkBack in certain Android versions does not read IconButton tooltips. Found in Flutter 3.29 and 3.32. A recent comment suggests it works in TalkBack v16+.
+
+**Mitigation:** The issue affects older TalkBack versions on specific Android builds. For VLVT's beta launch:
+1. The tooltip approach is still correct (it's how Flutter's accessibility is designed to work)
+2. Test with both TalkBack and VoiceOver during beta validation
+3. If TalkBack fails on beta devices, the fallback is adding `Semantics(label: '...', child: IconButton(...))` -- but only add this if testing confirms the issue on target devices
+
+### Tooltip Text Guidelines
+
+For a dating app, tooltip text should be:
+- **Action-oriented**: "Send message" not "Message button"
+- **Context-aware**: "View John's profile" not just "View profile" (when name is available)
+- **Concise**: 2-4 words maximum
+- **State-reflecting**: "Unmute notifications" vs "Mute notifications" based on current state
+
+### Sources
+
+- [Flutter Tooltip API](https://api.flutter.dev/flutter/material/Tooltip-class.html) -- Confirms tooltip provides semantic label for screen readers
+- [Practical Accessibility in Flutter (DCM, 2025)](https://dcm.dev/blog/2025/06/30/accessibility-flutter-practical-tips-tools-code-youll-actually-use) -- Recommends tooltip as primary approach for IconButton accessibility
+- [Flutter Accessibility: Assistive Technologies](https://docs.flutter.dev/ui/accessibility/assistive-technologies) -- Official Flutter accessibility docs
+- [Flutter Issue #167174: TalkBack tooltip reading](https://github.com/flutter/flutter/issues/167174) -- Open P2 issue with TalkBack, status tracking
+- [Flutter Tooltip Semantics Order Breaking Change](https://docs.flutter.dev/release/breaking-changes/tooltip-semantics-order) -- Tooltip semantics ordering was changed in recent Flutter versions
+
+---
+
+## 4. Flutter Page Transitions
+
+### Recommended Approach: Custom VlvtPageRoute/VlvtFadeRoute (PageRouteBuilder)
+
+| Technology | Version | Purpose | Why | Confidence |
+|------------|---------|---------|-----|------------|
+| **PageRouteBuilder** | (SDK, Flutter 3.38.3) | Custom page transitions | Built-in, zero dependencies, full control over animations, composable | HIGH |
+
+**No new packages needed.** The `page_transition` pub.dev package (last updated Dec 2024) wraps `PageRouteBuilder` with convenience presets, but adds a dependency for something achievable in ~40 lines of code. Since the milestone calls for exactly two transition types (slide and fade), custom route builders are the right call.
+
+### Current State
+
+All navigation uses `MaterialPageRoute` (13 files, ~20+ navigation calls). This gives platform-default transitions (zoom on Android since Flutter 3.x, slide from right on iOS).
+
+### Implementation Pattern
+
+Create reusable route builders in the design system:
+
+```dart
+// lib/widgets/vlvt_page_route.dart
+
+import 'package:flutter/material.dart';
+
+/// Slide-up transition for detail screens (profiles, chats, settings)
+class VlvtPageRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+
+  VlvtPageRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionDuration: const Duration(milliseconds: 300),
+          reverseTransitionDuration: const Duration(milliseconds: 250),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final tween = Tween(
+              begin: const Offset(1.0, 0.0), // Slide from right
+              end: Offset.zero,
+            ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: child,
+            );
+          },
+        );
+}
+
+/// Fade transition for lateral navigation (tabs, overlays)
+class VlvtFadeRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+
+  VlvtFadeRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionDuration: const Duration(milliseconds: 200),
+          reverseTransitionDuration: const Duration(milliseconds: 150),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurveTween(curve: Curves.easeIn).animate(animation),
+              child: child,
+            );
+          },
+        );
+}
+```
+
+**Usage (replacing MaterialPageRoute calls):**
+
+```dart
+// BEFORE
+Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(match: entry.match!)));
+
+// AFTER
+Navigator.push(context, VlvtPageRoute(page: ChatScreen(match: entry.match!)));
+```
+
+### Transition Assignment Strategy
+
+| Screen Type | Transition | Rationale |
+|-------------|------------|-----------|
+| Detail screens (ChatScreen, ProfileDetailScreen, ProfileEditScreen) | `VlvtPageRoute` (slide from right) | Standard detail-push pattern, consistent with iOS/Material conventions |
+| Modal screens (PaywallScreen, SafetySettingsScreen) | `VlvtPageRoute` (slide from right) | Pushes onto navigation stack |
+| Overlays/lateral (search, filters) | `VlvtFadeRoute` (crossfade) | Not a hierarchical navigation; feels like a layer appearing |
+| Auth flow screens (RegisterScreen) | `VlvtFadeRoute` (crossfade) | Soft transition for signup flow |
+
+### Alternative: Global PageTransitionsTheme
+
+Flutter also supports setting page transitions globally via `ThemeData.pageTransitionsTheme`:
+
+```dart
+MaterialApp(
+  theme: ThemeData(
+    pageTransitionsTheme: PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: ZoomPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
   ),
-  defaultMeta: {
-    service: 'auth-service',
-    version: process.env.npm_package_version
-  },
-  transports: [
-    new winston.transports.Console({
-      format: process.env.NODE_ENV === 'production'
-        ? winston.format.json()
-        : winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          )
-    })
-  ]
-});
-
-// Add correlation ID middleware
-export function correlationMiddleware(req, res, next) {
-  req.correlationId = req.headers['x-correlation-id'] || crypto.randomUUID();
-  res.setHeader('x-correlation-id', req.correlationId);
-  next();
-}
+)
 ```
 
-**Best practices:**
+**Why NOT use this approach:**
+- It applies the same transition to ALL routes -- we want different transitions for different screen types (slide for detail, fade for lateral)
+- It only works with `MaterialPageRoute`, not `PageRouteBuilder`
+- Less explicit about what transition each navigation uses
 
-1. **Use structured JSON in production** - Railway log aggregation works best with JSON
-2. **Include correlation IDs** - Trace requests across services
-3. **Log levels:**
-   - ERROR: Failures requiring attention
-   - WARN: Degraded but functional
-   - INFO: Significant events (auth, key actions)
-   - DEBUG: Development troubleshooting only
-4. **Never log:**
-   - Passwords, tokens, API keys
-   - Full email addresses (log domain only)
-   - Exact location coordinates (log city/area)
-   - Message content
+### Alternatives Considered
 
-**Sources:**
-- [Node.js Logging Best Practices](https://betterstack.com/community/guides/logging/nodejs-logging-best-practices/)
-- [Pino vs Winston Comparison](https://betterstack.com/community/comparisons/pino-vs-winston/)
-- [Node.js Logging Libraries 2025](https://last9.io/blog/node-js-logging-libraries/)
+| Option | Recommended | Alternative | Why Not |
+|--------|-------------|-------------|---------|
+| Custom VlvtPageRoute/VlvtFadeRoute | YES | `page_transition` package | Adds dependency for 2 transitions we can build in 40 lines. Last updated Dec 2024. We need only 2 transition types. |
+| Custom VlvtPageRoute/VlvtFadeRoute | YES | `PageTransitionsTheme` (global) | Cannot have different transitions for different screen types. Too blunt for our needs. |
+| Custom VlvtPageRoute/VlvtFadeRoute | YES | `go_router` with transitions | Would require rewriting all navigation. Massive scope creep. |
+
+### Sources
+
+- [Flutter Cookbook: Page Route Animation](https://docs.flutter.dev/cookbook/animation/page-route-animation) -- Official PageRouteBuilder pattern with SlideTransition example
+- [PageRouteBuilder API Reference](https://api.flutter.dev/flutter/widgets/PageRouteBuilder-class.html) -- API docs for pageBuilder and transitionsBuilder callbacks
+- [PageTransitionsTheme API](https://api.flutter.dev/flutter/material/PageTransitionsTheme-class.html) -- Global theme approach (evaluated and rejected for this use case)
+- [Default Android Page Transition Breaking Change](https://docs.flutter.dev/release/breaking-changes/default-android-page-transition) -- Documents the shift to PredictiveBackPageTransitionsBuilder
 
 ---
 
-## 7. JWT Security Hardening
+## 5. Version Compatibility Matrix
 
-### Current State & Recommendations
-
-| Aspect | Current | Recommended | Confidence |
-|--------|---------|-------------|------------|
-| **Algorithm** | HS256 (assumed) | RS256 or ES256 | HIGH |
-| **Access Token TTL** | Unknown | 15 minutes | HIGH |
-| **Refresh Token TTL** | Unknown | 7 days | HIGH |
-| **Token Rotation** | Unknown | Enabled | HIGH |
-
-**Why asymmetric algorithms (RS256/ES256):**
-
-For microservices architecture, asymmetric algorithms (RS256, ES256) are strongly recommended:
-- Private key stays with auth-service
-- Public key distributed to profile-service, chat-service for verification
-- No shared secrets across services
-- Easier key rotation via JWKS endpoints
-
-**Implementation pattern:**
-
-```typescript
-// auth-service: Sign with private key
-import jwt from 'jsonwebtoken';
-const privateKey = fs.readFileSync('private.pem');
-
-const accessToken = jwt.sign(
-  { userId, type: 'access' },
-  privateKey,
-  { algorithm: 'RS256', expiresIn: '15m' }
-);
-
-// profile-service/chat-service: Verify with public key
-const publicKey = fs.readFileSync('public.pem');
-// Or fetch from JWKS endpoint: https://auth.vlvt.app/.well-known/jwks.json
-
-jwt.verify(token, publicKey, { algorithms: ['RS256'] });
-```
-
-**Refresh token rotation:**
-
-```typescript
-// On refresh token use:
-// 1. Validate refresh token
-// 2. Issue new access token
-// 3. Issue NEW refresh token
-// 4. Invalidate OLD refresh token
-// 5. If old refresh token is reused: REVOKE ALL tokens for user (indicates theft)
-```
-
-**Sources:**
-- [JWT Security Best Practices 2025](https://jwt.app/blog/jwt-best-practices/)
-- [RS256 vs HS256 Comparison](https://supertokens.com/blog/rs256-vs-hs256)
-- [JWT Best Practices Checklist](https://curity.io/resources/learn/jwt-best-practices/)
-- [Refresh Token Rotation Guide](https://www.serverion.com/uncategorized/refresh-token-rotation-best-practices-for-developers/)
+| Existing Dependency | Current Version | Latest Available | Upgrade Needed? | Notes |
+|---------------------|-----------------|------------------|-----------------|-------|
+| `pg` | ^8.16.3 | 8.19.0 | Optional | v8.16.3 has all needed features (`maxLifetimeSeconds`, `min`, `allowExitOnIdle`). Upgrade for bug fixes if desired. |
+| `express` | ^5.1.0 | ^5.1.0 | No | Already on Express 5 |
+| `@types/pg` | ^8.15.6 | ^8.15.6 | No | Types up to date |
+| Flutter SDK | 3.38.3 | 3.38.3 | No | Latest stable. Has `SemanticsRole` API (added 3.32+), `Tooltip` improvements. |
 
 ---
 
-## 8. Socket.IO Security Checklist
+## 6. What NOT to Add
 
-### Production Hardening
-
-| Check | Status | Action |
-|-------|--------|--------|
-| **Upgrade adapter** | Required | Replace `socket.io-redis` with `@socket.io/redis-adapter` |
-| **Auth middleware** | Verify | Validate JWT on connection, not just on events |
-| **Rate limiting** | Verify | Limit events per connection per second |
-| **Input validation** | Verify | Validate all incoming event data |
-| **Room authorization** | Critical | Verify user belongs to room before join |
-
-**Socket.IO security implementation:**
-
-```typescript
-import { Server } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
-
-const io = new Server(server, {
-  cors: {
-    origin: ['https://vlvt.app'],
-    credentials: true
-  },
-  pingTimeout: 60000,
-  pingInterval: 25000
-});
-
-// Auth middleware - verify JWT on every connection
-io.use(async (socket, next) => {
-  const token = socket.handshake.auth.token;
-  try {
-    const decoded = await verifyJWT(token);
-    socket.data.userId = decoded.userId;
-    next();
-  } catch {
-    next(new Error('Authentication required'));
-  }
-});
-
-// Room authorization - verify before join
-socket.on('join:chat', async (roomId) => {
-  const isAuthorized = await checkRoomMembership(socket.data.userId, roomId);
-  if (!isAuthorized) {
-    socket.emit('error', { message: 'Not authorized' });
-    return;
-  }
-  socket.join(roomId);
-});
-```
-
-**Sources:**
-- [Socket.IO Security Best Practices](https://ably.com/topic/socketio)
-- [WebSocket Security Vulnerabilities](https://ably.com/topic/websocket-security)
+| Category | Avoid | Why |
+|----------|-------|-----|
+| **DB Pooling** | `postgres-pool` npm | Fork of pg-pool, less maintained, adds reconnection features we can implement ourselves in 50 lines |
+| **DB Pooling** | PgBouncer | Separate service to deploy/monitor. 60 connections (3 services x 20 max) is well within PostgreSQL limits. Overkill for beta. |
+| **DB Pooling** | `knex` or `sequelize` | ORM migration to get retry features = rewriting 200+ raw SQL queries. Absurd scope creep. |
+| **Shutdown** | `http-terminator` | Last published 4+ years ago. Tracks keep-alive sockets, but Railway's proxy handles this. 30 lines of custom code beats a stale dependency. |
+| **Shutdown** | `lightship` | Kubernetes-focused. Adds separate HTTP server for health probes. VLVT already has `/health` endpoints. |
+| **Shutdown** | `stoppable` | Abandoned. Simple wrapper around `server.close()` that we can write ourselves. |
+| **Transitions** | `page_transition` package | Dependency for something built into Flutter in 40 lines. Only need 2 transition types. |
+| **Transitions** | `go_router` | Would require rewriting all navigation to use named routes. Out of scope. |
+| **Accessibility** | `Semantics` wrapper on IconButtons | Creates duplicate screen reader announcements. IconButton's `tooltip` property already provides semantics. |
 
 ---
 
-## Installation Summary
+## 7. Installation Summary
 
-### Backend - All Services
+### Backend -- All 3 Services
 
 ```bash
-# Security scanning
-npm install -D snyk@latest eslint-plugin-security@^3.0.1
+# No new npm packages to install.
+# Changes are configuration-only to existing pg Pool setup.
+```
 
-# Testing (if adding testcontainers)
-npm install -D testcontainers@^10.0.0
+### Backend -- Shared Package
 
-# Socket.IO adapter upgrade (chat-service only)
-npm uninstall socket.io-redis
-npm install @socket.io/redis-adapter@^8.3.0
-
-# Update Sentry
-npm install @sentry/node@^10.34.0
+```bash
+# New files to create (no new dependencies):
+# backend/shared/src/utils/resilient-pool.ts    -- queryWithRetry helper
+# backend/shared/src/utils/graceful-shutdown.ts  -- setupGracefulShutdown helper
 ```
 
 ### Frontend
 
-```yaml
-# pubspec.yaml additions
-dev_dependencies:
-  patrol: ^3.11.0
+```bash
+# No new pub.dev packages to install.
+# New files to create:
+# lib/widgets/vlvt_page_route.dart  -- VlvtPageRoute and VlvtFadeRoute
 ```
 
-### CI/CD Pipeline Additions
+### Optional pg Upgrade
 
-```yaml
-# Add to Railway/GitHub Actions
-steps:
-  - name: Security Scan
-    run: |
-      npm audit --audit-level=high
-      npx snyk test --severity-threshold=high
-
-  - name: Test with Coverage
-    run: |
-      npm run test:coverage
-
-  - name: Flutter Tests
-    run: |
-      flutter test --coverage
-      patrol test
+```bash
+# If desired (each backend service):
+cd backend/auth-service && npm install pg@^8.19.0
+cd backend/profile-service && npm install pg@^8.19.0
+cd backend/chat-service && npm install pg@^8.19.0
 ```
 
 ---
 
-## What NOT to Use
+## 8. Integration Points with Existing Stack
 
-| Category | Avoid | Why |
-|----------|-------|-----|
-| **Security** | OWASP ZAP alone | Great for web apps, but VLVT is API + mobile; use Snyk for code |
-| **Testing** | Maestro | YAML-based, less Flutter-native than Patrol |
-| **Testing** | Appium | Heavy, complex setup, not Flutter-optimized |
-| **Monitoring** | Datadog | Expensive, overkill for beta; Sentry + Railway is sufficient |
-| **Monitoring** | New Relic | Cost prohibitive for startup, Sentry covers needs |
-| **Logging** | console.log | No structure, no levels, impossible to aggregate |
-| **Logging** | Bunyan | Unmaintained since 2021 |
-| **GDPR** | OneTrust | Enterprise pricing, overkill for beta; build minimal DSAR API |
-| **Backups** | Manual pg_dump | Error-prone, no monitoring, no retention policy |
+| New Capability | Integrates With | How |
+|----------------|-----------------|-----|
+| Resilient pool config | Existing `new Pool({...})` in each service's index.ts | Add `min`, `maxLifetimeSeconds`, `allowExitOnIdle` to existing config object |
+| Query retry wrapper | Existing `pool.query()` calls | Can be used selectively for critical operations (auth, matches) without touching every query |
+| Graceful shutdown | Existing `server.listen()` return value | Wrap with `setupGracefulShutdown()` call after server starts |
+| Graceful shutdown | Existing scheduler cleanup (profile-service, chat-service) | Pass existing `closeXxxScheduler()` functions via `onShutdown` callback |
+| Health check pool metrics | Existing `/health` endpoints | Add `pool.totalCount`/`idleCount`/`waitingCount` to existing health response |
+| Tooltip accessibility | Existing IconButton instances in 19 files | Add `tooltip: 'description'` property to each |
+| Page transitions | Existing `MaterialPageRoute(...)` calls in 13 files | Replace with `VlvtPageRoute(page: ...)` or `VlvtFadeRoute(page: ...)` |
+| Sentry error reporting | Existing Sentry setup in each service | Pool errors and shutdown events already flow through Winston logger; Sentry captures errors automatically |
 
 ---
 
@@ -643,49 +624,35 @@ steps:
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Security Scanning (Snyk) | HIGH | Verified via npm, official docs, recent 2025 updates |
-| Testing (Jest/Supertest) | HIGH | Already in stack, well-documented |
-| Testing (Patrol) | HIGH | Verified via pub.dev, active development, v3.11.0 recent |
-| Monitoring (Sentry) | HIGH | Already in stack, verified version ^10.34.0 |
-| Railway Alerting | HIGH | Verified via Railway docs |
-| GDPR Compliance | MEDIUM | Implementation patterns verified, specifics depend on legal review |
-| Database Backups | HIGH | Railway official templates, verified |
-| Logging (Winston) | HIGH | Already in stack, configuration patterns verified |
-| JWT Security | HIGH | Best practices well-documented, implementation straightforward |
+| pg Pool resilience | HIGH | Official docs confirm all config options. `maxLifetimeSeconds`, `min` verified in node-postgres API docs. |
+| Retry wrapper pattern | HIGH | Well-established pattern. PostgreSQL error codes are standardized. Exponential backoff is proven. |
+| Graceful shutdown | HIGH | Official Express docs recommend this exact pattern. `pool.end()` is in pg API docs. |
+| Tooltip accessibility | HIGH | Official Flutter docs + DCM practical guide both recommend `tooltip:` property. One caveat: TalkBack issue #167174 (P2, open) may affect some Android versions. |
+| Page transitions | HIGH | Official Flutter cookbook documents PageRouteBuilder pattern. SDK-native, no dependencies. |
 
 ---
 
 ## Sources Summary
 
-### Security
-- [Snyk npm](https://www.npmjs.com/package/snyk)
-- [eslint-plugin-security](https://github.com/eslint-community/eslint-plugin-security)
-- [Node.js Security Scanners](https://geekflare.com/nodejs-security-scanner/)
-- [npm Security Guide](https://blog.cyberdesserts.com/npm-security-vulnerabilities/)
+### Database Pooling
+- [node-postgres Pool API](https://node-postgres.com/apis/pool)
+- [node-postgres Issue #1324: Reconnection](https://github.com/brianc/node-postgres/issues/1324)
+- [node-postgres Issue #2027: maxLifetimeSeconds](https://github.com/brianc/node-postgres/issues/2027)
+- [Railway Database Connection Pooling](https://blog.railway.com/p/database-connection-pooling)
+- [pg npm package](https://www.npmjs.com/package/pg) (v8.19.0 latest)
 
-### Testing
-- [Patrol Documentation](https://patrol.leancode.co/)
-- [Flutter Test Coverage](https://codewithandrea.com/articles/flutter-test-coverage/)
-- [Allure Flutter Reports](https://www.verygood.ventures/blog/elevating-flutter-test-reports-with-allure)
+### Graceful Shutdown
+- [Express: Health Checks and Graceful Shutdown](https://expressjs.com/en/advanced/healthcheck-graceful-shutdown.html)
+- [Graceful Shutdown in Express](https://www.codeconcisely.com/posts/graceful-shutdown-in-express/)
+- [Graceful Shutdown Handler 2026](https://oneuptime.com/blog/post/2026-01-06-nodejs-graceful-shutdown-handler/view)
 
-### Monitoring
-- [Sentry Node.js Docs](https://docs.sentry.io/platforms/node/)
-- [Railway Monitoring](https://docs.railway.com/guides/monitoring)
-- [Node.js APM Comparison](https://betterstack.com/community/comparisons/nodejs-application-monitoring-tools/)
+### Flutter Accessibility
+- [Flutter Tooltip API](https://api.flutter.dev/flutter/material/Tooltip-class.html)
+- [Practical Accessibility in Flutter (DCM)](https://dcm.dev/blog/2025/06/30/accessibility-flutter-practical-tips-tools-code-youll-actually-use)
+- [Flutter Assistive Technologies Docs](https://docs.flutter.dev/ui/accessibility/assistive-technologies)
+- [Flutter Issue #167174: TalkBack tooltip](https://github.com/flutter/flutter/issues/167174)
 
-### GDPR
-- [GDPR Subject Rights API](https://github.com/F-Secure/gdpr-subject-rights-api)
-- [GDPR Compliance Automation](https://secureprivacy.ai/blog/gdpr-compliance-automation)
-- [PostgreSQL Encryption](https://www.enterprisedb.com/postgresql-best-practices-encryption-monitoring)
-
-### Backups
-- [Railway PostgreSQL Backups](https://blog.railway.com/p/postgre-backup)
-- [Automated Backups Template](https://blog.railway.com/p/automated-postgresql-backups)
-
-### Logging
-- [Node.js Logging Best Practices](https://betterstack.com/community/guides/logging/nodejs-logging-best-practices/)
-- [Pino vs Winston](https://betterstack.com/community/comparisons/pino-vs-winston/)
-
-### JWT Security
-- [JWT Best Practices 2025](https://jwt.app/blog/jwt-best-practices/)
-- [RS256 vs HS256](https://supertokens.com/blog/rs256-vs-hs256)
+### Flutter Page Transitions
+- [Flutter Cookbook: Page Route Animation](https://docs.flutter.dev/cookbook/animation/page-route-animation)
+- [PageRouteBuilder API](https://api.flutter.dev/flutter/widgets/PageRouteBuilder-class.html)
+- [PageTransitionsTheme API](https://api.flutter.dev/flutter/material/PageTransitionsTheme-class.html)

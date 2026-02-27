@@ -1,668 +1,577 @@
-# Domain Pitfalls: Dating App Production Readiness
+# Domain Pitfalls: Adding Resilient DB Pools, Graceful Shutdown, Accessibility, and Page Transitions
 
-**Domain:** Dating app production launch preparation
-**Researched:** 2026-01-24
-**Confidence:** HIGH (multiple documented breaches, lawsuits, regulatory actions 2024-2025)
+**Domain:** Operational resilience and UX polish additions to existing dating app
+**Researched:** 2026-02-27
+**Confidence:** HIGH (verified against node-postgres source/issues, Flutter official docs, Railway docs, existing VLVT codebase)
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause data breaches, regulatory fines, lawsuits, or user harm.
+Mistakes that crash production services, cause data loss, or break existing functionality.
 
 ---
 
-### Pitfall 1: Exposed API Keys and Secrets in App Code
+### Pitfall 1: pool.on('error') Does NOT Catch All Connection Errors
 
-**What goes wrong:** API keys, encryption keys, and cloud storage credentials are embedded in the app code or committed to repositories. Researchers extract these secrets and gain direct access to user data.
+**What goes wrong:** You add `pool.on('error', handler)` and assume all database errors are caught. When Railway restarts PostgreSQL or a network partition occurs, your process still crashes with an unhandled error because checked-out clients emit errors independently of the pool.
 
-**Real incidents:**
-- April 2025: M.A.D Mobile apps (BDSM People, Pink, Translove, Chica, Brish) exposed 1.5 million explicit images because API keys and encryption passwords were published in app code, granting access to Google Cloud Storage buckets with no authentication
-- July 2025: Tea app breach exposed 72,000 images and 1.1 million messages due to Firebase storage bucket misconfiguration
+**Why it happens:** The `pool.on('error')` handler ONLY fires for errors on **idle** clients sitting in the pool. When a client is checked out via `pool.connect()` and the connection drops, the error goes to the client, not the pool. If the client has no error handler, Node.js emits an unhandled error and crashes the process.
 
-**Why it happens:**
-- Secrets hardcoded during development and never removed
-- `.env` files committed to version control
-- Cloud storage buckets default to public access
-- No security review before release
+**VLVT-specific risk:** All three services (auth, chat, profile) currently use `pool.on('error')` at line ~199/262/288 respectively. They log the error but do NOT handle errors on checked-out clients. Any long-lived client checkout (like during a complex transaction in profile updates or batch operations) is vulnerable.
+
+**Current code pattern that's incomplete:**
+```typescript
+// This ONLY catches idle client errors
+pool.on('error', (err, client) => {
+  logger.error('Unexpected database connection error', {
+    error: err.message,
+    stack: err.stack
+  });
+});
+```
 
 **Warning signs:**
-- Secrets visible in decompiled APK/IPA
-- Environment files in git history
-- Cloud storage URLs accessible without authentication
-- Third-party security researchers reaching out
+- Process crashes with "unhandled error" after database restarts
+- Sentry errors showing "connection terminated unexpectedly" without pool.on('error') logging
+- Intermittent crashes during Railway cold starts or database maintenance windows
 
 **Prevention:**
-1. Use platform-specific secure storage (Android Keystore, iOS Keychain) for any client-side secrets
-2. Backend secrets via environment variables, never in code
-3. Pre-commit hooks to scan for secrets (`gitleaks`, `trufflehog`)
-4. Automated CI scans for exposed credentials
-5. Cloud storage buckets must require authentication by default
-6. Regular security audits before each release
+1. When using `pool.connect()` to get a client, ALWAYS attach an error handler to the client before using it
+2. Prefer `pool.query()` over `pool.connect()` where possible -- pool.query internally handles client errors
+3. Wrap all `pool.connect()` patterns in a helper that auto-attaches error handlers:
 
-**Phase to address:** Pre-launch security audit (immediate)
+```typescript
+async function getClient(pool: Pool): Promise<PoolClient> {
+  const client = await pool.connect();
+  const originalQuery = client.query.bind(client);
+  const release = client.release.bind(client);
 
-**Sources:**
-- [Cybernews: Dating Apps Leak Private Photos](https://cybernews.com/security/ios-dating-apps-leak-private-photos/)
-- [Appknox: Tea App Data Breach Analysis](https://www.appknox.com/blog/tea-app-data-breach-security-flaws-analysis-appknox)
+  // Attach error handler to prevent unhandled errors
+  client.on('error', (err) => {
+    logger.error('Client error (will be destroyed on release)', { error: err.message });
+  });
+
+  // Auto-destroy on release if error occurred
+  let hasError = false;
+  client.on('error', () => { hasError = true; });
+  client.release = () => release(hasError);
+
+  return client;
+}
+```
+
+**Confidence:** HIGH -- verified via [node-postgres issue #2641](https://github.com/brianc/node-postgres/issues/2641), [issue #3202](https://github.com/brianc/node-postgres/issues/3202), and [official pooling docs](https://node-postgres.com/features/pooling).
 
 ---
 
-### Pitfall 2: Broken Object-Level Authorization (BOLA/IDOR)
+### Pitfall 2: pool.end() Called During Shutdown Hangs Forever If Clients Are Checked Out
 
-**What goes wrong:** API endpoints return or modify data based on user-supplied IDs without verifying the requesting user owns that data. Attackers enumerate IDs to access other users' profiles, messages, photos, and location data.
+**What goes wrong:** Your graceful shutdown calls `pool.end()`, but there are checked-out clients (from in-flight requests). `pool.end()` waits for ALL checked-out clients to be returned before resolving. If any request is stuck or slow, the shutdown hangs until your force-kill timeout fires, causing an ungraceful exit anyway.
 
-**Real incidents:**
-- November 2025: Feeld dating app had BOLA vulnerabilities allowing access to other users' chats (including deleted chats), profile modification, and photo access without authentication
-- May 2025: Raw dating app exposed user locations accurate to street level, birth dates, and sexual preferences via IDOR vulnerability
-- 2024: Researchers found API vulnerabilities in Tinder, Bumble, Grindr, and Hinge exposing precise user locations
+**Why it happens:** `pool.end()` is designed to "wait for all checked-out clients to be returned and then shut down all the clients and the pool timers." If a client is checked out and the code holding it doesn't release it (perhaps because it's mid-query or waiting on something else), `pool.end()` will never resolve.
 
-**Why it happens:**
-- Trusting client-supplied IDs (user_id, chat_id, photo_id) without verification
-- Authorization checks missing from some endpoints
-- "Security through obscurity" (assuming IDs won't be guessed)
-- Separate authorization logic per endpoint instead of middleware
+**VLVT-specific risk:**
+- **auth-service** has NO graceful shutdown handler at all -- it just calls `app.listen()` with no SIGTERM handling
+- **profile-service** calls `process.exit(0)` directly after closing schedulers -- it never calls `pool.end()`, leaving connections orphaned
+- **chat-service** has the most complete shutdown but never calls `pool.end()` either -- it closes the HTTP server but doesn't drain the database pool
+
+All three services will leave orphaned database connections on every deployment.
 
 **Warning signs:**
-- Endpoints accept user IDs from request parameters
-- No middleware verifying resource ownership
-- Different authorization implementations across services
-- Pentesting reveals access to other users' data
+- Railway deploy logs showing "Process exited with signal SIGKILL" (force-killed after SIGTERM timeout)
+- PostgreSQL showing "idle in transaction" connections from terminated processes
+- Connection pool exhaustion after several rapid redeployments
+- Health check showing database latency spikes after deployments
 
 **Prevention:**
-1. Authorization middleware that verifies resource ownership for EVERY endpoint
-2. User ID derived from JWT, never from request body/parameters
-3. Consistent authorization patterns across all services
-4. Automated API security testing in CI (`OWASP ZAP`, `Burp Suite`)
-5. Regular penetration testing before major releases
-6. Implement row-level security in database queries
+1. Close the HTTP server FIRST (stop accepting new requests)
+2. Wait for in-flight requests to complete (with timeout)
+3. THEN call `pool.end()` with a timeout wrapper
+4. Force exit as last resort
 
-**Phase to address:** Pre-launch security audit (immediate)
+```typescript
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`${signal} received, starting graceful shutdown`);
 
-**Sources:**
-- [FireTail: Feeld Dating App API Vulnerabilities](https://www.firetail.ai/blog/feeld-dating-app-api)
-- [Dark Reading: Dating Apps Expose Location](https://www.darkreading.com/application-security/swipe-right-for-data-leaks-dating-apps-expose-location-more)
-- [API Security Issue 271: Raw Dating App](https://apisecurity.io/issue-271-api-breaches-surge-in-apac-raw-dating-app-exposes-users-api-credential-missteps-api-sprawl/)
+  // 1. Stop accepting new requests
+  server.close();
+
+  // 2. Close pool with timeout
+  const poolEnd = pool.end().catch(err =>
+    logger.error('Error ending pool', { error: err.message })
+  );
+
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Shutdown timeout')), 8000)
+  );
+
+  try {
+    await Promise.race([poolEnd, timeout]);
+  } catch {
+    logger.warn('Pool did not drain in time, forcing exit');
+  }
+
+  process.exit(0);
+};
+```
+
+**Confidence:** HIGH -- verified via [node-postgres pooling docs](https://node-postgres.com/features/pooling) and [issue #3287](https://github.com/brianc/node-postgres/issues/3287).
 
 ---
 
-### Pitfall 3: GDPR Special Category Data Violations
+### Pitfall 3: Calling pool.end() More Than Once Throws an Error
 
-**What goes wrong:** Dating apps that imply sexual orientation or sexual behavior (including "After Hours" modes, LGBTQ+ dating, hookup features) handle GDPR Article 9 "special category" data without proper explicit consent, lawful basis, or data minimization.
+**What goes wrong:** Both SIGTERM and SIGINT handlers call `pool.end()`. If both signals arrive (common during development with Ctrl+C, or if Railway sends SIGTERM followed by SIGKILL-preceded SIGTERM retry), the second call throws "Called end on pool more than once," which becomes an unhandled rejection that crashes the process.
 
-**Real incidents:**
-- Grindr fined 6.5M EUR (2024, upheld on appeal) for sharing GPS location, IP addresses, and user data with advertising partners without valid consent. Key violation: merely using Grindr "strongly indicates sexual orientation" - making ALL user data special category data
-- Bumble Inc. paid 32M GBP settlement (2024) for collecting facial recognition biometric data without explicit consent
+**Why it happens:** node-postgres intentionally throws on double `pool.end()` calls as a design decision -- it's considered a programming error, not a recoverable condition.
 
-**Why it happens:**
-- Consent bundled into general privacy policy acceptance (invalid under GDPR)
-- Third-party SDKs (analytics, ads, crash reporting) receive location and behavioral data
-- "Legitimate interest" claimed instead of explicit consent for special category data
-- Assuming privacy policy agreement equals GDPR consent (it does not)
-- Treating profile creation as manifesting data public (regulators rejected this for dating apps)
-
-**Warning signs:**
-- Single checkbox for privacy policy acceptance
-- Analytics/ad SDKs have access to location data
-- No separate, specific consent for data processing purposes
-- User cannot use app without consenting to optional processing
-- Data shared with "partners" without specifying what data and which partners
+**VLVT-specific risk:** The chat-service already registers both SIGTERM and SIGINT handlers that would both attempt cleanup. The profile-service registers them separately with identical logic. If signal handlers are updated to include `pool.end()`, both handlers calling it creates a race condition.
 
 **Prevention:**
-1. Explicit, granular consent for each processing purpose (matching, analytics, personalization)
-2. Service must be usable without consenting to non-essential processing
-3. No location data shared with ANY third party (including analytics)
-4. Data minimization: store only what's necessary, delete when purpose fulfilled
-5. Right to erasure: complete deletion within 30 days, including backups (put "beyond use")
-6. Appoint Data Protection Officer (required when processing special category data at scale)
-7. Document lawful basis for ALL processing under Article 6 AND Article 9
-8. Conduct Data Protection Impact Assessment before launch
+1. Use a shutdown guard flag:
+```typescript
+let isShuttingDown = false;
+const gracefulShutdown = async (signal: string) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  // ... cleanup
+};
+```
+2. Never call `pool.end()` from error event handlers or unhandledRejection handlers -- they can fire multiple times
 
-**VLVT-specific risk:** After Hours Mode implies sexual/romantic context, making ALL associated data special category data under GDPR - same as Grindr ruling.
-
-**Phase to address:** Pre-launch compliance review (critical)
-
-**Sources:**
-- [Computer Weekly: Grindr GDPR Fine](https://www.computerweekly.com/news/252495431/Grindr-complaint-results-in-96m-GDPR-fine)
-- [NOYB: Grindr Fine Confirmed](https://noyb.eu/en/norwegian-court-confirms-eu-57-million-fine-grindr)
-- [TechCrunch: Grindr GDPR Consent Breaches](https://techcrunch.com/2021/12/15/grindr-final-gdpr-fine/)
-- [GDPRhub: Article 9 GDPR](https://gdprhub.eu/Article_9_GDPR)
+**Confidence:** HIGH -- verified via [node-postgres issue #1858](https://github.com/brianc/node-postgres/issues/1858).
 
 ---
 
-### Pitfall 4: Ban Evasion Through Trivial Account Recreation
+### Pitfall 4: Railway Kills Process Before Shutdown Completes When Started Via npm
 
-**What goes wrong:** Banned users (including those reported for sexual assault) create new accounts within minutes using the same name, photos, and birthday. Serial offenders continue targeting victims.
+**What goes wrong:** Services started via `npm start` or `yarn start` don't receive SIGTERM properly on Railway. The package manager intercepts the signal, forwards it to the child process, but immediately exits itself. Railway sees the parent process exit and kills the container, terminating the Node.js process mid-shutdown.
 
-**Real incidents:**
-- February 2025 (The Markup investigation): Banned Tinder users could immediately create new accounts with identical name, birthday, and photos; hop to Hinge without changes
-- December 2025: 6 women sued Hinge/Tinder after being assaulted by a doctor who remained on platforms despite reports since 2020, despite being "banned" multiple times
-- Match Group tracked sexual assault reports since 2016 (hundreds per week by 2022) but failed to prevent repeat offenders
+**Why it happens:** npm/yarn become PID 1 in the container. When they receive SIGTERM, they forward it to child processes but do NOT wait for them to exit. Railway sees PID 1 exit and terminates the container.
 
-**Why it happens:**
-- Bans tied to email/phone (easily bypassed with burner accounts)
-- No photo hashing to detect banned users' images
-- No device fingerprinting
-- Verification data not used for ban enforcement (identity verified but not checked against ban database)
-- Cross-platform ban enforcement not implemented
-- No behavioral pattern detection
+**VLVT-specific risk:** All three services likely use `npm start` in their Railway deploy configuration. Any graceful shutdown logic added will be ineffective if the start command isn't changed to invoke Node directly.
 
 **Warning signs:**
-- Reports describing same person from "different" accounts
-- Same device ID appearing across multiple accounts
-- New accounts with photos matching banned accounts (detectable via perceptual hashing)
-- User reports mentioning "they came back"
+- Shutdown logs never appear in Railway despite SIGTERM handlers being registered
+- `pool.end()` never completes
+- "Process exited unexpectedly" in Railway deployment logs
 
 **Prevention:**
-1. Device fingerprinting (Android ID, IDFA/GAID, hardware characteristics)
-2. Photo hashing: perceptual hash all profile photos, check against banned photo database
-3. Face verification comparison against banned face database
-4. Phone number reputation scoring (detect burner numbers, VoIP)
-5. Behavioral pattern detection (messaging patterns, report velocity)
-6. Rate limit account creation from same device/IP
-7. Ban the verified identity, not just the account
+1. Change Railway Custom Start Command from `npm start` to `node dist/index.js` (or equivalent compiled output path)
+2. Verify this is configured for ALL three services
+3. Test by checking Railway logs for shutdown log messages during a redeploy
 
-**VLVT advantage:** KYCAid + Rekognition verification creates persistent identity - ban the biometric identity, not the email address.
-
-**Phase to address:** Pre-launch safety system (critical)
-
-**Sources:**
-- [NPR: Match Group Slow to Remove Dangerous Daters](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault)
-- [The Markup: Dating App Cover-Up](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up)
-- [Sauder Schelkopf: Match Group Investigation](https://sauderschelkopf.com/investigations/match-groups-dating-app-failure-to-protect-users-from-sexual-assault-lawsuit-investigation/)
+**Confidence:** HIGH -- verified via [Railway SIGTERM documentation](https://docs.railway.com/deployments/troubleshooting/nodejs-sigterm).
 
 ---
 
-### Pitfall 5: Trilateration Attack via API Distance Data
+### Pitfall 5: Custom PageRouteBuilder Breaks Existing Hero Animations
 
-**What goes wrong:** Attackers can pinpoint user locations (within 2-111 meters) by spoofing their own GPS coordinates from multiple points and measuring distance changes in API responses or profile ordering.
+**What goes wrong:** You replace `MaterialPageRoute` with a custom `PageRouteBuilder` or `VlvtPageRoute` for consistent transitions. The Hero animations between chats_screen (avatar) and chat_screen (avatar) stop working because the custom route doesn't maintain the same opaque/fullscreen properties that Hero requires.
 
-**Real incidents:**
-- 2024: KU Leuven researchers demonstrated trilateration on Grindr, Hinge, Bumble, Happn, Badoo, and Hily
-- Hornet app: researchers achieved 10-meter accuracy even when distance display was disabled
-- All 15 dating apps analyzed leaked some form of sensitive location data
+**Why it happens:** Hero animations require the route to be a `PageRoute` (not just a `Route`) and the route must have `opaque: true` and `maintainState: true`. If your custom route class doesn't extend `PageRoute` or overrides these incorrectly, the Hero animation framework skips the animation entirely with no error -- it just silently stops working.
 
-**Why it happens:**
-- API returns exact distance values (or distances with too many decimal places)
-- Profile sorting reveals relative distance even without showing numbers
-- "Hide distance" only affects UI, not backend calculations
-- Rate limiting insufficient to prevent rapid trilateration queries
+**VLVT-specific risk:** The app has active Hero animations on:
+- `discovery_profile_card.dart` line 136: `Hero(tag: 'discovery_${profile.userId}')`
+- `chats_screen.dart` line 473: `Hero(tag: 'avatar_$otherUserId')`
+- `chat_screen.dart` line 608: `Hero(tag: 'avatar_$_otherUserId')`
+
+The chat avatar Hero animation (chats_screen -> chat_screen) uses `MaterialPageRoute` today. If this is switched to a custom route class, the avatar fly-in animation will silently break.
 
 **Warning signs:**
-- Distance values have more than 0 decimal places
-- Profile ordering changes predictably when user moves
-- Distance calculations performed client-side
-- No rate limiting on location-based queries
+- Profile images that used to animate between screens now just appear/disappear
+- No errors in console -- Hero silently degrades to no animation
+- Regression only noticed by visual inspection, not tests
 
 **Prevention:**
-1. Round coordinates to 3 decimal places (~1km uncertainty) SERVER-SIDE, not client
-2. Add random jitter (+/- 500m) to stored coordinates for proximity calculations
-3. Quantize distance into buckets ("< 1km", "1-5km", "5-15km") - never continuous values
-4. Randomize profile ordering within distance buckets
-5. Rate limit location-based queries (max 10/minute per user)
-6. Detect and block rapid location changes indicating spoofing
+1. Custom route class MUST extend `MaterialPageRoute` or `PageRoute`, not just `PageRouteBuilder`
+2. Verify `opaque: true` and `maintainState: true` are preserved
+3. Test Hero animations explicitly after migration:
+   - Discovery card -> profile detail (discovery Hero tag)
+   - Chat list -> chat screen (avatar Hero tag)
+4. If using `PageRouteBuilder`, wrap in a class that properly sets these properties:
 
-**Phase to address:** Pre-launch security audit (critical)
+```dart
+class VlvtPageRoute<T> extends PageRoute<T> {
+  final WidgetBuilder builder;
+  final Duration transitionDuration;
 
-**Sources:**
-- [Check Point Research: Geolocation Risks in Dating Apps](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
-- [Dark Reading: Dating Apps Expose Location](https://www.darkreading.com/application-security/swipe-right-for-data-leaks-dating-apps-expose-location-more)
-- [PortSwigger: Bumble Trilateration Vulnerability](https://portswigger.net/daily-swig/trilateration-vulnerability-in-dating-app-bumble-leaked-users-exact-location)
+  VlvtPageRoute({
+    required this.builder,
+    this.transitionDuration = const Duration(milliseconds: 300),
+    super.settings,
+  });
 
----
+  @override
+  bool get opaque => true;
 
-### Pitfall 6: Deepfake Bypass of Identity Verification
+  @override
+  bool get maintainState => true;
 
-**What goes wrong:** Scammers use real-time deepfake software to pass live selfie verification, then use AI-generated profile photos. Standard liveness detection is increasingly defeated.
+  @override
+  Widget buildPage(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation) {
+    return builder(context);
+  }
 
-**Real incidents:**
-- 2024: Dating industry had highest ID fraud rate (8.9%) of ALL industries - higher than finance (2.7%)
-- 3/4 of UK dating app users encountered deepfakes; 19% were personally deceived
-- Scammers use DeepFaceLive, Magicam, and Amigo AI to alter face, voice, gender, and race during live verification
-- Only 0.1% of people can distinguish real from fake images/video
+  @override
+  Widget buildTransitions(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation, Widget child) {
+    return FadeTransition(opacity: animation, child: child);
+  }
+}
+```
 
-**Why it happens:**
-- Standard liveness checks (blink, head turn) are easily spoofed with pre-recorded deepfakes
-- Virtual camera software can inject manipulated video streams
-- Face-swap technology improved dramatically in 2024-2025
-- Verification happens once at signup, never again
-
-**Warning signs:**
-- Verification selfies have subtle inconsistencies (lighting, eye movement patterns)
-- Profile photos look "too perfect" or have AI artifacts
-- Behavioral patterns inconsistent with verified identity (age, language, timezone)
-- High rate of romance scam reports despite verification
-
-**Prevention:**
-1. Use certified liveness detection (ISO 30107-3 compliant)
-2. Implement deepfake detection models alongside verification
-3. Require randomized, unpredictable verification actions (specific phrase, random gesture sequence)
-4. Check uploaded photos against AI-generation detectors
-5. Block known virtual camera applications
-6. Periodic re-verification for active users
-7. Cross-reference with fraud databases (not just identity verification)
-
-**AWS Rekognition caution:** Known bias issues (higher error rates for darker-skinned women). Use 99%+ confidence threshold AND human review for edge cases, not default 80% threshold.
-
-**Phase to address:** Verification system hardening (high priority)
-
-**Sources:**
-- [Sumsub: Deepfakes on Dating Apps](https://sumsub.com/newsroom/one-in-five-single-brits-have-already-been-duped-by-deepfakes-on-dating-apps/)
-- [Veriff: Real-time Deepfake Fraud](https://www.veriff.com/identity-verification/news/real-time-deepfake-fraud-in-2025-fighting-back-against-ai-driven-scams)
-- [DeepStrike: Deepfake Statistics 2025](https://deepstrike.io/blog/deepfake-statistics-2025)
-
----
-
-### Pitfall 7: Chat History Destruction Enables Repeat Offenders
-
-**What goes wrong:** Bad actors unmatch victims before they can report, erasing chat evidence. Platforms cannot investigate patterns; victims cannot prove harassment.
-
-**Real incidents:**
-- December 2025 lawsuit: "Unmatch-before-report" explicitly cited as "defective design" enabling repeat sexual assault
-- Serial offenders learned to unmatch immediately after assault/harassment
-- Platforms cannot correlate reports without preserved evidence
-
-**Why it happens:**
-- Unmatching deletes conversation history on both sides
-- No server-side retention for safety investigations
-- Ephemeral chat features prioritize privacy over safety
-- No mechanism to report after unmatch
-
-**Warning signs:**
-- High unmatch rate for specific users immediately after messaging
-- Reports mentioning "they unmatched me before I could report"
-- Abuse patterns not correlating with reports
-- Low evidence quality in safety investigations
-
-**Prevention:**
-1. Preserve chat history server-side for 30-90 days post-unmatch (encrypted, access-restricted)
-2. Allow reporting even after unmatch with preserved evidence
-3. Flag rapid unmatch patterns as suspicious behavior
-4. Implement "shadow archive" - unmatching hides from user but preserves for safety team
-5. Notify users they can report previous matches from match history
-6. Document retention policy clearly in Terms of Service
-
-**VLVT ephemeral chat consideration:** Server-side retention for safety investigations is compatible with ephemeral UI. Users don't see the history, but safety team can.
-
-**Phase to address:** Safety system implementation (critical for launch)
-
-**Sources:**
-- [The Markup: Dating App Cover-Up Investigation](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up)
-- [Denver Trial: Match Group Lawsuit](https://www.denvertrial.com/law-firms-sue-hinge-and-match-group-after-serial-rapist-assaults-multiple-users-on-its-platform/)
+**Confidence:** HIGH -- verified via [Flutter Hero animation docs](https://docs.flutter.dev/cookbook/animation/page-route-animation) and [Flutter issue #25261](https://github.com/flutter/flutter/issues/25261).
 
 ---
 
 ## Moderate Pitfalls
 
-Mistakes that cause operational issues, technical debt, user churn, or delayed launches.
+Mistakes that cause bugs, poor UX, or maintenance headaches but won't crash production.
 
 ---
 
-### Pitfall 8: SMS Verification Easily Bypassed
+### Pitfall 6: Adding Tooltip to IconButton That Already Has Semantics Wrapper Creates Duplicate Announcements
 
-**What goes wrong:** Phone verification intended to prevent fake accounts is trivially bypassed with virtual phone numbers, allowing bot networks and banned users to rejoin instantly.
+**What goes wrong:** You add `tooltip: 'Settings'` to an IconButton, but the IconButton is already wrapped in a `Semantics(label: 'Settings')` widget. TalkBack/VoiceOver announces the element twice -- once for the Semantics label, once for the tooltip -- confusing screen reader users.
 
-**Why it happens:**
-- Services like Tinderophone sell verification-ready numbers
-- VoIP detection is imperfect
-- Burner phone numbers are cheap and abundant
-- No additional signals correlated with phone verification
+**VLVT-specific risk:** The codebase already has Semantics wrappers in several places:
+- `discovery_action_buttons.dart` lines 33, 54, 78: Semantics wrapping action buttons
+- `vlvt_button.dart` lines 276, 327, 352: Semantics on custom buttons
+- `main_screen.dart` line 265: Semantics on navigation items
+- `matches_screen.dart` lines 279, 496: Semantics on match cards
+
+If tooltips are added to the 20 IconButtons identified in the audit, any that already have a Semantics ancestor will create duplicate announcements.
 
 **Warning signs:**
-- High rate of accounts from known VoIP providers
-- Multiple accounts verified with numbers from same provider
-- Banned users returning within hours
-- Bot accounts passing verification
+- TalkBack reads "Settings button. Settings." -- the label twice in different forms
+- Accessibility Scanner flags "Duplicate content description" warnings
+- Screen reader users report confusing navigation
 
 **Prevention:**
-1. Phone number reputation scoring (detect burner numbers, carrier type)
-2. Block known VoIP providers and verification bypass services
-3. Rate limit verifications from same IP/device
-4. Combine phone with device fingerprinting
-5. Consider phone as one signal, not sole gate
-6. Monitor for suspicious verification patterns
+1. Audit each IconButton BEFORE adding tooltip -- check if it or an ancestor already has Semantics
+2. If Semantics wrapper exists, REMOVE it and use tooltip instead (tooltip provides both visual and semantic accessibility)
+3. Never combine `Semantics(label: X)` parent with `IconButton(tooltip: X)` child for the same element
+4. Run Android Accessibility Scanner after changes to catch duplicates
+5. Use `flutter test --tags accessibility` if accessibility tests exist
 
-**Phase to address:** Authentication hardening (moderate priority)
-
-**Sources:**
-- [Infobip: Verification Without Phone](https://www.infobip.com/blog/how-to-get-verified-without-your-phone)
-- [IS Decisions: Why SMS 2FA Is Not Secure](https://www.isdecisions.com/en/blog/mfa/why-sms-authentication-2fa-not-secure)
+**Confidence:** HIGH -- verified via [Flutter issue #148167](https://github.com/flutter/flutter/issues/148167) and practical Flutter accessibility guides.
 
 ---
 
-### Pitfall 9: Bot and Fake Profile Proliferation
+### Pitfall 7: Tooltip Semantics Traversal Order Change (Flutter 3.19+ Breaking Change)
 
-**What goes wrong:** Automated accounts flood the platform with scam bots, romance fraud operators, and spam. Over 15% of dating profiles are fake or bot-generated industry-wide.
+**What goes wrong:** If the app has accessibility tests that assert the semantics tree structure when tooltips are visible, they fail after upgrading to Flutter 3.19+ because the tooltip message node moved from being a root-level sibling to being a child of the tooltip's child node.
 
-**Why it happens:**
-- Basic CAPTCHA bypassed by human fraud farms
-- Account creation has insufficient friction
-- AI generates convincing fake photos and bios
-- Scammers profit enough ($4,400 average per romance scam victim) to pay subscription costs
+**Why it happens:** Flutter PR #134921 changed the semantics tree so that `Tooltip.message` is visited immediately after `Tooltip.child` during accessibility focus traversal, rather than appearing as a separate overlay entry.
 
-**Warning signs:**
-- Rapid-fire matching/messaging from new accounts
-- Generic profile photos (AI-generated or stock)
-- Copy-paste message patterns
-- High report rate for specific user segments
-- Surge in sign-ups from single IP range
+**VLVT-specific risk:** The project uses Flutter 3.38+ (based on `RadioGroup<T>` usage noted in project memory). The breaking change from 3.19 is already in effect. If existing accessibility tests reference tooltip positions in the semantics tree, they may already be broken or may break when new tooltip tests are added with incorrect assumptions about tree structure.
 
 **Prevention:**
-1. Multi-layered verification (phone + photo + behavior)
-2. Behavioral analysis: flag rapid matching, copy-paste messaging, external link sharing
-3. AI-powered photo authenticity detection
-4. Honeypot fields in registration (invisible to humans, filled by bots)
-5. Rate limit account creation per device/IP
-6. Ongoing behavioral monitoring, not just signup verification
-7. Phone number reputation scoring
+1. When writing tests for tooltips, use `containsSemantics(tooltip: 'X')` rather than asserting specific tree positions
+2. Do NOT use `find.bySemanticsLabel()` to find tooltips -- use `find.byTooltip()` instead
+3. Review the [Flutter breaking change guide](https://docs.flutter.dev/release/breaking-changes/tooltip-semantics-order) for expected tree structure
 
-**Phase to address:** Anti-abuse systems (moderate priority)
-
-**Sources:**
-- [Prove: Dating App Fraud Issues](https://www.prove.com/blog/3-dating-app-fraud-issues-that-can-be-addressed-with-identity-verification)
-- [Verified Visitors: Dating Fraud Bots](https://www.verifiedvisitors.com/threat-research/dating-and-romance-fraud-bots)
-- [Anura: Dating App Fraud](https://www.anura.io/blog/dating-app-fraud-why-you-need-to-swipe-left)
+**Confidence:** HIGH -- verified via [Flutter official breaking changes docs](https://docs.flutter.dev/release/breaking-changes/tooltip-semantics-order).
 
 ---
 
-### Pitfall 10: Right to Erasure Implementation Gaps
+### Pitfall 8: Tooltip on Android Not Read by TalkBack Without Proper Configuration
 
-**What goes wrong:** Users request account deletion but data persists in backups, logs, analytics, third-party services, or is only "soft deleted." GDPR requires complete erasure within 30 days.
+**What goes wrong:** You add tooltips to all 20 IconButtons, but TalkBack only says "Button" without reading the tooltip text. The tooltip is visually correct but completely invisible to screen readers.
 
-**Why it happens:**
-- Soft delete flags data without removing it
-- Backups not considered in deletion process
-- Third-party services (analytics, crash reporting) retain data
-- Logs contain PII
-- No systematic data mapping (don't know where all data lives)
+**Why it happens:** Two conditions must be met for TalkBack to read tooltips:
+1. `Tooltip(excludeFromSemantics: false)` -- this is the default, but if someone sets it to true, the tooltip becomes invisible to screen readers
+2. The child Icon widget needs a `semanticLabel` -- if the Icon's semanticLabel is null and the tooltip is the only accessibility info, TalkBack may not announce it correctly on some Android versions
 
-**Warning signs:**
-- Deleted users can still be found in database queries
-- Backup restoration brings back deleted accounts
-- Third-party dashboards show deleted user data
-- No deletion confirmation sent to users
-- GDPR subject access requests reveal "deleted" data
+**VLVT-specific risk:** IconButton's `tooltip` property wraps the button in a `Tooltip` widget internally. This should work correctly IF the Icon inside has no conflicting `semanticLabel`. However, if Icons were previously given `semanticLabel` properties as a different accessibility approach, and then tooltips are also added, TalkBack behavior becomes unpredictable.
 
 **Prevention:**
-1. Hard delete from production databases (not soft delete for user-requested deletions)
-2. Document all data locations (Record of Processing Activities)
-3. Backups: put deleted data "beyond use" - cannot be restored or accessed
-4. Notify third parties of deletion requirements
-5. Purge PII from logs (or implement log retention limits)
-6. Send deletion confirmation to user
-7. Test deletion with penetration testing / data recovery attempts
-8. Clear timeline: complete within 30 days, notify if extension needed
+1. When adding `tooltip:` to IconButton, also check the Icon child's `semanticLabel`
+2. If Icon has a semanticLabel, set it to `null` and let the tooltip handle accessibility
+3. Test with TalkBack on a real Android device (emulator TalkBack is unreliable for this)
+4. Verify with: Settings > Accessibility > TalkBack, then swipe through the screen
 
-**Apple App Store requirement:** Apps allowing account creation MUST allow in-app account deletion.
-
-**Phase to address:** GDPR compliance (high priority)
-
-**Sources:**
-- [GDPR.eu: Right to be Forgotten](https://gdpr.eu/right-to-be-forgotten/)
-- [Authgear: Right to Erasure for Apps](https://www.authgear.com/post/the-right-to-erasure-and-how-you-can-follow-it-for-your-apps)
-- [VeraSafe: GDPR and Backup Systems](https://verasafe.com/blog/do-i-need-to-erase-personal-data-from-backup-systems-under-the-gdpr/)
+**Confidence:** MEDIUM -- verified via [Flutter issue #162509](https://github.com/flutter/flutter/issues/162509), but behavior varies across Android versions.
 
 ---
 
-### Pitfall 11: Insufficient Content Moderation at Scale
+### Pitfall 9: Inconsistent Transition Directions When Mixing MaterialPageRoute and Custom Routes
 
-**What goes wrong:** Reports flood in faster than moderators can review. AI moderation alone misses context-dependent harassment. Bad actors exploit gaps.
+**What goes wrong:** Some screens use `MaterialPageRoute` (slide from right on iOS, fade on Android), while others use custom `PageRouteBuilder` with `FadeTransition`. The app feels inconsistent -- some screens slide in, others fade in. Worse, `Navigator.pop()` plays the reverse of whichever transition was used to push, so the back animation doesn't match expectations.
 
-**Real incidents:**
-- Match Group received hundreds of sexual assault reports per week but dismissed safety team (2022-2024)
-- Tea app removed from App Store for excessive complaints about minors' information being posted
-- 52% of dating apps experienced data breach/leak in past 3 years (Mozilla 2024)
-- 28% of online daters harassed through dating apps (women: 42%)
+**VLVT-specific risk:** The codebase currently has a MIX of both patterns:
+- `MaterialPageRoute` used in: auth_screen.dart (6 places), chats_screen.dart, chat_screen.dart, matches_screen.dart, discovery_screen.dart, paywall_screen.dart, deep_link_service.dart
+- `PageRouteBuilder` with FadeTransition used in: after_hours_tab_screen.dart (4 places), discovery_screen.dart (1 place)
 
-**Why it happens:**
-- AI struggles with coded language, cultural context, sarcasm
-- Human moderation doesn't scale with growth
-- No prioritization system for high-severity reports
-- Moderator burnout from exposure to harmful content
-- "Mass reporting" weaponized against legitimate users
-
-**Warning signs:**
-- Report queue growing faster than resolution rate
-- Average resolution time increasing
-- Moderator turnover/burnout
-- User complaints about unresolved reports
-- App store reviews mentioning safety concerns
+If the migration is partial -- only updating some routes to VlvtPageRoute while leaving others as MaterialPageRoute -- the user experience becomes jarring. Navigating from a fade-transition screen and popping back plays a fade-out, while navigating from a slide-transition screen and popping back plays a slide-out.
 
 **Prevention:**
-1. AI triage: auto-prioritize high-severity reports (assault, threats, minors)
-2. Auto-action for clear violations (explicit content, slurs, known scam patterns)
-3. Human review for context-dependent cases
-4. Category-specific queues with different SLAs
-5. Report-abuse detection (users weaponizing report system)
-6. Moderator wellness: rotation, exposure limits, mental health support
-7. Publish transparency reports (report volumes, resolution times, actions taken)
+1. Migrate ALL routes in a single pass, not incrementally
+2. Use `grep -r "MaterialPageRoute\|PageRouteBuilder" frontend/lib/` to find all instances
+3. Count expected: ~25 MaterialPageRoute + ~5 PageRouteBuilder = ~30 total routes to migrate
+4. Create VlvtPageRoute and VlvtFadeRoute first, then do a search-and-replace pass
+5. Test navigation chains: push A -> push B -> pop to A -> pop to root -- all should have consistent animation
 
-**Phase to address:** Operations scaling (pre-launch)
-
-**Sources:**
-- [Checkstep: Content Moderation and Dating 2024](https://www.checkstep.com/3-facts-about-content-moderation-and-dating-2024/)
-- [Mentor Research: Criticisms of Major Dating Apps](https://www.mentorresearch.org/criticisms-of-tinder-hinge-matchcom-plenty-of-fish-and-okcupid)
-- [NPR: Match Group Safety Team Dismantled](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault)
+**Confidence:** HIGH -- directly observable from codebase analysis.
 
 ---
 
-### Pitfall 12: PII in Logs and Error Messages
+### Pitfall 10: Navigator.pop() Return Values Break When Route Type Changes
 
-**What goes wrong:** Logging captures sensitive user data (emails, locations, messages, tokens). When logs are accessed by support staff, exposed in errors, or breached, PII is compromised.
+**What goes wrong:** Several screens use `Navigator.push<bool>()` and `Navigator.pop(context, true)` to communicate results back. When you change the route class, if the generic type parameter is lost or the pop semantics change, the calling screen silently receives `null` instead of the expected return value.
 
-**Why it happens:**
-- Default logging captures full request/response bodies
-- Error messages include user context
-- Debug logging left enabled in production
-- Log aggregation services store data in third-party systems
-- No log review in security audit
+**VLVT-specific risk:** Multiple screens rely on pop return values:
+- `discovery_screen.dart` line 668: `final result = await Navigator.push<bool>(...)` -- expects bool result
+- `matches_screen.dart` line 669: `final shouldRefresh = await Navigator.push<bool>(...)` -- refresh control
+- `matches_screen.dart` line 681: `final didLike = await Navigator.push<bool>(...)` -- like result
+- `chats_screen.dart` line 554: `await Navigator.push<bool>(...)` -- navigation result
 
-**Warning signs:**
-- Searching logs reveals user emails, locations, message content
-- Error tracking (Sentry, Bugsnag) contains user identifiers
-- Support staff can search for users in logs
-- Log retention exceeds operational necessity
+If the custom route class doesn't properly preserve the `<T>` generic type, these `await` calls may return `null` or throw, breaking the refresh/navigation logic.
 
 **Prevention:**
-1. Structured logging with explicit field allowlists (never log request bodies by default)
-2. PII redaction middleware for all log outputs
-3. Separate correlation IDs from user IDs in logs
-4. Log retention limits (30 days operational, then aggregate/delete)
-5. Review log outputs as part of security audit
-6. Error tracking: enable PII scrubbing, audit what's captured
+1. Custom route class must be generic: `class VlvtPageRoute<T> extends PageRoute<T>`
+2. Test all screens that use `Navigator.push<bool>` or `Navigator.push<T>` after migration
+3. Specifically test: go to chat screen -> perform action -> pop back -> verify parent screen updates correctly
 
-**Phase to address:** Pre-launch security audit (high priority)
+**Confidence:** HIGH -- directly observable from codebase analysis showing typed push/pop patterns.
 
 ---
 
-### Pitfall 13: Cold Start / Chicken-and-Egg Launch Failure
+### Pitfall 11: Shared Module (vlvt/shared) Growing Beyond Its Purpose When Adding DB Resilience
 
-**What goes wrong:** App launches to empty user base. Early users see no matches, leave, never return. Network effects never bootstrap.
+**What goes wrong:** To avoid duplicating the resilient pool logic across three services, you put `createResilientPool()` in `@vlvt/shared`. This makes sense. But then you also put service-specific health check logic, reconnection policies, and pool monitoring there. Now every change to pool behavior requires rebuilding shared and redeploying ALL three services.
 
-**Why it happens:**
-- Launching nationally/globally instead of concentrated geographic area
-- No pre-launch user acquisition strategy
-- Paid ads at launch have terrible ROI (high cost per acquisition, low conversion, fast churn)
-- Test users mixed with real users
+**Why it happens:** The "I was taught to share" antipattern -- developers default to putting shared code in a shared library because it reduces duplication. But shared libraries in microservices create tight coupling. A bug in the shared pool module crashes all three services simultaneously instead of just one.
 
-**Warning signs:**
-- Users open app, see no nearby matches
-- High Day 1 churn
-- Negative reviews mentioning "no one here"
-- Users assume app is dead
+**VLVT-specific risk:** `@vlvt/shared` already has 22+ exports including middleware, auth, rate limiting, CSRF, FCM, audit logging, API versioning, and more. It's already a heavy shared dependency. Adding pool management would increase the blast radius further.
 
 **Prevention:**
-1. Geographic concentration: launch in ONE city/region, saturate before expanding
-2. Pre-launch waitlist with referral incentives
-3. Seed initial users (events, campus, community partnerships)
-4. Clear test user separation (never show test accounts to real users)
-5. Expectations setting: communicate launch phase to early users
-6. Consider closed beta with invites to concentrate density
+1. Put pool creation and configuration in shared -- this is infrastructure utility code that rarely changes
+2. Do NOT put retry policies, reconnection timing, or service-specific health check thresholds in shared
+3. Each service should own its own pool instance and its own shutdown sequence
+4. Consider: if you change the reconnection delay from 5s to 10s for chat-service only, can you do it without touching shared?
+5. Rule of thumb: shared module = "how to create" (factory). Service = "how to configure and use" (policy)
 
-**Phase to address:** Launch planning (pre-launch)
-
-**Sources:**
-- [SkaDate: Solving the Cold Start Problem](https://www.skadate.com/how-to-launch-a-dating-app-in-2026-solving-the-cold-start-problem/)
-- [Guru Technolabs: Why Dating Apps Fail](https://www.gurutechnolabs.com/why-dating-apps-fail/)
+**Confidence:** MEDIUM -- this is an architectural judgment call; the existing shared module works well for its current scope, but pool resilience sits on the boundary between "utility" and "policy."
 
 ---
 
 ## Minor Pitfalls
 
-Mistakes that cause friction but are fixable with iteration.
+Issues that waste time or cause confusion but have small user impact.
 
 ---
 
-### Pitfall 14: TLS/SSL Misconfiguration
+### Pitfall 12: pool.on('error') Handler That Calls process.exit() Prevents Automatic Recovery
 
-**What goes wrong:** Outdated TLS configurations allow interception of user data in transit. Certificate pinning not implemented or improperly configured.
+**What goes wrong:** The node-postgres documentation example shows `process.exit(-1)` inside the pool error handler. Developers copy this pattern. Now, when a single idle client loses its connection (which is recoverable -- the pool creates new clients automatically), the entire process exits unnecessarily.
 
-**Real finding:** 7 major dating platforms (Badoo, Zoosk, AdultFriendFinder, Match, Grindr, Ourtime, Ashley Madison) showed high TLS configuration issues in 2025 Business Digital Index analysis.
+**Why it happens:** The original documentation example was a conservative safety measure. But the pg Pool is designed to recover from individual client failures. The pool removes the errored client and creates a new one on the next query. Exiting on every idle client error turns a self-healing situation into a service restart.
+
+**VLVT-specific risk:** The current code does NOT call `process.exit()` in the error handler (it only logs), which is actually correct. The risk is that during the v2.0 resilience work, someone "improves" the handler by adding exit behavior based on the official docs example.
 
 **Prevention:**
-1. TLS 1.3 minimum (deprecate 1.2)
-2. Certificate pinning in mobile apps
-3. HSTS headers with long max-age
-4. Regular SSL Labs testing (aim for A+ rating)
-5. Automated certificate renewal monitoring
+1. Log the error and let the pool self-heal for transient errors
+2. Only exit on FATAL errors that indicate the pool cannot recover (e.g., authentication failures, SSL configuration errors)
+3. Track consecutive error count -- exit only if errors exceed a threshold (e.g., 5 errors in 60 seconds)
 
-**Phase to address:** Infrastructure hardening (moderate priority)
-
-**Sources:**
-- [Business Digital Index: Dating Apps Study](https://businessdigitalindex.com/research/75-of-dating-apps-are-unsafe-new-study-finds/)
-- [Promon: Dating App Data Breach Prevention](https://promon.io/security-news/dating-app-data-breach)
+**Confidence:** HIGH -- verified via [node-postgres issue #2641](https://github.com/brianc/node-postgres/issues/2641) where the maintainer confirmed pool self-heals from individual client errors.
 
 ---
 
-### Pitfall 15: Push Notification Privacy Leaks
+### Pitfall 13: Health Check SELECT 1 During Reconnection Window Returns False Positive "degraded"
 
-**What goes wrong:** Push notifications display message content or sender identity on lock screen, exposing user's dating activity to anyone who sees their phone.
+**What goes wrong:** Health checks use `pool.query('SELECT 1')` to verify database connectivity. During a reconnection window (after database restart), this query fails, and the health check marks the service as degraded. UptimeRobot triggers an alert. 30 seconds later, the pool has automatically reconnected and everything is fine. You now have alert noise on every database maintenance window.
 
-**Why it happens:**
-- Default notification content shows message preview
-- Notification title reveals app name and context
-- No user control over notification privacy
+**VLVT-specific risk:** All three services have health check endpoints using `pool.query('SELECT 1')`. Railway database maintenance causes brief connection drops. UptimeRobot is configured to monitor these endpoints. Without hysteresis, every maintenance window generates false alerts.
 
 **Prevention:**
-1. Default to privacy-preserving notifications ("You have a new message")
-2. User-configurable notification detail level
-3. Never show explicit content in notifications
-4. Consider generic app icon/name for lock screen
-5. Rich notifications only when phone is unlocked (Face ID/Touch ID)
+1. Health check should retry once before marking degraded:
+```typescript
+try {
+  await pool.query('SELECT 1');
+  health.checks.database.status = 'ok';
+} catch (firstError) {
+  // Retry after 1 second to handle transient reconnection
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  try {
+    await pool.query('SELECT 1');
+    health.checks.database.status = 'ok'; // Recovered
+  } catch {
+    health.checks.database.status = 'error'; // Confirmed failure
+  }
+}
+```
+2. Configure UptimeRobot to require 2-3 consecutive failures before alerting
+3. Consider separate liveness (just "process is running") and readiness (including database) endpoints
 
-**Phase to address:** UX polish (lower priority)
+**Confidence:** MEDIUM -- health check patterns are well-established, but the specific UptimeRobot behavior depends on configuration.
 
 ---
 
-### Pitfall 16: OAuth Token Mishandling
+### Pitfall 14: Page Transition Duration Mismatch with Hero Animation Duration
 
-**What goes wrong:** Social login tokens stored insecurely, providing attackers access to user's full social media profile beyond necessary scope.
-
-**Why it happens:**
-- Tokens stored in plain text in app storage
-- Requesting excessive OAuth scopes
-- Tokens not rotated or refreshed properly
-- Third-party services receive unnecessary tokens
+**What goes wrong:** You set a custom transition duration on your page route (e.g., 500ms fade) but the Hero animation uses its own default duration (300ms). The Hero animation completes while the page is still fading in, creating a visual disconnect where the Hero "arrives" but the rest of the page is still appearing.
 
 **Prevention:**
-1. Request minimum necessary OAuth scopes
-2. Store tokens in secure storage (Keychain/Keystore)
-3. Implement proper token refresh rotation
-4. Never share OAuth tokens with third parties
-5. Audit OAuth implementation for scope creep
+1. Match the route's `transitionDuration` to the Hero's animation expectations
+2. Default `MaterialPageRoute` uses 300ms -- if your custom route differs, test Hero animations explicitly
+3. For fade routes where Hero doesn't apply, duration mismatch is less noticeable
 
-**Phase to address:** Authentication audit (moderate priority)
-
-**Sources:**
-- [Promon: Dating App Data Breach](https://promon.io/security-news/dating-app-data-breach)
+**Confidence:** MEDIUM -- this is a known UX issue but severity depends on specific duration choices.
 
 ---
 
-## Phase-Specific Warning Summary
+### Pitfall 15: Not Handling the "Already Ended Pool" State in Health Checks During Shutdown
 
-| Phase | Critical Pitfalls | Moderate Pitfalls |
-|-------|-------------------|-------------------|
-| **Security Audit** | Exposed secrets (1), BOLA/IDOR (2), Trilateration (5), PII in logs (12), TLS config (14) | OAuth tokens (16) |
-| **GDPR Compliance** | Special category data (3), Right to erasure (10) | Notification privacy (15) |
-| **Safety Systems** | Ban evasion (4), Chat preservation (7) | Content moderation (11) |
-| **Verification Hardening** | Deepfake bypass (6) | SMS bypass (8), Bot proliferation (9) |
-| **Launch Preparation** | - | Cold start (13) |
+**What goes wrong:** During graceful shutdown, you call `pool.end()`. While the pool is draining, a health check request arrives (Railway/UptimeRobot may hit the health endpoint during shutdown). The health check tries `pool.query('SELECT 1')` on an ended pool and throws "Cannot use a pool after calling end on the pool," which becomes an unhandled error.
 
----
+**Prevention:**
+1. Set a flag when shutdown begins and have the health check return 503 immediately:
+```typescript
+let isShuttingDown = false;
 
-## VLVT-Specific Risk Assessment
+app.get('/health', async (req, res) => {
+  if (isShuttingDown) {
+    return res.status(503).json({ status: 'shutting_down' });
+  }
+  // ... normal health check
+});
+```
+2. Close the HTTP server before calling pool.end() -- if the server is closed, health check requests won't arrive
+3. This is another reason to sequence shutdown correctly: server.close() THEN pool.end()
 
-Based on VLVT's architecture and features:
-
-| VLVT Component | Highest Risk Pitfall | Recommended Action |
-|----------------|---------------------|-------------------|
-| After Hours Mode | GDPR special category (3) | Explicit consent flow, no third-party data sharing |
-| Location-based matching | Trilateration (5) | Server-side coordinate fuzzing with jitter |
-| KYCAid + Rekognition | Deepfake bypass (6), Rekognition bias | Add deepfake detection, 99% threshold, periodic re-verification |
-| Ephemeral chat | Chat preservation gap (7) | Server-side retention for safety, ephemeral UI only |
-| User blocking/reporting | Ban evasion (4) | Hash photos, fingerprint devices, ban biometric identity |
-| R2 photo storage | Exposed secrets (1) | Audit bucket permissions, no public access |
-| JWT authentication | BOLA/IDOR (2) | Authorization middleware on ALL endpoints |
-| Railway deployment | PII in logs (12) | Structured logging with PII redaction |
+**Confidence:** HIGH -- verified via [node-postgres issue #1635](https://github.com/brianc/node-postgres/issues/1635).
 
 ---
 
-## Pre-Launch Checklist
+## Integration Pitfalls
 
-Critical items that MUST be verified before production launch:
-
-### Security
-- [ ] No secrets in app code or repository
-- [ ] All API endpoints have authorization middleware
-- [ ] Location data rounded server-side (3 decimal places + jitter)
-- [ ] Photo storage buckets require authentication
-- [ ] TLS 1.3 with certificate pinning
-- [ ] Rate limiting on all endpoints
-- [ ] Penetration test completed
-
-### GDPR
-- [ ] Explicit, granular consent for each processing purpose
-- [ ] Right to erasure implemented (hard delete within 30 days)
-- [ ] Data Protection Impact Assessment completed
-- [ ] No location data shared with third parties
-- [ ] Privacy policy specifies exact data processing
-
-### Safety
-- [ ] Chat history preserved server-side post-unmatch
-- [ ] Reporting available for unmatched users
-- [ ] Device fingerprinting for ban enforcement
-- [ ] Photo hashing against banned user database
-- [ ] Moderation queue with prioritization
-
-### Operations
-- [ ] PII redacted from all logs
-- [ ] Monitoring and alerting configured
-- [ ] Database backup and recovery tested
-- [ ] Incident response plan documented
-- [ ] Test users cannot appear to real users
+Mistakes specific to how these features interact with each other and the existing system.
 
 ---
+
+### Pitfall 16: Resilient Pool + Graceful Shutdown Ordering Creates a Deadlock
+
+**What goes wrong:** The resilient pool has an auto-reconnection timer that periodically checks connectivity. During shutdown, `pool.end()` is called, but the reconnection timer fires, tries to create a new connection on an ended pool, throws an error, and either crashes the shutdown or prevents clean exit.
+
+**Prevention:**
+1. Cancel ALL timers and intervals BEFORE calling pool.end()
+2. Shutdown sequence must be: stop timers -> close HTTP server -> drain pool -> exit
+3. Use `clearInterval()` on any reconnection monitoring timers
+4. Test shutdown with a temporarily unreachable database to verify the reconnection timer doesn't interfere
+
+**Confidence:** MEDIUM -- this is a design-time risk that depends on how reconnection monitoring is implemented.
+
+---
+
+### Pitfall 17: auth-service Has No Graceful Shutdown At All
+
+**What goes wrong:** While adding pool resilience and shutdown to chat-service and profile-service, you forget that auth-service has zero shutdown handling. It just calls `app.listen()` and never registers SIGTERM/SIGINT handlers. Auth-service currently survives because Railway force-kills it, but once pool.end() is needed for clean connection cleanup, auth-service will leak connections on every deploy.
+
+**VLVT-specific evidence:** auth-service `index.ts` ends at line ~3704 with just:
+```typescript
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    logger.info(`Auth service started`, { port: PORT, ... });
+  });
+}
+```
+No SIGTERM handler. No SIGINT handler. No pool.end(). No cleanup.
+
+**Prevention:**
+1. Add shutdown handlers to ALL three services, not just the ones that already have partial handlers
+2. Use a checklist: for each service, verify SIGTERM handler, SIGINT handler, server.close(), pool.end(), timer cleanup
+3. Consider a shared shutdown utility in `@vlvt/shared` that accepts a list of cleanup functions
+
+**Confidence:** HIGH -- directly verified from codebase.
+
+---
+
+### Pitfall 18: profile-service Shutdown Doesn't Close HTTP Server or Pool
+
+**What goes wrong:** profile-service's SIGTERM handler closes schedulers but calls `process.exit(0)` without closing the HTTP server or the database pool. In-flight requests are terminated mid-response. Database connections are orphaned.
+
+**VLVT-specific evidence:** profile-service `index.ts` lines 1834-1848:
+```typescript
+process.on('SIGTERM', async () => {
+  logger.info('SIGTERM received, shutting down gracefully');
+  await closeMatchingScheduler();
+  await closeSessionScheduler();
+  await closeSessionCleanupJob();
+  process.exit(0);  // <-- Kills everything immediately
+});
+```
+
+Missing: `server.close()`, `pool.end()`, Socket.IO cleanup.
+
+**Prevention:**
+1. Capture the server reference from `app.listen()` (currently discarded)
+2. Add server.close() and pool.end() before process.exit()
+3. Add a force-exit timeout (the chat-service already has this pattern -- reuse it)
+
+**Confidence:** HIGH -- directly verified from codebase.
+
+---
+
+## Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Resilient DB pool | Pool error handler doesn't catch checked-out client errors (Pitfall 1) | Use pool.query() where possible; attach error handlers to checked-out clients |
+| Resilient DB pool | process.exit() in error handler prevents self-healing (Pitfall 12) | Log only; exit on threshold of consecutive failures |
+| Graceful shutdown | pool.end() hangs on checked-out clients (Pitfall 2) | Race pool.end() with a timeout; close server first to drain requests |
+| Graceful shutdown | Double pool.end() from dual signal handlers (Pitfall 3) | Guard flag to prevent re-entry |
+| Graceful shutdown | Railway npm start prevents SIGTERM delivery (Pitfall 4) | Change start command to `node dist/index.js` |
+| Graceful shutdown | auth-service has zero shutdown handling (Pitfall 17) | Must add from scratch, not just update existing handlers |
+| Graceful shutdown | profile-service doesn't close server or pool (Pitfall 18) | Add full shutdown sequence, capture server reference |
+| Tooltip accessibility | Duplicate announcements from Semantics + Tooltip (Pitfall 6) | Audit each IconButton for existing Semantics before adding tooltip |
+| Tooltip accessibility | TalkBack not reading tooltip on Android (Pitfall 8) | Remove conflicting Icon semanticLabel; test on real device |
+| Page transitions | Hero animation silently breaks with custom routes (Pitfall 5) | Custom route must extend PageRoute with opaque=true |
+| Page transitions | Navigator.pop return values lost (Pitfall 10) | Custom route must preserve generic type parameter |
+| Page transitions | Inconsistent mix of transition styles (Pitfall 9) | Migrate all routes in single pass |
+| Shared module | Pool logic in shared increases coupling blast radius (Pitfall 11) | Put factory in shared, policy in each service |
+
+## Recommended Ordering
+
+Based on dependency analysis:
+
+1. **Resilient DB pool** first -- the pool module is a prerequisite for graceful shutdown (shutdown needs to call pool.end())
+2. **Graceful shutdown** second -- depends on the pool being properly managed; also fix Railway start commands
+3. **Page transitions** third -- no backend dependency; can be done independently
+4. **Tooltip accessibility** fourth -- no dependency on other features; lowest risk
 
 ## Sources
 
-### Security Research
-- [Check Point: Geolocation Risks in Dating Apps](https://research.checkpoint.com/2024/the-illusion-of-privacy-geolocation-risks-in-modern-dating-apps/)
-- [FireTail: Feeld API Vulnerabilities](https://www.firetail.ai/blog/feeld-dating-app-api)
-- [Cybernews: Dating Apps Leak Photos](https://cybernews.com/security/ios-dating-apps-leak-private-photos/)
-- [Business Digital Index: 75% of Dating Apps Unsafe](https://businessdigitalindex.com/research/75-of-dating-apps-are-unsafe-new-study-finds/)
+### node-postgres (pg Pool)
+- [Official pooling documentation](https://node-postgres.com/features/pooling) -- HIGH confidence
+- [Issue #2641: pool.on('error') behavior](https://github.com/brianc/node-postgres/issues/2641) -- HIGH confidence
+- [Issue #3202: Error handling docs gaps](https://github.com/brianc/node-postgres/issues/3202) -- HIGH confidence
+- [Issue #1858: Double pool.end()](https://github.com/brianc/node-postgres/issues/1858) -- HIGH confidence
+- [Issue #1635: Pool after end](https://github.com/brianc/node-postgres/issues/1635) -- HIGH confidence
+- [Issue #3287: pool.end() doesn't wait](https://github.com/brianc/node-postgres/issues/3287) -- HIGH confidence
 
-### Legal/Regulatory
-- [Grindr GDPR Fine - TechCrunch](https://techcrunch.com/2021/12/15/grindr-final-gdpr-fine/)
-- [NOYB: Grindr Fine Upheld](https://noyb.eu/en/norwegian-court-confirms-eu-57-million-fine-grindr)
-- [Match Group Lawsuit - The Markup](https://themarkup.org/investigations/2025/02/13/dating-app-tinder-hinge-cover-up)
-- [FTC Match Group Settlement](https://www.ftc.gov/news-events/news/press-releases/2025/08/match-group-agrees-pay-14-million-permanently-stop-deceptive-advertising-cancellation-billing)
+### Railway Deployment
+- [Railway SIGTERM documentation](https://docs.railway.com/deployments/troubleshooting/nodejs-sigterm) -- HIGH confidence
 
-### Industry Reports
-- [Sumsub: Deepfakes on Dating Apps](https://sumsub.com/newsroom/one-in-five-single-brits-have-already-been-duped-by-deepfakes-on-dating-apps/)
-- [NPR: Match Group Investigation](https://www.npr.org/2025/02/21/nx-s1-5301046/investigation-finds-online-dating-conglomerate-slow-to-ban-users-accused-of-assault)
-- [Appknox: Tea App Breach Analysis](https://www.appknox.com/blog/tea-app-data-breach-security-flaws-analysis-appknox)
+### Express Graceful Shutdown
+- [Express health checks and graceful shutdown](https://expressjs.com/en/advanced/healthcheck-graceful-shutdown.html) -- HIGH confidence
+- [OneUptime: Building graceful shutdown handler](https://oneuptime.com/blog/post/2026-01-06-nodejs-graceful-shutdown-handler/view) -- MEDIUM confidence
 
-### Technical Standards
-- [GDPR Article 17: Right to Erasure](https://gdpr-info.eu/art-17-gdpr/)
-- [GDPR Article 9: Special Category Data](https://gdprhub.eu/Article_9_GDPR)
-- [OWASP API Security Top 10](https://owasp.org/API-Security/)
+### Flutter Accessibility
+- [Flutter Tooltip semantics breaking change](https://docs.flutter.dev/release/breaking-changes/tooltip-semantics-order) -- HIGH confidence
+- [Flutter issue #148167: IconButton semantics label](https://github.com/flutter/flutter/issues/148167) -- HIGH confidence
+- [Flutter issue #162509: Tooltip not read by TalkBack](https://github.com/flutter/flutter/issues/162509) -- HIGH confidence
+- [DCM: Practical Accessibility in Flutter](https://dcm.dev/blog/2025/06/30/accessibility-flutter-practical-tips-tools-code-youll-actually-use) -- MEDIUM confidence
+
+### Flutter Navigation
+- [Flutter page route animation cookbook](https://docs.flutter.dev/cookbook/animation/page-route-animation) -- HIGH confidence
+- [Flutter Hero animation with PageRouteBuilder](https://dev.to/jedipixels/flutter-hero-animation-and-pageroutebuilder-transition-30b4) -- MEDIUM confidence
+- [Flutter issue #25261: Hero with pushNamed](https://github.com/flutter/flutter/issues/25261) -- HIGH confidence
+
+### Microservices Shared Libraries
+- [Shared libraries in microservices -- avoiding an antipattern](https://medium.com/@shanthi.shyju/shared-libraries-in-microservices-avoiding-an-antipattern-c9a3161276e) -- MEDIUM confidence
+- [O'Reilly: Microservices antipatterns and pitfalls](https://www.oreilly.com/content/microservices-antipatterns-and-pitfalls/) -- HIGH confidence
