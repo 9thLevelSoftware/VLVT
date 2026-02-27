@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
 status: in-progress
-last_updated: "2026-02-27T21:00:27Z"
+last_updated: "2026-02-27T21:03:00Z"
 progress:
   total_phases: 13
   completed_phases: 13
   total_plans: 69
-  completed_plans: 68
+  completed_plans: 69
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 9 - Backend Service Integration
+**Current focus:** Phase 9 - Backend Service Integration -- COMPLETE
 
 ## Current Position
 
-Phase: 9 of 11 (Backend Service Integration)
-Plan: 1 of 2 in current phase (09-01 complete)
-Status: In Progress
-Last activity: 2026-02-27 -- Completed 09-01 auth-service graceful shutdown
+Phase: 9 of 11 (Backend Service Integration) -- COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-27 -- Completed 09-02 graceful shutdown for profile-service and chat-service
 
 Progress: [##........] 25%
 
@@ -57,6 +57,9 @@ v2.0 decisions:
 - Graceful shutdown order: server.close() before pool.end() to prevent in-flight request failures (09-01)
 - Signal handlers gated behind NODE_ENV !== 'test' to avoid Jest interference (09-01)
 - 10s force-exit timer with .unref() prevents hung Railway deployments (09-01)
+- Shutdown order: server.close -> schedulers -> pool.end -> exit (pool last, schedulers may need DB) (09-02)
+- io.close() replaces httpServer.close() in chat-service (closes Socket.IO + HTTP in one call) (09-02)
+- Guard flag (isShuttingDown) prevents double pool.end() which throws in pg-pool (09-02)
 
 ### Pending Todos
 
@@ -74,7 +77,7 @@ Operational items deferred from v1.1 (captured in OPS-01 scope):
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 09-01-PLAN.md (auth-service graceful shutdown)
+Stopped at: Completed 09-02-PLAN.md (graceful shutdown for profile-service and chat-service) -- Phase 9 complete
 Resume file: None
 
 ---

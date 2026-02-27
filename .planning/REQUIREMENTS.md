@@ -13,8 +13,8 @@ Requirements for Beta Readiness milestone. Each maps to roadmap phases.
 - [x] **RESIL-02**: DB connection timeout is increased from 2s to 5s to handle Railway cold starts
 - [x] **RESIL-03**: Pool configuration (max connections, idle timeout, SSL) is centralized in one shared utility
 - [x] **RESIL-04**: Auth-service handles SIGTERM/SIGINT with graceful shutdown (server.close + pool.end)
-- [ ] **RESIL-05**: Profile-service shutdown handler includes pool.end() and server.close()
-- [ ] **RESIL-06**: Chat-service shutdown handler includes pool.end()
+- [x] **RESIL-05**: Profile-service shutdown handler includes pool.end() and server.close()
+- [x] **RESIL-06**: Chat-service shutdown handler includes pool.end()
 - [x] **RESIL-07**: All services have a 10-second force-exit timeout to prevent hung shutdowns
 
 ### Accessibility
@@ -68,8 +68,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RESIL-02 | Phase 8 | Complete |
 | RESIL-03 | Phase 8 | Complete |
 | RESIL-04 | Phase 9 | Complete |
-| RESIL-05 | Phase 9 | Pending |
-| RESIL-06 | Phase 9 | Pending |
+| RESIL-05 | Phase 9 | Complete |
+| RESIL-06 | Phase 9 | Complete |
 | RESIL-07 | Phase 9 | Complete |
 | A11Y-01 | Phase 11 | Pending |
 | A11Y-02 | Phase 11 | Pending |
