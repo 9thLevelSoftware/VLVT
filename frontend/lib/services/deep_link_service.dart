@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import '../screens/reset_password_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/chat_screen.dart';
+import '../utils/vlvt_routes.dart';
 import '../widgets/vlvt_loader.dart';
 import 'auth_service.dart';
 import 'deep_link_validator.dart';
@@ -99,8 +100,8 @@ class DeepLinkService {
         final token = sanitizedParams['token'];
         if (token != null) {
           navigator.push(
-            MaterialPageRoute(
-              builder: (context) => ResetPasswordScreen(token: token),
+            VlvtPageRoute(
+              builder: (_) => ResetPasswordScreen(token: token),
             ),
           );
         }
@@ -124,8 +125,8 @@ class DeepLinkService {
           // used to scroll to the specific match - this could be a future enhancement
           // to highlight or scroll to the specific match in the list.
           navigator.push(
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(initialTab: 1),
+            VlvtPageRoute(
+              builder: (_) => const MainScreen(initialTab: 1),
             ),
           );
         }
@@ -146,8 +147,8 @@ class DeepLinkService {
           }
           // debugPrint('Deep link to chat: $chatId');
           navigator.push(
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(matchId: chatId),
+            VlvtPageRoute(
+              builder: (_) => ChatScreen(matchId: chatId),
             ),
           );
         }

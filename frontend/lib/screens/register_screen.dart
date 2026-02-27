@@ -12,6 +12,7 @@ import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
 import '../widgets/vlvt_loader.dart';
 import 'verification_pending_screen.dart';
+import '../utils/vlvt_routes.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -140,8 +141,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Navigate to VerificationPendingScreen
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => VerificationPendingScreen(
+            VlvtPageRoute(
+              builder: (_) => VerificationPendingScreen(
                 email: _emailController.text.trim(),
               ),
             ),

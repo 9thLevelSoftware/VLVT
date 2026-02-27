@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../services/subscription_service.dart';
 import '../services/auth_service.dart';
+import '../utils/vlvt_routes.dart';
 import '../services/analytics_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../widgets/vlvt_button.dart';
@@ -25,8 +26,8 @@ class PaywallScreen extends StatefulWidget {
     // Always use our custom themed paywall screen
     if (context.mounted) {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => PaywallScreen(showBackButton: true, source: source),
+        VlvtFadeRoute(
+          builder: (_) => PaywallScreen(showBackButton: true, source: source),
         ),
       );
     }

@@ -5,6 +5,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../widgets/vlvt_button.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 import 'search_results_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -135,8 +136,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
       if (mounted) {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => SearchResultsScreen(
+          VlvtPageRoute(
+            builder: (_) => SearchResultsScreen(
               count: count,
               criteria: criteria,
             ),

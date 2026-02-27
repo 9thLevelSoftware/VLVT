@@ -15,6 +15,7 @@ import 'forgot_password_screen.dart';
 import 'legal_document_viewer.dart';
 import 'register_screen.dart';
 import 'verification_pending_screen.dart';
+import '../utils/vlvt_routes.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -64,8 +65,8 @@ class _AuthScreenState extends State<AuthScreen> {
           // Navigate to VerificationPendingScreen
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => VerificationPendingScreen(
+            VlvtPageRoute(
+              builder: (_) => VerificationPendingScreen(
                 email: _emailController.text.trim(),
               ),
             ),
@@ -370,8 +371,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                   onPressed: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
+                                      VlvtPageRoute(
+                                        builder: (_) =>
                                             const ForgotPasswordScreen(),
                                       ),
                                     );
@@ -385,8 +386,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                   onTap: () {
                                     Navigator.push(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
+                                      VlvtPageRoute(
+                                        builder: (_) =>
                                             const RegisterScreen(),
                                       ),
                                     );
@@ -488,8 +489,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
+                                    VlvtFadeRoute(
+                                      builder: (_) =>
                                           const LegalDocumentViewer(
                                         documentType:
                                             LegalDocumentType.termsOfService,
@@ -526,8 +527,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                 onTap: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
+                                    VlvtFadeRoute(
+                                      builder: (_) =>
                                           const LegalDocumentViewer(
                                         documentType:
                                             LegalDocumentType.privacyPolicy,

@@ -17,6 +17,7 @@ import 'screens/auth_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/splash_screen.dart';
+import 'utils/vlvt_routes.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'config/app_config.dart';
 
@@ -104,8 +105,8 @@ void _handleNotificationTap(Map<String, dynamic> data) {
 
     // Use pushReplacement to avoid stacking multiple chat screens
     navigatorState.push(
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(match: null, matchId: matchId.toString()),
+      VlvtPageRoute(
+        builder: (_) => ChatScreen(match: null, matchId: matchId.toString()),
       ),
     );
     // // debugPrint('Navigating to chat screen for match: $matchId');
@@ -122,8 +123,8 @@ void _handleNotificationTap(Map<String, dynamic> data) {
     final hasPremiumAccess = subscriptionService.hasPremiumAccess;
 
     navigatorState.pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) {
+      VlvtPageRoute(
+        builder: (_) {
           // For match notifications, navigate to matches tab (2 for premium, 0 for free)
           final targetTab = hasPremiumAccess ? 2 : 0;
           return MainScreen(initialTab: targetTab);
