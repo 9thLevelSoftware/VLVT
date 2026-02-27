@@ -30,6 +30,9 @@ These variables must be consistent across all services. Configure as Railway Sha
 |----------|----------|--------|-------------|--------|
 | `JWT_SECRET` | Yes | **YES** | JWT signing key - MUST match across all services | Generate: `openssl rand -base64 64` |
 | `DATABASE_URL` | Yes | **YES** | PostgreSQL connection string | Railway: `${{Postgres.DATABASE_URL}}` |
+| `DATABASE_POOL_MAX` | No | No | Maximum database pool connections (default: 20) | Configuration |
+| `DATABASE_IDLE_TIMEOUT_MS` | No | No | Close idle connections after N ms (default: 30000) | Configuration |
+| `DATABASE_CONNECTION_TIMEOUT_MS` | No | No | Connection attempt timeout in ms (default: 2000) | Configuration |
 | `NODE_ENV` | Yes | No | Environment mode (development/production/test) | Set per environment |
 | `SENTRY_DSN` | No | No | Sentry error tracking DSN | Sentry dashboard > Project > Client Keys |
 | `CORS_ORIGIN` | Conditional | No | Allowed CORS origin(s) | Frontend URL(s) |
@@ -41,6 +44,9 @@ These variables must be consistent across all services. Configure as Railway Sha
 
 - **JWT_SECRET**: Most critical shared variable. Mismatch causes authentication failures across services.
 - **DATABASE_URL**: Use Railway reference syntax `${{Postgres.DATABASE_URL}}` to automatically inject.
+- **DATABASE_POOL_MAX**: Tune based on expected load. Railway's shared Postgres supports ~100 connections; divide across services (e.g., 20 each for 3 services leaves headroom for migrations/admin).
+- **DATABASE_IDLE_TIMEOUT_MS**: Lower values free connections faster but may increase connection churn. Default 30s is suitable for most workloads.
+- **DATABASE_CONNECTION_TIMEOUT_MS**: How long to wait for a connection before failing. Default 2s prevents slow requests from hanging indefinitely.
 - **CORS_ORIGIN**: Required in production to prevent CORS errors. Can be comma-separated for multiple origins.
 - **REDIS_URL**: Optional but recommended for production. Enables distributed rate limiting and session management.
 - **REQUEST_SIGNING_SECRET**: Required in production for service-to-service communication security.

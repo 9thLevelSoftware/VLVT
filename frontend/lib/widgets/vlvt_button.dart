@@ -54,6 +54,10 @@ class VlvtButton extends StatefulWidget {
   /// Whether to enable haptic feedback on tap.
   final bool haptics;
 
+  /// Optional custom accessibility label for screen readers.
+  /// When provided, this overrides the default [label] for accessibility.
+  final String? semanticLabel;
+
   const VlvtButton({
     super.key,
     required this.label,
@@ -64,6 +68,7 @@ class VlvtButton extends StatefulWidget {
     this.expanded = false,
     this.loading = false,
     this.haptics = true,
+    this.semanticLabel,
   });
 
   /// Creates a primary (gold gradient) button.
@@ -75,6 +80,7 @@ class VlvtButton extends StatefulWidget {
     this.expanded = false,
     this.loading = false,
     this.haptics = true,
+    this.semanticLabel,
   })  : variant = VlvtButtonVariant.primary,
         size = VlvtButtonSize.medium;
 
@@ -87,6 +93,7 @@ class VlvtButton extends StatefulWidget {
     this.expanded = false,
     this.loading = false,
     this.haptics = true,
+    this.semanticLabel,
   })  : variant = VlvtButtonVariant.secondary,
         size = VlvtButtonSize.medium;
 
@@ -99,6 +106,7 @@ class VlvtButton extends StatefulWidget {
     this.expanded = false,
     this.loading = false,
     this.haptics = true,
+    this.semanticLabel,
   })  : variant = VlvtButtonVariant.danger,
         size = VlvtButtonSize.medium;
 
@@ -111,6 +119,7 @@ class VlvtButton extends StatefulWidget {
     this.expanded = false,
     this.loading = false,
     this.haptics = false,
+    this.semanticLabel,
   })  : variant = VlvtButtonVariant.text,
         size = VlvtButtonSize.medium;
 
@@ -265,7 +274,7 @@ class _VlvtButtonState extends State<VlvtButton> {
     );
 
     final button = Semantics(
-      label: widget.label,
+      label: widget.semanticLabel ?? widget.label,
       button: true,
       enabled: widget.onPressed != null && !widget.loading,
       child: GestureDetector(
