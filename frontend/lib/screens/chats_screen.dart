@@ -20,6 +20,7 @@ import '../theme/vlvt_text_styles.dart';
 import 'chat_screen.dart';
 import 'main_screen.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 
 enum ChatsSortOption { recentActivity, newestMatches, nameAZ }
 
@@ -553,8 +554,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
         onTap: () async {
           await Navigator.push<bool>(
             context,
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(match: match),
+            VlvtPageRoute<bool>(
+              builder: (_) => ChatScreen(match: match),
             ),
           );
           // Always refresh last messages when returning from chat

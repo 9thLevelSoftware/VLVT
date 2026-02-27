@@ -12,6 +12,7 @@ import '../widgets/vlvt_button.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 import 'chat_screen.dart';
 import 'profile_detail_screen.dart';
 
@@ -668,8 +669,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
       // Navigate to chat for mutual matches
       final shouldRefresh = await Navigator.push<bool>(
         context,
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(match: entry.match!),
+        VlvtPageRoute<bool>(
+          builder: (_) => ChatScreen(match: entry.match!),
         ),
       );
 
@@ -680,8 +681,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
       // Navigate to profile detail with like-back option
       final didLike = await Navigator.push<bool>(
         context,
-        MaterialPageRoute(
-          builder: (context) => ProfileDetailScreen(
+        VlvtPageRoute<bool>(
+          builder: (_) => ProfileDetailScreen(
             profile: entry.profile!,
             showLikeAction: true,
             onLike: () async {
@@ -709,8 +710,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
       // Navigate to profile detail (view only)
       await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => ProfileDetailScreen(
+        VlvtPageRoute(
+          builder: (_) => ProfileDetailScreen(
             profile: entry.profile!,
             showLikeAction: false,
           ),

@@ -22,6 +22,7 @@ import '../theme/vlvt_text_styles.dart';
 import 'discovery_filters_screen.dart';
 import 'matches_screen.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 import 'profile_detail_screen.dart';
 import 'dart:async';
 
@@ -667,8 +668,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
   Future<void> _navigateToFilters() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const DiscoveryFiltersScreen(),
+      VlvtFadeRoute(
+        builder: (_) => const DiscoveryFiltersScreen(),
       ),
     );
 
@@ -698,7 +699,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
     if (_filteredProfiles.isEmpty || _currentProfileIndex >= _filteredProfiles.length) return;
     final profile = _filteredProfiles[_currentProfileIndex];
     Navigator.of(context).push(
-      MaterialPageRoute(
+      VlvtPageRoute(
         builder: (_) => ProfileDetailScreen(
           profile: profile,
           showLikeAction: true,
@@ -943,18 +944,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                   onTap: () {
                     Navigator.push<void>(
                       context,
-                      PageRouteBuilder<void>(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            const MatchesScreen(
+                      VlvtFadeRoute<void>(
+                        builder: (_) => const MatchesScreen(
                           initialFilter: MatchFilterType.likedYou,
                         ),
-                        transitionsBuilder:
-                            (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
                       ),
                     );
                   },

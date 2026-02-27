@@ -24,6 +24,7 @@ import '../widgets/message_status_indicator.dart';
 import '../services/date_proposal_service.dart';
 import '../theme/vlvt_colors.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 import 'profile_edit_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -342,8 +343,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                    builder: (context) => const ProfileEditScreen()),
+                VlvtPageRoute(
+                    builder: (_) => const ProfileEditScreen()),
               );
             },
           ),
@@ -779,8 +780,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           TextButton(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(
-                  builder: (context) => const ProfileEditScreen()),
+              VlvtPageRoute(
+                  builder: (_) => const ProfileEditScreen()),
             ),
             child: Text(
               'Complete',
