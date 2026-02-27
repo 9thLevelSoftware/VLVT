@@ -62,11 +62,11 @@ Plans:
   2. Modal and overlay screens use a crossfade transition
   3. No screen navigation uses the default MaterialPageRoute -- all 22+ calls are replaced with VlvtPageRoute or VlvtFadeRoute
   4. Existing Hero animations (discovery profile cards, chat screens) continue working correctly with the custom page routes
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: TBD
-- [ ] 10-02: TBD
+- [ ] 10-01-PLAN.md — Create VlvtPageRoute and VlvtFadeRoute classes; replace MaterialPageRoute in entry-point and service files (UX-01, UX-02, UX-03)
+- [ ] 10-02-PLAN.md — Replace remaining MaterialPageRoute and consolidate inline PageRouteBuilder across all screen files (UX-03, UX-04)
 
 ### Phase 11: Tooltip Accessibility and Ops Readiness
 **Goal**: Every icon button in the app is readable by screen readers with a descriptive label, and all pre-beta operational prerequisites are documented in a single checklist
