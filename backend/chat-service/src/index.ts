@@ -73,6 +73,7 @@ import {
   initializeRateLimiting,
 } from './middleware/rate-limiter';
 import { initializeSocketIO } from './socket';
+import { closeAfterHoursRedisSubscriber } from './socket/after-hours-handler';
 import { initializeFirebase, registerFCMToken, unregisterFCMToken, sendMatchNotification } from './services/fcm-service';
 import { createAfterHoursChatRouter } from './routes/after-hours-chat';
 import { initializeMessageCleanupJob, closeMessageCleanupJob } from './jobs/message-cleanup-job';
@@ -1640,25 +1641,47 @@ if (process.env.NODE_ENV !== 'test') {
   });
 
   // Graceful shutdown handlers
+  let isShuttingDown = false;
+
   const gracefulShutdown = async (signal: string) => {
+    if (isShuttingDown) {
+      logger.warn(`Duplicate ${signal} received, shutdown already in progress`);
+      return;
+    }
+    isShuttingDown = true;
     logger.info(`Received ${signal}, starting graceful shutdown...`);
+
+    // Force exit after 10 seconds to prevent hung deployments
+    const forceExitTimer = setTimeout(() => {
+      logger.error('Graceful shutdown timed out after 10s, forcing exit');
+      process.exit(1);
+    }, 10000);
+    forceExitTimer.unref();
 
     // Close message cleanup job
     await closeMessageCleanupJob().catch((err) => {
       logger.error('Error closing message cleanup job', { error: err.message });
     });
 
-    // Close HTTP server
-    httpServer.close(() => {
-      logger.info('HTTP server closed');
-      process.exit(0);
+    // Close Redis subscriber for After Hours events
+    await closeAfterHoursRedisSubscriber().catch((err) => {
+      logger.error('Error closing After Hours Redis subscriber', { error: err.message });
     });
 
-    // Force close after 10 seconds
-    setTimeout(() => {
-      logger.warn('Forcefully shutting down after timeout');
-      process.exit(1);
-    }, 10000);
+    // Close Socket.IO (disconnects all clients AND closes underlying HTTP server)
+    io.close(() => {
+      logger.info('Socket.IO server closed');
+    });
+
+    // Close database pool (drains active clients)
+    try {
+      await pool.end();
+      logger.info('Database pool closed');
+    } catch (err) {
+      logger.error('Error closing database pool', { error: (err as Error).message });
+    }
+
+    process.exit(0);
   };
 
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
