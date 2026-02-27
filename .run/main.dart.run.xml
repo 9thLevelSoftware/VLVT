@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="main.dart" type="FlutterRunConfigurationType" factoryName="Flutter">
-    <option name="additionalArgs" value="--dart-define=GOOGLE_CLIENT_ID=911953026264-lf341cirbvg0gjks4qc3h0ddahk58aqp.apps.googleusercontent.com --dart-define=GOOGLE_SERVER_CLIENT_ID=911953026264-2bnjftngl068kovsgs1qo3agredi77u8.apps.googleusercontent.com --dart-define=USE_PROD_URLS=true --dart-define=REVENUECAT_API_KEY_ANDROID=test_PuuhQUSxNSymRIYEHqJeSVuchDi" />
+    <option name="additionalArgs" value="--dart-define=GOOGLE_CLIENT_ID=911953026264-ss1djshan13ci68g20jd8aotcev6olh0.apps.googleusercontent.com --dart-define=GOOGLE_SERVER_CLIENT_ID=911953026264-2bnjftngl068kovsgs1qo3agredi77u8.apps.googleusercontent.com --dart-define=USE_PROD_URLS=true --dart-define=REVENUECAT_API_KEY_ANDROID=test_PuuhQUSxNSymRIYEHqJeSVuchDi" />
     <option name="filePath" value="$PROJECT_DIR$/frontend/lib/main.dart" />
     <method v="2" />
   </configuration>
