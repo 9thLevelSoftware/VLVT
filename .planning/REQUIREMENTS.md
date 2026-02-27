@@ -64,27 +64,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RESIL-01 | — | Pending |
-| RESIL-02 | — | Pending |
-| RESIL-03 | — | Pending |
-| RESIL-04 | — | Pending |
-| RESIL-05 | — | Pending |
-| RESIL-06 | — | Pending |
-| RESIL-07 | — | Pending |
-| A11Y-01 | — | Pending |
-| A11Y-02 | — | Pending |
-| A11Y-03 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
-| UX-03 | — | Pending |
-| UX-04 | — | Pending |
-| OPS-01 | — | Pending |
+| RESIL-01 | Phase 8 | Pending |
+| RESIL-02 | Phase 8 | Pending |
+| RESIL-03 | Phase 8 | Pending |
+| RESIL-04 | Phase 9 | Pending |
+| RESIL-05 | Phase 9 | Pending |
+| RESIL-06 | Phase 9 | Pending |
+| RESIL-07 | Phase 9 | Pending |
+| A11Y-01 | Phase 11 | Pending |
+| A11Y-02 | Phase 11 | Pending |
+| A11Y-03 | Phase 11 | Pending |
+| UX-01 | Phase 10 | Pending |
+| UX-02 | Phase 10 | Pending |
+| UX-03 | Phase 10 | Pending |
+| UX-04 | Phase 10 | Pending |
+| OPS-01 | Phase 11 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15 (pending roadmap creation)
+- Mapped to phases: 15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after initial definition*
+*Last updated: 2026-02-27 after roadmap creation*

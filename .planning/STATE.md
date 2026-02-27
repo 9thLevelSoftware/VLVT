@@ -5,14 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** v2.0 Beta Readiness
+**Current focus:** Phase 8 - Shared Backend Utilities
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-02-27 — Milestone v2.0 started
+Phase: 8 of 11 (Shared Backend Utilities)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-02-27 -- Roadmap created for v2.0 Beta Readiness (4 phases, 15 requirements)
+
+Progress: [..........] 0%
 
 ## Performance Metrics
 
@@ -22,33 +24,40 @@ Last activity: 2026-02-27 — Milestone v2.0 started
 |-----------|--------|-------|----------|---------|
 | v1.0 After Hours Mode | 7 | 28 | 3 days | 2026-01-24 |
 | v1.1 Production Readiness | 7 | 50 | 7 days | 2026-02-03 |
+| v2.0 Beta Readiness | 4 | TBD | -- | -- |
 
 ## Accumulated Context
 
 ### Decisions
 
-All decisions archived in PROJECT.md Key Decisions table.
+All v1.0/v1.1 decisions archived in PROJECT.md Key Decisions table.
+
+v2.0 decisions:
+- 4-phase structure: shared utilities -> service integration -> page transitions -> tooltips+ops
+- Backend phases sequential (8 before 9); frontend phases (10, 11) independent of backend and each other
+- OPS-01 grouped with A11Y in Phase 11 (documentation-only, no code dependency)
 
 ### Pending Todos
 
-Operational items deferred from v1.1:
-- Apple Developer Portal Services ID configuration (code deployed, returns 503 until configured)
-- Backup restore test execution (runbook written, AWS CLI not installed locally)
-- UptimeRobot external monitoring setup (documentation ready, requires human action)
+Operational items deferred from v1.1 (captured in OPS-01 scope):
+- Apple Developer Portal Services ID configuration
+- Backup restore test execution
+- UptimeRobot external monitoring setup
 - KYCAID_ENCRYPTION_KEY must be set in Railway before beta
 
 ### Blockers/Concerns
 
-No blockers. v1.1 shipped.
+- Railway RAILWAY_DEPLOYMENT_DRAINING_SECONDS must be verified/set to 15s minimum (Phase 9 prerequisite)
+- Railway Custom Start Commands may use npm start instead of node dist/index.js (Phase 9 verification)
 
 ## Session Continuity
 
-Last session: 2026-02-03
-Stopped at: v1.1 milestone completion
-Resume file: None (milestone complete, ready for /gsd:new-milestone)
+Last session: 2026-02-27
+Stopped at: Roadmap creation complete, ready for phase planning
+Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
-*Previous milestone: v1.0 After Hours Mode (SHIPPED 2026-01-24)*
-*Current milestone: v1.1 Production Readiness (SHIPPED 2026-02-03)*
+*Previous milestones: v1.0 (shipped 2026-01-24), v1.1 (shipped 2026-02-03)*
+*Current milestone: v2.0 Beta Readiness (in progress)*
