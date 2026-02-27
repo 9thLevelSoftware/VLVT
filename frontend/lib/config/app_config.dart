@@ -28,6 +28,13 @@ class AppConfig {
   /// Build a versioned chat service URL
   static String chatUrl(String path) => buildApiUrl(chatServiceUrl, path);
 
+  /// Sentry DSN for error tracking
+  /// Override with: flutter build --dart-define=SENTRY_DSN=your_dsn_here
+  static const String sentryDsn = String.fromEnvironment(
+    'SENTRY_DSN',
+    defaultValue: 'https://3fd85155f27724779673da44461792d1@o4510959233073152.ingest.us.sentry.io/4510959234646016',
+  );
+
   /// Apple Services ID for web-based Apple Sign-In (used on Android)
   static const String appleServicesId = String.fromEnvironment(
     'APPLE_SERVICES_ID',

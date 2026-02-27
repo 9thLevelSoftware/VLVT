@@ -18,6 +18,7 @@ import 'screens/main_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/splash_screen.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'config/app_config.dart';
 
 // Global navigator key for navigation from notification callbacks
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -67,25 +68,18 @@ void main() async {
 
   await SentryFlutter.init(
     (options) {
-      options.dsn = 'https://3fd85155f27724779673da44461792d1@o4510959233073152.ingest.us.sentry.io/4510959234646016';
-      // Adds request headers and IP for users, for more info visit:
-      // https://docs.sentry.io/platforms/dart/guides/flutter/data-management/data-collected/
+      options.dsn = AppConfig.sentryDsn;
       options.sendDefaultPii = true;
       options.enableLogs = true;
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-      // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
-      // The sampling rate for profiling is relative to tracesSampleRate
-      // Setting to 1.0 will profile 100% of sampled transactions:
-      options.profilesSampleRate = 1.0;
-      // Configure Session Replay
+      // 20% of transactions for tracing, 10% of those profiled
+      options.tracesSampleRate = 0.2;
+      options.profilesSampleRate = 0.1;
+      // Session replay: 10% normal sessions, 100% of error sessions
       options.replay.sessionSampleRate = 0.1;
       options.replay.onErrorSampleRate = 1.0;
     },
     appRunner: () => runApp(SentryWidget(child: MyApp(themeService: themeService))),
   );
-  // TODO: Remove this line after sending the first sample event to sentry.
-  await Sentry.captureException(StateError('This is a sample exception.'));
 }
 
 /// Handle notification tap - navigate to appropriate screen
