@@ -1781,23 +1781,6 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-// Graceful shutdown handlers
-process.on('SIGTERM', async () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  await closeMatchingScheduler();
-  await closeSessionScheduler();
-  await closeSessionCleanupJob();
-  process.exit(0);
-});
-
-process.on('SIGINT', async () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  await closeMatchingScheduler();
-  await closeSessionScheduler();
-  await closeSessionCleanupJob();
-  process.exit(0);
-});
-
 // Only start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
   // Initialize upload directory and session scheduler before starting server
@@ -1831,9 +1814,56 @@ if (process.env.NODE_ENV !== 'test') {
         logger.warn('Session cleanup job initialization failed', { error: err.message });
       });
 
-      app.listen(PORT, () => {
-        logger.info(`Profile service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
+      const server = app.listen(PORT, () => {
+        logger.info('Profile service started', { port: PORT, environment: process.env.NODE_ENV || 'development' });
       });
+
+      let isShuttingDown = false;
+
+      const gracefulShutdown = async (signal: string) => {
+        if (isShuttingDown) {
+          logger.warn(`Duplicate ${signal} received, shutdown already in progress`);
+          return;
+        }
+        isShuttingDown = true;
+        logger.info(`Received ${signal}, starting graceful shutdown...`);
+
+        // Force exit after 10 seconds to prevent hung deployments
+        const forceExitTimer = setTimeout(() => {
+          logger.error('Graceful shutdown timed out after 10s, forcing exit');
+          process.exit(1);
+        }, 10000);
+        forceExitTimer.unref();
+
+        // Stop accepting new HTTP requests
+        server.close(() => {
+          logger.info('HTTP server closed');
+        });
+
+        // Close background schedulers
+        await closeMatchingScheduler().catch((err: any) => {
+          logger.error('Error closing matching scheduler', { error: err.message });
+        });
+        await closeSessionScheduler().catch((err: any) => {
+          logger.error('Error closing session scheduler', { error: err.message });
+        });
+        await closeSessionCleanupJob().catch((err: any) => {
+          logger.error('Error closing session cleanup job', { error: err.message });
+        });
+
+        // Close database pool (drains active clients)
+        try {
+          await pool.end();
+          logger.info('Database pool closed');
+        } catch (err) {
+          logger.error('Error closing database pool', { error: (err as Error).message });
+        }
+
+        process.exit(0);
+      };
+
+      process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+      process.on('SIGINT', () => gracefulShutdown('SIGINT'));
     })
     .catch((error) => {
       logger.error('Failed to initialize upload directory', { error });
