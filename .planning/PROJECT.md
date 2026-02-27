@@ -75,7 +75,13 @@ When beta users sign up, their data must be secure, their privacy protected, and
 
 ### Active
 
-(No active requirements -- next milestone not yet defined)
+<!-- Current scope: v2.0 Beta Readiness -->
+
+- [ ] Resilient DB pool with auto-reconnection across all services
+- [ ] Graceful shutdown with pool cleanup across all services
+- [ ] Tooltip accessibility on all IconButtons
+- [ ] Consistent page transition animations
+- [ ] Pre-beta operations checklist
 
 ### Out of Scope
 
@@ -86,6 +92,17 @@ When beta users sign up, their data must be secure, their privacy protected, and
 - iOS background location fix -- known limitation; acceptable for beta
 - Interests/tags system -- deferred from v1.0; not production-readiness
 - Location encryption at rest -- deferred to v2 (KYCAID done, GPS plaintext with documented rationale)
+
+## Current Milestone: v2.0 Beta Readiness
+
+**Goal:** Resolve the 5 remaining P2 issues from the Board of Directors review to make VLVT ready for public beta — operational resilience, accessibility, UX polish, and ops documentation.
+
+**Target features:**
+- Resilient DB pool with auto-reconnection (handles Railway cold starts, connection pool exhaustion)
+- Graceful shutdown with database pool cleanup (prevents orphaned connections during deployments)
+- Tooltip accessibility on all 20 IconButtons missing them (screen reader support)
+- Consistent page transition animations via VlvtPageRoute/VlvtFadeRoute
+- Pre-beta operations checklist consolidating all operational prerequisites
 
 ## Context
 
@@ -134,4 +151,4 @@ When beta users sign up, their data must be secure, their privacy protected, and
 | Apple Services ID separate from Client ID | Web flow needs different identifier than native iOS | ✓ Good -- code deployed |
 
 ---
-*Last updated: 2026-02-03 after v1.1 milestone*
+*Last updated: 2026-02-27 after v2.0 milestone start*

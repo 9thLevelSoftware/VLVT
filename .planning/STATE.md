@@ -2,19 +2,17 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-03)
+See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Planning next milestone
+**Current focus:** v2.0 Beta Readiness
 
 ## Current Position
 
-Phase: Next milestone not started
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-02-03 -- v1.1 Production Readiness milestone complete
-
-Progress: [████████████████████████████████] 100% (v1.1 shipped)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-27 — Milestone v2.0 started
 
 ## Performance Metrics
 
