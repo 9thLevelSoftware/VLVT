@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
 status: unknown
-last_updated: "2026-02-27T21:07:30.128Z"
+last_updated: "2026-02-27T21:37:15Z"
 progress:
   total_phases: 14
   completed_phases: 14
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 9 - Backend Service Integration -- COMPLETE
+**Current focus:** Phase 10 - Page Transitions
 
 ## Current Position
 
-Phase: 9 of 11 (Backend Service Integration) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-02-27 -- Completed 09-02 graceful shutdown for profile-service and chat-service
+Phase: 10 of 11 (Page Transitions)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-02-27 -- Completed 10-01 VlvtPageRoute/VlvtFadeRoute route classes and entry-point migration
 
-Progress: [##........] 25%
+Progress: [###.......] 33%
 
 ## Performance Metrics
 
@@ -60,6 +60,9 @@ v2.0 decisions:
 - Shutdown order: server.close -> schedulers -> pool.end -> exit (pool last, schedulers may need DB) (09-02)
 - io.close() replaces httpServer.close() in chat-service (closes Socket.IO + HTTP in one call) (09-02)
 - Guard flag (isShuttingDown) prevents double pool.end() which throws in pg-pool (09-02)
+- VlvtPageRoute uses easeOutCubic for slide-from-right, default 300ms matches MaterialPageRoute (10-01)
+- VlvtFadeRoute used for modal/overlay screens: paywall, legal documents (10-01)
+- Builder callbacks use _ instead of context (unused parameter convention) (10-01)
 
 ### Pending Todos
 
@@ -77,7 +80,7 @@ Operational items deferred from v1.1 (captured in OPS-01 scope):
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 09-02-PLAN.md (graceful shutdown for profile-service and chat-service) -- Phase 9 complete
+Stopped at: Completed 10-01-PLAN.md (VlvtPageRoute/VlvtFadeRoute + 13 MaterialPageRoute replacements)
 Resume file: None
 
 ---
