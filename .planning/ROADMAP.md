@@ -77,11 +77,11 @@ Plans:
   2. All 20 identified IconButtons announce a descriptive action (e.g., "Send message", "Go back", "Close") when focused by TalkBack or VoiceOver
   3. No icon button produces duplicate screen reader announcements from overlapping Semantics wrappers and tooltip properties
   4. A pre-beta operations checklist exists that documents every operational prerequisite (backup validation, monitoring setup, security keys, external service configuration) needed before inviting real users
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: TBD
-- [ ] 11-02: TBD
+- [ ] 11-01-PLAN.md — Refactor VlvtIconButton tooltip + add tooltips to all 18 missing IconButtons (A11Y-01, A11Y-02, A11Y-03)
+- [ ] 11-02-PLAN.md — Create pre-beta operations checklist at docs/PRE-BETA-CHECKLIST.md (OPS-01)
 
 ## Progress
 
@@ -93,7 +93,7 @@ Phases 8 and 9 are sequential (shared utilities before service integration). Pha
 | 8. Shared Backend Utilities | v2.0 | 0/2 | Planning complete | - |
 | 9. Backend Service Integration | v2.0 | 0/? | Not started | - |
 | 10. Page Transitions | 2/2 | Complete    | 2026-02-27 | - |
-| 11. Tooltip Accessibility and Ops Readiness | v2.0 | 0/? | Not started | - |
+| 11. Tooltip Accessibility and Ops Readiness | v2.0 | 0/2 | Planning complete | - |
 
 ---
 *Roadmap created: 2026-02-27*

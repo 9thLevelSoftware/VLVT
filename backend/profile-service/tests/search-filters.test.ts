@@ -19,6 +19,92 @@ jest.mock('@sentry/node', () => ({
   setupExpressErrorHandler: jest.fn(),
 }));
 
+// Mock @vlvt/shared so tests focus on search-count behavior
+jest.mock('@vlvt/shared', () => ({
+  createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+  correlationMiddleware: (req: any, res: any, next: any) => next(),
+  createRequestLoggerMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  addVersionToHealth: jest.fn((obj: any) => ({
+    ...obj,
+    api: {
+      currentVersion: 1,
+      minimumVersion: 1,
+      supportedVersions: [1, 2],
+      deprecatedVersions: [],
+    },
+  })),
+  API_VERSIONS: { V1: 'v1' },
+  CURRENT_API_VERSION: 1,
+  createInternalServiceAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createAfterHoursAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createPool: jest.fn(() => ({
+    query: mockQuery,
+    on: mockOn,
+  })),
+}));
+
+// Keep this suite isolated from rate limiter and background infra behavior
+jest.mock('../src/middleware/rate-limiter', () => ({
+  generalLimiter: (req: any, res: any, next: any) => next(),
+  profileCreationLimiter: (req: any, res: any, next: any) => next(),
+  discoveryLimiter: (req: any, res: any, next: any) => next(),
+  profileUpdateLimiter: (req: any, res: any, next: any) => next(),
+  photoUploadLimiter: (req: any, res: any, next: any) => next(),
+  swipeLimiter: (req: any, res: any, next: any) => next(),
+  sensitiveActionLimiter: (req: any, res: any, next: any) => next(),
+  initializeRateLimiting: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../src/services/fcm-service', () => ({
+  initializeFirebase: jest.fn(),
+  isFirebaseReady: jest.fn().mockReturnValue(false),
+  sendMatchNotification: jest.fn().mockResolvedValue(undefined),
+  sendMessageNotification: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../src/services/session-scheduler', () => ({
+  initializeSessionWorker: jest.fn().mockResolvedValue(undefined),
+  closeSessionScheduler: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../src/services/matching-scheduler', () => ({
+  initializeMatchingScheduler: jest.fn().mockResolvedValue(undefined),
+  closeMatchingScheduler: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../src/jobs/session-cleanup-job', () => ({
+  initializeSessionCleanupJob: jest.fn().mockResolvedValue(undefined),
+  closeSessionCleanupJob: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../src/utils/image-handler', () => ({
+  initializeUploadDirectory: jest.fn().mockResolvedValue(undefined),
+  validateImage: jest.fn().mockReturnValue({ valid: true }),
+  validateImageMagicBytes: jest.fn().mockResolvedValue({ valid: true }),
+  processImage: jest.fn().mockResolvedValue({
+    key: 'photos/test_user_123/photo.webp',
+    thumbnailKey: 'photos/test_user_123/photo_thumb.webp',
+  }),
+  deleteImage: jest.fn().mockResolvedValue(undefined),
+  getPhotoIdFromUrl: jest.fn().mockReturnValue('photo-id'),
+  canUploadMorePhotos: jest.fn().mockReturnValue(true),
+  MAX_PHOTOS_PER_PROFILE: 6,
+}));
+
+jest.mock('../src/utils/r2-client', () => ({
+  resolvePhotoUrls: jest.fn().mockImplementation((photos: string[]) =>
+    Promise.resolve(photos.map((p) => `https://mock-presigned-url.example.com/${p}`))
+  ),
+  resolvePhotoUrl: jest.fn().mockImplementation((photo: string) =>
+    Promise.resolve(`https://mock-presigned-url.example.com/${photo}`)
+  ),
+  uploadToR2: jest.fn().mockResolvedValue('uploaded-key'),
+  getPresignedUrl: jest.fn().mockResolvedValue('https://mock-presigned-url.example.com/photo.jpg'),
+  deleteUserPhotos: jest.fn().mockResolvedValue({ deleted: 0, failed: 0 }),
+  R2_BUCKET_NAME: 'vlvt-images',
+}));
+
 import request from 'supertest';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -81,9 +167,8 @@ describe('POST /profiles/search/count', () => {
           maxDistance: 50,
         });
 
-      // Without Bearer token, CSRF middleware triggers first (returns 403)
-      // This is expected behavior - CSRF protection before auth
-      expect(response.status).toBe(403);
+      // In this isolated suite, auth middleware handles missing tokens first
+      expect(response.status).toBe(401);
       expect(response.body.success).toBe(false);
     });
   });

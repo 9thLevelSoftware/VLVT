@@ -1,12 +1,14 @@
 import jwt from 'jsonwebtoken';
 
+// Shared mock pool instance used by both pg and @vlvt/shared mocks
+const mPool = {
+  query: jest.fn(),
+  on: jest.fn(),
+  connect: jest.fn(),
+};
+
 // Mock dependencies before importing the app
 jest.mock('pg', () => {
-  const mPool = {
-    query: jest.fn(),
-    on: jest.fn(),
-    connect: jest.fn(),
-  };
   return { Pool: jest.fn(() => mPool) };
 });
 
@@ -38,6 +40,89 @@ jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed_password'),
   compare: jest.fn(),
 }));
+
+// Mock @vlvt/shared to isolate account lockout tests from middleware/audit side effects
+jest.mock('@vlvt/shared', () => {
+  const mockErrorCodes = {
+    VAL_MISSING_FIELDS: {
+      code: 'VAL_002',
+      httpStatus: 400,
+      publicMessage: 'Missing required fields',
+      internalMessage: 'One or more required fields are missing',
+    },
+    AUTH_INVALID_CREDENTIALS: {
+      code: 'AUTH_001',
+      httpStatus: 401,
+      publicMessage: 'Authentication failed',
+      internalMessage: 'Invalid credentials provided',
+    },
+    AUTH_ACCOUNT_LOCKED: {
+      code: 'AUTH_006',
+      httpStatus: 423,
+      publicMessage: 'Account temporarily locked',
+      internalMessage: 'Account locked due to excessive failed login attempts',
+      isAlertable: true,
+    },
+    AUTH_EMAIL_NOT_VERIFIED: {
+      code: 'AUTH_007',
+      httpStatus: 403,
+      publicMessage: 'Account verification required',
+      internalMessage: 'Email address has not been verified',
+    },
+  };
+
+  return {
+    createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+    createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
+    correlationMiddleware: (req: any, res: any, next: any) => next(),
+    createRequestLoggerMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+    createAuditLogger: jest.fn(() => ({
+      logAction: jest.fn().mockResolvedValue(undefined),
+      logAuthEvent: jest.fn().mockResolvedValue(undefined),
+      logDataChange: jest.fn().mockResolvedValue(undefined),
+    })),
+    AuditAction: {
+      LOGIN: 'LOGIN',
+      LOGOUT: 'LOGOUT',
+      REGISTER: 'REGISTER',
+      PASSWORD_CHANGE: 'PASSWORD_CHANGE',
+      PASSWORD_RESET: 'PASSWORD_RESET',
+      TOKEN_REFRESH: 'TOKEN_REFRESH',
+      VERIFICATION_REQUEST: 'VERIFICATION_REQUEST',
+      VERIFICATION_COMPLETE: 'VERIFICATION_COMPLETE',
+      LOGIN_FAILURE: 'LOGIN_FAILURE',
+      LOGIN_SUCCESS: 'LOGIN_SUCCESS',
+      ACCOUNT_LOCKED: 'ACCOUNT_LOCKED',
+    },
+    AuditResourceType: {
+      USER: 'USER',
+      SESSION: 'SESSION',
+      VERIFICATION: 'VERIFICATION',
+    },
+    addVersionToHealth: jest.fn((obj: any) => obj),
+    createVersionMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+    API_VERSIONS: { V1: 'v1' },
+    CURRENT_API_VERSION: 'v1',
+    ErrorCodes: mockErrorCodes,
+    sendErrorResponse: jest.fn((res: any, errorDef: any, originalError: any, options: any = {}) => {
+      return res.status(errorDef.httpStatus).json({
+        success: false,
+        message: errorDef.publicMessage,
+        code: errorDef.code,
+        ...(options.retryAfter !== undefined ? { retryAfter: options.retryAfter } : {}),
+      });
+    }),
+    createErrorResponseSender: jest.fn(() => (res: any, errorDef: any, originalError: any, options: any = {}) => {
+      return res.status(errorDef.httpStatus).json({
+        success: false,
+        message: errorDef.publicMessage,
+        code: errorDef.code,
+        ...(options.retryAfter !== undefined ? { retryAfter: options.retryAfter } : {}),
+      });
+    }),
+    createPool: jest.fn(() => mPool),
+  };
+});
 
 import request from 'supertest';
 import { Pool } from 'pg';
