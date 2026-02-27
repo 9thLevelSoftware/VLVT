@@ -153,7 +153,12 @@ const CORS_ORIGIN = (() => {
   if (!origin && process.env.NODE_ENV === 'production') {
     throw new Error('CORS_ORIGIN environment variable is required in production');
   }
-  return origin || 'http://localhost:19006';
+  if (origin === '*' && process.env.NODE_ENV === 'production') {
+    throw new Error('CORS_ORIGIN must not be "*" in production — set to specific domain(s)');
+  }
+  const value = origin || 'http://localhost:19006';
+  // Support comma-separated origins (e.g. "https://a.com,https://b.com")
+  return value.includes(',') ? value.split(',').map(o => o.trim()) : value;
 })();
 
 // Security middleware with comprehensive headers
