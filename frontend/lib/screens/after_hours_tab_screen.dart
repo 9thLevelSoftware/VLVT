@@ -17,6 +17,7 @@ import '../widgets/vlvt_loader.dart';
 import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 import 'after_hours_profile_screen.dart';
 import 'after_hours_preferences_screen.dart';
 import 'after_hours_chat_screen.dart';
@@ -166,12 +167,8 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
     if (mounted) {
       Navigator.push(
         context,
-        PageRouteBuilder<void>(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              AfterHoursChatScreen(match: match),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
+        VlvtFadeRoute<void>(
+          builder: (_) => AfterHoursChatScreen(match: match),
         ),
       );
     }
@@ -319,12 +316,8 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
             isComplete: isProfileComplete,
             onTap: () => Navigator.push(
               context,
-              PageRouteBuilder<void>(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    const AfterHoursProfileScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
+              VlvtFadeRoute(
+                builder: (_) => const AfterHoursProfileScreen(),
               ),
             ).then((_) => _loadSetupData()),
           ),
@@ -337,12 +330,8 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
             isComplete: isPrefsComplete,
             onTap: () => Navigator.push(
               context,
-              PageRouteBuilder<void>(
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    const AfterHoursPreferencesScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
+              VlvtFadeRoute(
+                builder: (_) => const AfterHoursPreferencesScreen(),
               ),
             ).then((_) => _loadSetupData()),
           ),
@@ -576,12 +565,8 @@ class _AfterHoursTabScreenState extends State<AfterHoursTabScreen>
                   onPressed: () {
                     Navigator.push(
                       context,
-                      PageRouteBuilder<void>(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            AfterHoursChatScreen(match: match),
-                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(opacity: animation, child: child);
-                        },
+                      VlvtFadeRoute<void>(
+                        builder: (_) => AfterHoursChatScreen(match: match),
                       ),
                     );
                   },

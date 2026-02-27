@@ -16,6 +16,7 @@ import '../theme/vlvt_colors.dart';
 import '../theme/vlvt_text_styles.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -89,8 +90,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _navigateToEditProfile(Profile? currentProfile) async {
     final result = await Navigator.of(context).push<Profile>(
-      MaterialPageRoute(
-        builder: (context) => ProfileEditScreen(
+      VlvtPageRoute<Profile>(
+        builder: (_) => ProfileEditScreen(
           existingProfile: currentProfile,
         ),
       ),
@@ -351,21 +352,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       expanded: true,
                       onPressed: () {
                         Navigator.of(context).push(
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) =>
-                                const SafetySettingsScreen(),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                              return SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(1.0, 0.0),
-                                  end: Offset.zero,
-                                ).animate(CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutCubic,
-                                )),
-                                child: child,
-                              );
-                            },
+                          VlvtPageRoute(
+                            builder: (_) => const SafetySettingsScreen(),
                           ),
                         );
                       },
@@ -377,21 +365,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       expanded: true,
                       onPressed: () {
                         Navigator.of(context).push(
-                          PageRouteBuilder(
-                            pageBuilder: (context, animation, secondaryAnimation) =>
-                                const InviteScreen(),
-                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                              return SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(1.0, 0.0),
-                                  end: Offset.zero,
-                                ).animate(CurvedAnimation(
-                                  parent: animation,
-                                  curve: Curves.easeOutCubic,
-                                )),
-                                child: child,
-                              );
-                            },
+                          VlvtPageRoute(
+                            builder: (_) => const InviteScreen(),
                           ),
                         );
                       },
@@ -478,8 +453,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icons.verified_user,
                     onPressed: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const IdVerificationScreen(),
+                        VlvtPageRoute(
+                          builder: (_) => const IdVerificationScreen(),
                         ),
                       ).then((_) {
                         _refreshProfile();

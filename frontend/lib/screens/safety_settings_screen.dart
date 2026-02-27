@@ -12,6 +12,7 @@ import '../widgets/vlvt_button.dart';
 import '../widgets/vlvt_loader.dart';
 import '../widgets/confirmation_dialog.dart';
 import '../utils/error_handler.dart';
+import '../utils/vlvt_routes.dart';
 import 'consent_settings_screen.dart';
 import 'legal_document_viewer.dart';
 
@@ -440,23 +441,10 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      const LegalDocumentViewer(
+                VlvtFadeRoute(
+                  builder: (_) => const LegalDocumentViewer(
                     documentType: LegalDocumentType.privacyPolicy,
                   ),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.0, 1.0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: child,
-                    );
-                  },
                 ),
               );
             },
@@ -469,21 +457,8 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      const ConsentSettingsScreen(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.0, 1.0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: child,
-                    );
-                  },
+                VlvtFadeRoute(
+                  builder: (_) => const ConsentSettingsScreen(),
                 ),
               );
             },
@@ -496,23 +471,10 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      const LegalDocumentViewer(
+                VlvtFadeRoute(
+                  builder: (_) => const LegalDocumentViewer(
                     documentType: LegalDocumentType.termsOfService,
                   ),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0.0, 1.0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: child,
-                    );
-                  },
                 ),
               );
             },
