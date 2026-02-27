@@ -237,7 +237,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               fit: BoxFit.cover,
             ),
           Container(
-            color: Colors.black.withValues(alpha: 0.7),
+            color: VlvtColors.background.withValues(alpha: 0.7),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -295,12 +295,12 @@ class _VerificationScreenState extends State<VerificationScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
+                color: VlvtColors.background.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 'Review your photo',
-                style: VlvtTextStyles.bodyMedium.copyWith(color: Colors.white),
+                style: VlvtTextStyles.bodyMedium.copyWith(color: VlvtColors.textPrimary),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -328,7 +328,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         // Countdown overlay
         if (_showCountdown)
           Container(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: VlvtColors.background.withValues(alpha: 0.5),
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -353,7 +353,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       ),
                       child: Text(
                         _prompt!.instruction,
-                        style: VlvtTextStyles.h3.copyWith(color: Colors.black),
+                        style: VlvtTextStyles.h3.copyWith(color: VlvtColors.background),
                       ),
                     ),
                 ],
@@ -370,7 +370,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
+                color: VlvtColors.background.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -395,7 +395,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         // Capturing indicator
         if (_isCapturing)
           Container(
-            color: Colors.black.withValues(alpha: 0.5),
+            color: VlvtColors.background.withValues(alpha: 0.5),
             child: const Center(
               child: VlvtProgressIndicator(),
             ),

@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/vlvt_colors.dart';
+import '../utils/error_handler.dart';
 import 'vlvt_input.dart';
 import 'vlvt_button.dart';
 
@@ -100,7 +101,7 @@ class _FeedbackFormState extends State<FeedbackForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Thank you for your feedback!'),
-            backgroundColor: Colors.green,
+            backgroundColor: VlvtColors.success,
           ),
         );
       }
@@ -108,8 +109,8 @@ class _FeedbackFormState extends State<FeedbackForm> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit feedback: $e'),
-            backgroundColor: Colors.red,
+            content: Text('Failed to submit feedback: ${ErrorHandler.getShortMessage(e)}'),
+            backgroundColor: VlvtColors.error,
           ),
         );
       }

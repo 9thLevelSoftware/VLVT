@@ -161,7 +161,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     _resetSuccessful ? 'Password Reset!' : 'Reset Password',
                     textAlign: TextAlign.center,
                     style: VlvtTextStyles.displaySmall.copyWith(
-                      color: Colors.white,
+                      color: VlvtColors.textPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -172,7 +172,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         : 'Enter your new password below',
                     textAlign: TextAlign.center,
                     style: VlvtTextStyles.bodyMedium.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: VlvtColors.textSecondary,
                     ),
                   ),
                   Spacing.verticalXl,
@@ -183,12 +183,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         Container(
                           padding: Spacing.paddingXl,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                             borderRadius: Spacing.borderRadiusLg,
                           ),
                           child: Icon(
                             Icons.check_circle,
-                            color: Colors.white,
+                            color: VlvtColors.textPrimary,
                             size: 64,
                           ),
                         ),
@@ -206,7 +206,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       child: Container(
                         padding: Spacing.paddingXl,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                           borderRadius: Spacing.borderRadiusLg,
                         ),
                         child: Column(
@@ -217,7 +217,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             Text(
                               'Resetting your password...',
                               style: VlvtTextStyles.bodyMedium.copyWith(
-                                color: Colors.white,
+                                color: VlvtColors.textPrimary,
                               ),
                             ),
                           ],
@@ -237,14 +237,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             Container(
                               padding: Spacing.paddingMd,
                               decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.2),
+                                color: VlvtColors.error.withValues(alpha: 0.2),
                                 borderRadius: Spacing.borderRadiusMd,
                               ),
                               child: Row(
                                 children: [
                                   const Icon(
                                     Icons.error_outline,
-                                    color: Colors.white,
+                                    color: VlvtColors.textPrimary,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -252,7 +252,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                     child: Text(
                                       _errorMessage!,
                                       style: VlvtTextStyles.bodySmall.copyWith(
-                                        color: Colors.white,
+                                        color: VlvtColors.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -297,8 +297,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               padding: Spacing.paddingMd,
                               decoration: BoxDecoration(
                                 color: _validatePassword(_passwordController.text)
-                                    ? Colors.green.withValues(alpha: 0.2)
-                                    : Colors.white.withValues(alpha: 0.15),
+                                    ? VlvtColors.success.withValues(alpha: 0.2)
+                                    : VlvtColors.textPrimary.withValues(alpha: 0.15),
                                 borderRadius: Spacing.borderRadiusMd,
                               ),
                               child: Row(
@@ -307,7 +307,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                     _validatePassword(_passwordController.text)
                                         ? Icons.check_circle
                                         : Icons.info_outline,
-                                    color: Colors.white,
+                                    color: VlvtColors.textPrimary,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -315,7 +315,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                     child: Text(
                                       _getPasswordRequirements(_passwordController.text),
                                       style: VlvtTextStyles.caption.copyWith(
-                                        color: Colors.white,
+                                        color: VlvtColors.textPrimary,
                                       ),
                                     ),
                                   ),

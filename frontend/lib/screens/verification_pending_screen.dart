@@ -161,13 +161,13 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                       Container(
                         padding: Spacing.paddingXl,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: VlvtColors.textPrimary.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.email_outlined,
                           size: 100,
-                          color: Colors.white,
+                          color: VlvtColors.textPrimary,
                         ),
                       ),
                       Spacing.verticalXl,
@@ -176,7 +176,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                         'Check your email',
                         textAlign: TextAlign.center,
                         style: VlvtTextStyles.displaySmall.copyWith(
-                          color: Colors.white,
+                          color: VlvtColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -186,7 +186,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                         'We sent a verification link to:',
                         textAlign: TextAlign.center,
                         style: VlvtTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: VlvtColors.textSecondary,
                         ),
                       ),
                       Spacing.verticalSm,
@@ -194,7 +194,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                         widget.email,
                         textAlign: TextAlign.center,
                         style: VlvtTextStyles.h4.copyWith(
-                          color: Colors.white,
+                          color: VlvtColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -206,7 +206,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                           'Click the link in your email to verify your account and complete registration.',
                           textAlign: TextAlign.center,
                           style: VlvtTextStyles.bodyMedium.copyWith(
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: VlvtColors.textSecondary,
                           ),
                         ),
                       ),
@@ -234,7 +234,7 @@ class _VerificationPendingScreenState extends State<VerificationPendingScreen> w
                           'Didn\'t receive the email? Check your spam folder or try resending.',
                           textAlign: TextAlign.center,
                           style: VlvtTextStyles.caption.copyWith(
-                            color: Colors.white.withValues(alpha: 0.7),
+                            color: VlvtColors.textSecondary,
                           ),
                         ),
                       ),

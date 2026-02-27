@@ -109,14 +109,14 @@ class _SessionTimerState extends State<SessionTimer> {
         children: [
           Icon(
             Icons.timer,
-            color: isUrgent ? Colors.white : VlvtColors.textOnGold,
+            color: isUrgent ? VlvtColors.textPrimary : VlvtColors.textOnGold,
             size: 16,
           ),
           const SizedBox(width: 4),
           Text(
             '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
             style: TextStyle(
-              color: isUrgent ? Colors.white : VlvtColors.textOnGold,
+              color: isUrgent ? VlvtColors.textPrimary : VlvtColors.textOnGold,
               fontWeight: FontWeight.bold,
               fontFamily: 'Montserrat',
               fontSize: 14,

@@ -48,7 +48,7 @@ class SessionExpiryBanner extends StatelessWidget {
         children: [
           const Icon(
             Icons.warning_amber_rounded,
-            color: Colors.white,
+            color: VlvtColors.textPrimary,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -56,7 +56,7 @@ class SessionExpiryBanner extends StatelessWidget {
             child: Text(
               'Session ending in $minutes:${seconds.toString().padLeft(2, '0')}',
               style: VlvtTextStyles.labelMedium.copyWith(
-                color: Colors.white,
+                color: VlvtColors.textPrimary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -72,7 +72,7 @@ class SessionExpiryBanner extends StatelessWidget {
               child: const Text(
                 'Extend',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: VlvtColors.textPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

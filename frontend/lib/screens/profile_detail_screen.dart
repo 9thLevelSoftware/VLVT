@@ -65,7 +65,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Block', style: TextStyle(color: Colors.red)),
+                child: Text('Block', style: TextStyle(color: VlvtColors.error)),
               ),
             ],
           ),
@@ -185,10 +185,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.5),
+                  color: VlvtColors.background.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.arrow_back, color: Colors.white),
+                child: Icon(Icons.arrow_back, color: VlvtColors.textPrimary),
               ),
               onPressed: () => Navigator.of(context).pop(),
             ),
@@ -197,10 +197,10 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: VlvtColors.background.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.more_vert, color: Colors.white),
+                  child: Icon(Icons.more_vert, color: VlvtColors.textPrimary),
                 ),
                 onSelected: (value) => _handleMenuAction(context, value),
                 itemBuilder: (context) => [
@@ -261,8 +261,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                                   height: 3,
                                   decoration: BoxDecoration(
                                     color: index == _currentPhotoIndex
-                                        ? Colors.white
-                                        : Colors.white.withValues(alpha: 0.4),
+                                        ? VlvtColors.textPrimary
+                                        : VlvtColors.textPrimary.withValues(alpha: 0.4),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 );
@@ -281,8 +281,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                                 colors: [
-                                  Colors.black.withValues(alpha: 0.8),
-                                  Colors.transparent,
+                                  VlvtColors.background.withValues(alpha: 0.8),
+                                  VlvtColors.background.withValues(alpha: 0.0),
                                 ],
                               ),
                             ),
@@ -303,8 +303,8 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                                       children: [
                                         Text(
                                           '${profile.name ?? "User"}, ${profile.age ?? "?"}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: VlvtColors.textPrimary,
                                             fontSize: 28,
                                             fontWeight: FontWeight.bold,
                                             fontFamily: 'Montserrat',
@@ -323,14 +323,14 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                                           children: [
                                             Icon(
                                               Icons.near_me,
-                                              color: Colors.white.withValues(alpha: 0.8),
+                                              color: VlvtColors.textPrimary.withValues(alpha: 0.8),
                                               size: 16,
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
                                               '${profile.distance!.toStringAsFixed(1)} km away',
                                               style: TextStyle(
-                                                color: Colors.white.withValues(alpha: 0.8),
+                                                color: VlvtColors.textPrimary.withValues(alpha: 0.8),
                                                 fontSize: 14,
                                                 fontFamily: 'Montserrat',
                                               ),

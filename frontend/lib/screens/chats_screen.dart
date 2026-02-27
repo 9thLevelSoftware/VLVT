@@ -187,7 +187,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = ErrorHandler.getShortMessage(e);
         _isLoading = false;
       });
     }
@@ -453,12 +453,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
             Text(
               'Unmatch',
               style: VlvtTextStyles.labelMedium.copyWith(
-                color: Colors.white,
+                color: VlvtColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.person_remove, color: Colors.white),
+            Icon(Icons.person_remove, color: VlvtColors.textPrimary),
           ],
         ),
       ),
@@ -485,7 +485,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     ? null
                     : Text(
                         name[0].toUpperCase(),
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: VlvtColors.textPrimary),
                       ),
               ),
             ),

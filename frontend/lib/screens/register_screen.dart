@@ -207,29 +207,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Background image with blur effect (matching AuthScreen)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                child: Image.asset(
-                  'assets/images/loginbackground.jpg',
-                  fit: BoxFit.cover,
+            // Background image with blur effect (matching AuthScreen) - decorative
+            Semantics(
+              excludeSemantics: true,
+              child: Positioned.fill(
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                  child: Image.asset(
+                    'assets/images/loginbackground.jpg',
+                    fit: BoxFit.cover,
+                    excludeFromSemantics: true,
+                  ),
                 ),
               ),
             ),
-            // Dark overlay for better contrast
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.4),
-                      Colors.black.withValues(alpha: 0.7),
-                      const Color(0xFF1A0F2E).withValues(alpha: 0.9),
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
+            // Dark overlay for better contrast - decorative
+            Semantics(
+              excludeSemantics: true,
+              child: Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        VlvtColors.background.withValues(alpha: 0.4),
+                        VlvtColors.background.withValues(alpha: 0.7),
+                        const Color(0xFF1A0F2E).withValues(alpha: 0.9),
+                      ],
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
                   ),
                 ),
               ),
@@ -248,7 +255,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Align(
                         alignment: Alignment.topLeft,
                         child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon: const Icon(Icons.arrow_back, color: VlvtColors.textPrimary),
                           onPressed: () => Navigator.pop(context),
                           tooltip: 'Go back to sign in',
                         ),
@@ -259,7 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Create Account',
                         textAlign: TextAlign.center,
                         style: VlvtTextStyles.displaySmall.copyWith(
-                          color: Colors.white,
+                          color: VlvtColors.textPrimary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -268,7 +275,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Join VLVT and start making meaningful connections',
                         textAlign: TextAlign.center,
                         style: VlvtTextStyles.bodyMedium.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: VlvtColors.textSecondary,
                         ),
                       ),
                       Spacing.verticalXl,
@@ -278,7 +285,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Container(
                         padding: Spacing.paddingXl,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                           borderRadius: Spacing.borderRadiusLg,
                         ),
                         child: Column(
@@ -292,7 +299,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Text(
                               'Creating your account...',
                               style: VlvtTextStyles.bodyMedium.copyWith(
-                                color: Colors.white,
+                                color: VlvtColors.textPrimary,
                               ),
                             ),
                           ],
@@ -360,8 +367,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               padding: Spacing.paddingMd,
                               decoration: BoxDecoration(
                                 color: _validatePassword(_passwordController.text)
-                                    ? Colors.green.withValues(alpha: 0.2)
-                                    : Colors.white.withValues(alpha: 0.15),
+                                    ? VlvtColors.success.withValues(alpha: 0.2)
+                                    : VlvtColors.textPrimary.withValues(alpha: 0.15),
                                 borderRadius: Spacing.borderRadiusMd,
                               ),
                               child: Row(
@@ -370,7 +377,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     _validatePassword(_passwordController.text)
                                         ? Icons.check_circle
                                         : Icons.info_outline,
-                                    color: Colors.white,
+                                    color: VlvtColors.textPrimary,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -378,7 +385,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     child: Text(
                                       _getPasswordRequirements(_passwordController.text),
                                       style: VlvtTextStyles.caption.copyWith(
-                                        color: Colors.white,
+                                        color: VlvtColors.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -438,10 +445,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               padding: Spacing.paddingMd,
                               decoration: BoxDecoration(
                                 color: _inviteCodeValid
-                                    ? Colors.green.withValues(alpha: 0.2)
+                                    ? VlvtColors.success.withValues(alpha: 0.2)
                                     : (_inviteCodeError != null
-                                        ? Colors.red.withValues(alpha: 0.2)
-                                        : Colors.white.withValues(alpha: 0.15)),
+                                        ? VlvtColors.error.withValues(alpha: 0.2)
+                                        : VlvtColors.textPrimary.withValues(alpha: 0.15)),
                                 borderRadius: Spacing.borderRadiusMd,
                               ),
                               child: Row(
@@ -452,7 +459,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         : (_inviteCodeError != null
                                             ? Icons.error
                                             : Icons.hourglass_empty),
-                                    color: Colors.white,
+                                    color: VlvtColors.textPrimary,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -462,7 +469,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           ? 'Valid invite code!'
                                           : (_inviteCodeError ?? 'Validating...'),
                                       style: VlvtTextStyles.caption.copyWith(
-                                        color: Colors.white,
+                                        color: VlvtColors.textPrimary,
                                       ),
                                     ),
                                   ),
@@ -494,7 +501,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     Text(
                                       'Already have an account? ',
                                       style: VlvtTextStyles.bodyMedium.copyWith(
-                                        color: Colors.white.withValues(alpha: 0.8),
+                                        color: VlvtColors.textSecondary,
                                       ),
                                     ),
                                     Text(

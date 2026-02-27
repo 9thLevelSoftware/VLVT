@@ -71,6 +71,7 @@ class _VlvtLoaderState extends State<VlvtLoader>
               'assets/images/vlvt_logo_text.png',
               width: widget.size,
               fit: BoxFit.contain,
+              semanticLabel: 'VLVT logo, loading',
             ),
           ),
         ),

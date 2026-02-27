@@ -266,6 +266,43 @@ class MockAuthService extends _i1.Mock implements _i2.AuthService {
       ) as String);
 
   @override
+  _i4.Future<List<_i2.ConsentStatus>> getConsents() => (super.noSuchMethod(
+        Invocation.method(
+          #getConsents,
+          [],
+        ),
+        returnValue:
+            _i4.Future<List<_i2.ConsentStatus>>.value(<_i2.ConsentStatus>[]),
+      ) as _i4.Future<List<_i2.ConsentStatus>>);
+
+  @override
+  _i4.Future<bool> grantConsent(String? purpose) => (super.noSuchMethod(
+        Invocation.method(
+          #grantConsent,
+          [purpose],
+        ),
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
+
+  @override
+  _i4.Future<bool> withdrawConsent(String? purpose) => (super.noSuchMethod(
+        Invocation.method(
+          #withdrawConsent,
+          [purpose],
+        ),
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
+
+  @override
+  _i4.Future<String?> requestDataExport() => (super.noSuchMethod(
+        Invocation.method(
+          #requestDataExport,
+          [],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
   void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,

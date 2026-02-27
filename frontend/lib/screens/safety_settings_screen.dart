@@ -330,7 +330,7 @@ class _SafetySettingsScreenState extends State<SafetySettingsScreen> {
                     backgroundColor: VlvtColors.surface,
                     child: Text(
                       name[0].toUpperCase(),
-                      style: VlvtTextStyles.labelMedium.copyWith(color: Colors.white),
+                      style: VlvtTextStyles.labelMedium.copyWith(color: VlvtColors.textPrimary),
                     ),
                   ),
                 ),

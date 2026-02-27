@@ -60,7 +60,7 @@ class VerifiedBadge extends StatelessWidget {
       ),
       child: Icon(
         Icons.check,
-        color: Colors.black,
+        color: VlvtColors.textOnGold,
         size: size * 0.6,
       ),
     );

@@ -56,7 +56,7 @@ class DiscoveryProfileCard extends StatelessWidget {
             Container(
               color: VlvtColors.primary.withValues(alpha: 0.4),
               child: const Center(
-                child: Icon(Icons.person, size: 120, color: Colors.white),
+                child: Icon(Icons.person, size: 120, color: VlvtColors.textPrimary),
               ),
             ),
 
@@ -84,8 +84,8 @@ class DiscoveryProfileCard extends StatelessWidget {
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.8),
-                    Colors.black.withValues(alpha: 0.4),
+                    VlvtColors.background.withValues(alpha: 0.8),
+                    VlvtColors.background.withValues(alpha: 0.4),
                     Colors.transparent,
                   ],
                   stops: const [0.0, 0.6, 1.0],
@@ -144,18 +144,18 @@ class _PhotoCarousel extends StatelessWidget {
             memCacheWidth: 800,
             placeholder: (context, url) => ExcludeSemantics(
               child: Container(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                 child: const Center(
                   child: VlvtProgressIndicator(size: 32),
                 ),
               ),
             ),
             errorWidget: (context, url, error) => Container(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: VlvtColors.textPrimary.withValues(alpha: 0.2),
               child: const Icon(
                 Icons.broken_image,
                 size: 80,
-                color: Colors.white70,
+                color: VlvtColors.textSecondary,
               ),
             ),
           ),
@@ -184,8 +184,8 @@ class _PhotoBarIndicators extends StatelessWidget {
             height: 3,
             decoration: BoxDecoration(
               color: index == currentIndex
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.4),
+                  ? VlvtColors.textPrimary
+                  : VlvtColors.textPrimary.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -215,10 +215,10 @@ class _OverlayInfo extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
                 style: VlvtTextStyles.displayMedium.copyWith(
-                  color: Colors.white,
+                  color: VlvtColors.textPrimary,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withValues(alpha: 0.5),
+                      color: VlvtColors.background.withValues(alpha: 0.5),
                       blurRadius: 4,
                     ),
                   ],
@@ -240,13 +240,13 @@ class _OverlayInfo extends StatelessWidget {
               Icon(
                 Icons.location_on_outlined,
                 size: 14,
-                color: Colors.white.withValues(alpha: 0.8),
+                color: VlvtColors.textPrimary.withValues(alpha: 0.8),
               ),
               const SizedBox(width: 4),
               Text(
                 LocationService.formatDistance(profile.distance! * 1000),
                 style: VlvtTextStyles.bodySmall.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: VlvtColors.textPrimary.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -261,7 +261,7 @@ class _OverlayInfo extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: VlvtTextStyles.bodyMedium.copyWith(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: VlvtColors.textPrimary.withValues(alpha: 0.9),
             ),
           ),
         ],
@@ -273,13 +273,13 @@ class _OverlayInfo extends StatelessWidget {
             Icon(
               Icons.keyboard_arrow_up,
               size: 16,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: VlvtColors.textPrimary.withValues(alpha: 0.6),
             ),
             const SizedBox(width: 4),
             Text(
               'Tap for full profile',
               style: VlvtTextStyles.labelSmall.copyWith(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: VlvtColors.textPrimary.withValues(alpha: 0.6),
               ),
             ),
           ],

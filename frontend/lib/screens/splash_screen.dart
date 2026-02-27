@@ -142,6 +142,7 @@ class _SplashScreenState extends State<SplashScreen>
                 'assets/images/vlvt_logo_text.png',
                 width: 200,
                 height: 200,
+                semanticLabel: 'VLVT logo',
               ),
             ),
           ),

@@ -67,6 +67,68 @@ class MockSocketService extends _i1.Mock implements _i2.SocketService {
       ) as _i3.Stream<bool>);
 
   @override
+  _i3.Stream<Map<String, dynamic>> get onAfterHoursMatch => (super.noSuchMethod(
+        Invocation.getter(#onAfterHoursMatch),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<_i4.Message> get onAfterHoursMessage => (super.noSuchMethod(
+        Invocation.getter(#onAfterHoursMessage),
+        returnValue: _i3.Stream<_i4.Message>.empty(),
+      ) as _i3.Stream<_i4.Message>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onAfterHoursTyping =>
+      (super.noSuchMethod(
+        Invocation.getter(#onAfterHoursTyping),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onAfterHoursMessagesRead =>
+      (super.noSuchMethod(
+        Invocation.getter(#onAfterHoursMessagesRead),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onSessionExpiring => (super.noSuchMethod(
+        Invocation.getter(#onSessionExpiring),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onSessionExpired => (super.noSuchMethod(
+        Invocation.getter(#onSessionExpired),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onNoMatches => (super.noSuchMethod(
+        Invocation.getter(#onNoMatches),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onMatchExpired => (super.noSuchMethod(
+        Invocation.getter(#onMatchExpired),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onPartnerSaved => (super.noSuchMethod(
+        Invocation.getter(#onPartnerSaved),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
+  _i3.Stream<Map<String, dynamic>> get onMatchSaved => (super.noSuchMethod(
+        Invocation.getter(#onMatchSaved),
+        returnValue: _i3.Stream<Map<String, dynamic>>.empty(),
+      ) as _i3.Stream<Map<String, dynamic>>);
+
+  @override
   bool get isConnected => (super.noSuchMethod(
         Invocation.getter(#isConnected),
         returnValue: false,
@@ -167,6 +229,78 @@ class MockSocketService extends _i1.Mock implements _i2.SocketService {
         ),
         returnValue: _i3.Future<List<_i2.UserStatus>>.value(<_i2.UserStatus>[]),
       ) as _i3.Future<List<_i2.UserStatus>>);
+
+  @override
+  _i3.Future<_i4.Message?> sendAfterHoursMessage({
+    required String? matchId,
+    required String? text,
+    String? tempId,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #sendAfterHoursMessage,
+          [],
+          {
+            #matchId: matchId,
+            #text: text,
+            #tempId: tempId,
+          },
+        ),
+        returnValue: _i3.Future<_i4.Message?>.value(),
+      ) as _i3.Future<_i4.Message?>);
+
+  @override
+  _i3.Future<void> sendAfterHoursTypingIndicator({
+    required String? matchId,
+    required bool? isTyping,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #sendAfterHoursTypingIndicator,
+          [],
+          {
+            #matchId: matchId,
+            #isTyping: isTyping,
+          },
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<bool> markAfterHoursMessagesRead({
+    required String? matchId,
+    List<String>? messageIds,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #markAfterHoursMessagesRead,
+          [],
+          {
+            #matchId: matchId,
+            #messageIds: messageIds,
+          },
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  void joinAfterHoursChat(String? matchId) => super.noSuchMethod(
+        Invocation.method(
+          #joinAfterHoursChat,
+          [matchId],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void leaveAfterHoursChat(String? matchId) => super.noSuchMethod(
+        Invocation.method(
+          #leaveAfterHoursChat,
+          [matchId],
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   void disconnect() => super.noSuchMethod(
@@ -463,6 +597,43 @@ class MockAuthService extends _i1.Mock implements _i7.AuthService {
           ),
         ),
       ) as String);
+
+  @override
+  _i3.Future<List<_i7.ConsentStatus>> getConsents() => (super.noSuchMethod(
+        Invocation.method(
+          #getConsents,
+          [],
+        ),
+        returnValue:
+            _i3.Future<List<_i7.ConsentStatus>>.value(<_i7.ConsentStatus>[]),
+      ) as _i3.Future<List<_i7.ConsentStatus>>);
+
+  @override
+  _i3.Future<bool> grantConsent(String? purpose) => (super.noSuchMethod(
+        Invocation.method(
+          #grantConsent,
+          [purpose],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> withdrawConsent(String? purpose) => (super.noSuchMethod(
+        Invocation.method(
+          #withdrawConsent,
+          [purpose],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<String?> requestDataExport() => (super.noSuchMethod(
+        Invocation.method(
+          #requestDataExport,
+          [],
+        ),
+        returnValue: _i3.Future<String?>.value(),
+      ) as _i3.Future<String?>);
 
   @override
   void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(

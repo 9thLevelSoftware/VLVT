@@ -301,8 +301,8 @@ class MainScreenState extends State<MainScreen> {
                             child: isSelected
                                 ? GoldShaderMask(
                                     child: IconTheme(
-                                      data: const IconThemeData(
-                                        color: Colors.white,
+                                      data: IconThemeData(
+                                        color: VlvtColors.textPrimary,
                                         size: 24,
                                       ),
                                       child: item.icon,
@@ -322,11 +322,11 @@ class MainScreenState extends State<MainScreen> {
                               ? GoldShaderMask(
                                   child: Text(
                                     item.label ?? '',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontFamily: 'Montserrat',
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                      color: VlvtColors.textPrimary,
                                     ),
                                   ),
                                 )

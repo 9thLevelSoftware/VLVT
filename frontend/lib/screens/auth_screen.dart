@@ -122,7 +122,7 @@ class _AuthScreenState extends State<AuthScreen> {
             backgroundColor: VlvtColors.error,
             duration: const Duration(seconds: 4),
             showCloseIcon: true,
-            closeIconColor: Colors.white,
+            closeIconColor: VlvtColors.textPrimary,
           ),
         );
       }
@@ -143,7 +143,7 @@ class _AuthScreenState extends State<AuthScreen> {
             backgroundColor: VlvtColors.error,
             duration: const Duration(seconds: 4),
             showCloseIcon: true,
-            closeIconColor: Colors.white,
+            closeIconColor: VlvtColors.textPrimary,
           ),
         );
       }
@@ -171,7 +171,7 @@ class _AuthScreenState extends State<AuthScreen> {
             persist: false,
             action: SnackBarAction(
               label: 'Retry',
-              textColor: Colors.white,
+              textColor: VlvtColors.textPrimary,
               onPressed: _signInWithGoogle,
             ),
           ),
@@ -225,6 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Image.asset(
                     'assets/images/loginbackground.jpg',
                     fit: BoxFit.cover,
+                    excludeFromSemantics: true,
                   ),
                 ),
               ),
@@ -239,8 +240,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withValues(alpha: 0.4),
-                        Colors.black.withValues(alpha: 0.7),
+                        VlvtColors.background.withValues(alpha: 0.4),
+                        VlvtColors.background.withValues(alpha: 0.7),
                         const Color(0xFF1A0F2E).withValues(alpha: 0.9),
                       ],
                       stops: const [0.0, 0.5, 1.0],
@@ -275,7 +276,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           child: Container(
                             padding: Spacing.paddingXl,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                               borderRadius: Spacing.borderRadiusLg,
                             ),
                             child: Column(
@@ -289,7 +290,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 Text(
                                   'Signing in...',
                                   style: VlvtTextStyles.bodyMedium.copyWith(
-                                    color: Colors.white,
+                                    color: VlvtColors.textPrimary,
                                   ),
                                 ),
                               ],
@@ -400,8 +401,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                       text: TextSpan(
                                         style:
                                             VlvtTextStyles.bodyMedium.copyWith(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.8),
+                                          color: VlvtColors.textSecondary,
                                         ),
                                         children: [
                                           const TextSpan(
@@ -432,7 +432,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           children: [
                             Expanded(
                               child: Divider(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: VlvtColors.textSecondary,
                                 thickness: 1,
                               ),
                             ),
@@ -441,13 +441,13 @@ class _AuthScreenState extends State<AuthScreen> {
                               child: Text(
                                 'or continue with',
                                 style: VlvtTextStyles.bodySmall.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.8),
+                                  color: VlvtColors.textSecondary,
                                 ),
                               ),
                             ),
                             Expanded(
                               child: Divider(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: VlvtColors.textSecondary,
                                 thickness: 1,
                               ),
                             ),
@@ -479,7 +479,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             Text(
                               'By signing in, you agree to our ',
                               style: VlvtTextStyles.caption.copyWith(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: VlvtColors.textSecondary,
                               ),
                             ),
                             SizedBox(
@@ -505,8 +505,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     child: Text(
                                       'Terms',
                                       style: VlvtTextStyles.caption.copyWith(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.7),
+                                        color: VlvtColors.textSecondary,
                                         decoration: TextDecoration.underline,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -518,7 +517,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             Text(
                               ' & ',
                               style: VlvtTextStyles.caption.copyWith(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: VlvtColors.textSecondary,
                               ),
                             ),
                             SizedBox(
@@ -544,8 +543,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     child: Text(
                                       'Privacy Policy',
                                       style: VlvtTextStyles.caption.copyWith(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.7),
+                                        color: VlvtColors.textSecondary,
                                         decoration: TextDecoration.underline,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -578,7 +576,7 @@ class _AuthScreenState extends State<AuthScreen> {
         color: Colors.white,
         shape: const CircleBorder(),
         elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.2),
+        shadowColor: VlvtColors.background.withValues(alpha: 0.2),
         child: InkWell(
           onTap: onPressed,
           customBorder: const CircleBorder(),
@@ -590,6 +588,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 'assets/images/google_g_logo.png',
                 width: 28,
                 height: 28,
+                excludeFromSemantics: true,
               ),
             ),
           ),
@@ -613,7 +612,7 @@ class _AuthScreenState extends State<AuthScreen> {
         color: Colors.transparent,
         shape: CircleBorder(
           side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.5),
+            color: VlvtColors.textPrimary.withValues(alpha: 0.5),
             width: 1.5,
           ),
         ),
@@ -635,17 +634,19 @@ class _AuthScreenState extends State<AuthScreen> {
                             assetPath,
                             width: 24,
                             height: 24,
+                            excludeFromSemantics: true,
                           ),
                         )
                       : Image.asset(
                           assetPath,
                           width: 24,
                           height: 24,
+                          excludeFromSemantics: true,
                         ))
                   : Icon(
                       icon,
                       size: 24,
-                      color: iconColor ?? Colors.white,
+                      color: iconColor ?? VlvtColors.textPrimary,
                     ),
             ),
           ),

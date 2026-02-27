@@ -268,6 +268,43 @@ class MockAuthService extends _i1.Mock implements _i2.AuthService {
       ) as String);
 
   @override
+  _i4.Future<List<_i2.ConsentStatus>> getConsents() => (super.noSuchMethod(
+        Invocation.method(
+          #getConsents,
+          [],
+        ),
+        returnValue:
+            _i4.Future<List<_i2.ConsentStatus>>.value(<_i2.ConsentStatus>[]),
+      ) as _i4.Future<List<_i2.ConsentStatus>>);
+
+  @override
+  _i4.Future<bool> grantConsent(String? purpose) => (super.noSuchMethod(
+        Invocation.method(
+          #grantConsent,
+          [purpose],
+        ),
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
+
+  @override
+  _i4.Future<bool> withdrawConsent(String? purpose) => (super.noSuchMethod(
+        Invocation.method(
+          #withdrawConsent,
+          [purpose],
+        ),
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
+
+  @override
+  _i4.Future<String?> requestDataExport() => (super.noSuchMethod(
+        Invocation.method(
+          #requestDataExport,
+          [],
+        ),
+        returnValue: _i4.Future<String?>.value(),
+      ) as _i4.Future<String?>);
+
+  @override
   void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
@@ -383,36 +420,6 @@ class MockMessageQueueService extends _i1.Mock
       ) as List<_i6.QueuedMessage>);
 
   @override
-  _i4.Future<void> enqueue(_i6.QueuedMessage? message) => (super.noSuchMethod(
-        Invocation.method(
-          #enqueue,
-          [message],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> dequeue(String? id) => (super.noSuchMethod(
-        Invocation.method(
-          #dequeue,
-          [id],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  List<_i6.QueuedMessage> getQueueForMatch(String? matchId) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getQueueForMatch,
-          [matchId],
-        ),
-        returnValue: <_i6.QueuedMessage>[],
-      ) as List<_i6.QueuedMessage>);
-
-  @override
   _i4.Future<void> processQueue(_i7.SocketService? socketService) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -438,16 +445,6 @@ class MockMessageQueueService extends _i1.Mock
         Invocation.method(
           #clearMatch,
           [matchId],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> clearAll() => (super.noSuchMethod(
-        Invocation.method(
-          #clearAll,
-          [],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),

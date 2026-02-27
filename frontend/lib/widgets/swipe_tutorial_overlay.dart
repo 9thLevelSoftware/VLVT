@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_button.dart';
 
 /// Tutorial overlay that shows users how to use swipe gestures
@@ -65,7 +66,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.black87,
+      color: VlvtColors.background.withValues(alpha: 0.87),
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: SafeArea(
@@ -95,7 +96,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: VlvtColors.textPrimary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -104,7 +105,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                         // Swipe instructions with animations
                         _buildSwipeInstruction(
                           icon: Icons.arrow_forward,
-                          color: Colors.green,
+                          color: VlvtColors.success,
                           label: 'Swipe Right',
                           description: 'to LIKE',
                           delay: 0,
@@ -113,7 +114,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
 
                         _buildSwipeInstruction(
                           icon: Icons.arrow_back,
-                          color: Colors.red,
+                          color: VlvtColors.error,
                           label: 'Swipe Left',
                           description: 'to PASS',
                           delay: 200,
@@ -122,7 +123,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
 
                         _buildSwipeInstruction(
                           icon: Icons.touch_app,
-                          color: Colors.blue,
+                          color: VlvtColors.info,
                           label: 'Tap Card',
                           description: 'to see more details',
                           delay: 400,
@@ -139,7 +140,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                           'Tap anywhere to dismiss',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white.withAlpha(153),
+                            color: VlvtColors.textPrimary.withAlpha(153),
                           ),
                         ),
                       ],
@@ -177,7 +178,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(26),
+          color: VlvtColors.textPrimary.withAlpha(26),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: color.withAlpha(77),
@@ -209,7 +210,7 @@ class _SwipeTutorialOverlayState extends State<SwipeTutorialOverlay>
                   description,
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.white70,
+                    color: VlvtColors.textSecondary,
                   ),
                 ),
               ],

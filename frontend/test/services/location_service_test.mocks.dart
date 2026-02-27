@@ -3,13 +3,16 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
-import 'dart:ui' as _i6;
+import 'dart:async' as _i8;
+import 'dart:ui' as _i9;
 
+import 'package:http/http.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i4;
-import 'package:vlvt/models/profile.dart' as _i2;
-import 'package:vlvt/services/profile_api_service.dart' as _i3;
+import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:vlvt/models/profile.dart' as _i3;
+import 'package:vlvt/services/auth_service.dart' as _i2;
+import 'package:vlvt/services/base_api_service.dart' as _i4;
+import 'package:vlvt/services/profile_api_service.dart' as _i6;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -26,8 +29,38 @@ import 'package:vlvt/services/profile_api_service.dart' as _i3;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
-class _FakeProfile_0 extends _i1.SmartFake implements _i2.Profile {
-  _FakeProfile_0(
+class _FakeAuthService_0 extends _i1.SmartFake implements _i2.AuthService {
+  _FakeAuthService_0(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeProfile_1 extends _i1.SmartFake implements _i3.Profile {
+  _FakeProfile_1(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeApiResult_2<T1> extends _i1.SmartFake implements _i4.ApiResult<T1> {
+  _FakeApiResult_2(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeResponse_3 extends _i1.SmartFake implements _i5.Response {
+  _FakeResponse_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -39,7 +72,7 @@ class _FakeProfile_0 extends _i1.SmartFake implements _i2.Profile {
 /// A class which mocks [ProfileApiService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
+class MockProfileApiService extends _i1.Mock implements _i6.ProfileApiService {
   MockProfileApiService() {
     _i1.throwOnMissingStub(this);
   }
@@ -47,11 +80,20 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
   @override
   String get baseUrl => (super.noSuchMethod(
         Invocation.getter(#baseUrl),
-        returnValue: _i4.dummyValue<String>(
+        returnValue: _i7.dummyValue<String>(
           this,
           Invocation.getter(#baseUrl),
         ),
       ) as String);
+
+  @override
+  _i2.AuthService get authService => (super.noSuchMethod(
+        Invocation.getter(#authService),
+        returnValue: _FakeAuthService_0(
+          this,
+          Invocation.getter(#authService),
+        ),
+      ) as _i2.AuthService);
 
   @override
   bool get hasListeners => (super.noSuchMethod(
@@ -60,22 +102,22 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
       ) as bool);
 
   @override
-  _i5.Future<_i2.Profile> getProfile(String? userId) => (super.noSuchMethod(
+  _i8.Future<_i3.Profile> getProfile(String? userId) => (super.noSuchMethod(
         Invocation.method(
           #getProfile,
           [userId],
         ),
-        returnValue: _i5.Future<_i2.Profile>.value(_FakeProfile_0(
+        returnValue: _i8.Future<_i3.Profile>.value(_FakeProfile_1(
           this,
           Invocation.method(
             #getProfile,
             [userId],
           ),
         )),
-      ) as _i5.Future<_i2.Profile>);
+      ) as _i8.Future<_i3.Profile>);
 
   @override
-  _i5.Future<List<_i2.Profile>> getDiscoveryProfiles({
+  _i8.Future<List<_i3.Profile>> getDiscoveryProfiles({
     int? minAge,
     int? maxAge,
     double? maxDistance,
@@ -96,43 +138,43 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
             #verifiedOnly: verifiedOnly,
           },
         ),
-        returnValue: _i5.Future<List<_i2.Profile>>.value(<_i2.Profile>[]),
-      ) as _i5.Future<List<_i2.Profile>>);
+        returnValue: _i8.Future<List<_i3.Profile>>.value(<_i3.Profile>[]),
+      ) as _i8.Future<List<_i3.Profile>>);
 
   @override
-  _i5.Future<_i2.Profile> createProfile(_i2.Profile? profile) =>
+  _i8.Future<_i3.Profile> createProfile(_i3.Profile? profile) =>
       (super.noSuchMethod(
         Invocation.method(
           #createProfile,
           [profile],
         ),
-        returnValue: _i5.Future<_i2.Profile>.value(_FakeProfile_0(
+        returnValue: _i8.Future<_i3.Profile>.value(_FakeProfile_1(
           this,
           Invocation.method(
             #createProfile,
             [profile],
           ),
         )),
-      ) as _i5.Future<_i2.Profile>);
+      ) as _i8.Future<_i3.Profile>);
 
   @override
-  _i5.Future<_i2.Profile> updateProfile(_i2.Profile? profile) =>
+  _i8.Future<_i3.Profile> updateProfile(_i3.Profile? profile) =>
       (super.noSuchMethod(
         Invocation.method(
           #updateProfile,
           [profile],
         ),
-        returnValue: _i5.Future<_i2.Profile>.value(_FakeProfile_0(
+        returnValue: _i8.Future<_i3.Profile>.value(_FakeProfile_1(
           this,
           Invocation.method(
             #updateProfile,
             [profile],
           ),
         )),
-      ) as _i5.Future<_i2.Profile>);
+      ) as _i8.Future<_i3.Profile>);
 
   @override
-  _i5.Future<Map<String, _i2.Profile>> batchGetProfiles(
+  _i8.Future<Map<String, _i3.Profile>> batchGetProfiles(
           List<String>? userIds) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -140,21 +182,21 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
           [userIds],
         ),
         returnValue:
-            _i5.Future<Map<String, _i2.Profile>>.value(<String, _i2.Profile>{}),
-      ) as _i5.Future<Map<String, _i2.Profile>>);
+            _i8.Future<Map<String, _i3.Profile>>.value(<String, _i3.Profile>{}),
+      ) as _i8.Future<Map<String, _i3.Profile>>);
 
   @override
-  _i5.Future<int> searchUserCount(Map<String, dynamic>? criteria) =>
+  _i8.Future<int> searchUserCount(Map<String, dynamic>? criteria) =>
       (super.noSuchMethod(
         Invocation.method(
           #searchUserCount,
           [criteria],
         ),
-        returnValue: _i5.Future<int>.value(0),
-      ) as _i5.Future<int>);
+        returnValue: _i8.Future<int>.value(0),
+      ) as _i8.Future<int>);
 
   @override
-  _i5.Future<bool> updateLocation(
+  _i8.Future<bool> updateLocation(
     double? latitude,
     double? longitude,
   ) =>
@@ -166,43 +208,43 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
             longitude,
           ],
         ),
-        returnValue: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i8.Future<bool>.value(false),
+      ) as _i8.Future<bool>);
 
   @override
-  _i5.Future<Map<String, dynamic>> uploadPhoto(String? imagePath) =>
+  _i8.Future<Map<String, dynamic>> uploadPhoto(String? imagePath) =>
       (super.noSuchMethod(
         Invocation.method(
           #uploadPhoto,
           [imagePath],
         ),
         returnValue:
-            _i5.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
-      ) as _i5.Future<Map<String, dynamic>>);
+            _i8.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i8.Future<Map<String, dynamic>>);
 
   @override
-  _i5.Future<void> deletePhoto(String? photoId) => (super.noSuchMethod(
+  _i8.Future<void> deletePhoto(String? photoId) => (super.noSuchMethod(
         Invocation.method(
           #deletePhoto,
           [photoId],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i5.Future<void> reorderPhotos(List<String>? photoUrls) =>
+  _i8.Future<void> reorderPhotos(List<String>? photoUrls) =>
       (super.noSuchMethod(
         Invocation.method(
           #reorderPhotos,
           [photoUrls],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i5.Future<Map<String, dynamic>> swipe({
+  _i8.Future<Map<String, dynamic>> swipe({
     required String? targetUserId,
     required String? action,
   }) =>
@@ -216,43 +258,236 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
           },
         ),
         returnValue:
-            _i5.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
-      ) as _i5.Future<Map<String, dynamic>>);
+            _i8.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i8.Future<Map<String, dynamic>>);
 
   @override
-  _i5.Future<List<Map<String, dynamic>>> getReceivedLikes() =>
+  _i8.Future<List<Map<String, dynamic>>> getReceivedLikes() =>
       (super.noSuchMethod(
         Invocation.method(
           #getReceivedLikes,
           [],
         ),
-        returnValue: _i5.Future<List<Map<String, dynamic>>>.value(
+        returnValue: _i8.Future<List<Map<String, dynamic>>>.value(
             <Map<String, dynamic>>[]),
-      ) as _i5.Future<List<Map<String, dynamic>>>);
+      ) as _i8.Future<List<Map<String, dynamic>>>);
 
   @override
-  _i5.Future<List<Map<String, dynamic>>> getSentLikes() => (super.noSuchMethod(
+  _i8.Future<List<Map<String, dynamic>>> getSentLikes() => (super.noSuchMethod(
         Invocation.method(
           #getSentLikes,
           [],
         ),
-        returnValue: _i5.Future<List<Map<String, dynamic>>>.value(
+        returnValue: _i8.Future<List<Map<String, dynamic>>>.value(
             <Map<String, dynamic>>[]),
-      ) as _i5.Future<List<Map<String, dynamic>>>);
+      ) as _i8.Future<List<Map<String, dynamic>>>);
 
   @override
-  _i5.Future<Map<String, dynamic>> checkProfileCompletion() =>
+  _i8.Future<Map<String, dynamic>> checkProfileCompletion() =>
       (super.noSuchMethod(
         Invocation.method(
           #checkProfileCompletion,
           [],
         ),
         returnValue:
-            _i5.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
-      ) as _i5.Future<Map<String, dynamic>>);
+            _i8.Future<Map<String, dynamic>>.value(<String, dynamic>{}),
+      ) as _i8.Future<Map<String, dynamic>>);
 
   @override
-  void addListener(_i6.VoidCallback? listener) => super.noSuchMethod(
+  _i8.Future<_i4.ApiResult<T>> get<T>(
+    String? path, {
+    T Function(Map<String, dynamic>)? parser,
+    Map<String, String>? queryParameters,
+    Duration? timeout,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #get,
+          [path],
+          {
+            #parser: parser,
+            #queryParameters: queryParameters,
+            #timeout: timeout,
+          },
+        ),
+        returnValue: _i8.Future<_i4.ApiResult<T>>.value(_FakeApiResult_2<T>(
+          this,
+          Invocation.method(
+            #get,
+            [path],
+            {
+              #parser: parser,
+              #queryParameters: queryParameters,
+              #timeout: timeout,
+            },
+          ),
+        )),
+      ) as _i8.Future<_i4.ApiResult<T>>);
+
+  @override
+  _i8.Future<_i4.ApiResult<T>> post<T>(
+    String? path, {
+    Object? body,
+    T Function(Map<String, dynamic>)? parser,
+    Duration? timeout,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #post,
+          [path],
+          {
+            #body: body,
+            #parser: parser,
+            #timeout: timeout,
+          },
+        ),
+        returnValue: _i8.Future<_i4.ApiResult<T>>.value(_FakeApiResult_2<T>(
+          this,
+          Invocation.method(
+            #post,
+            [path],
+            {
+              #body: body,
+              #parser: parser,
+              #timeout: timeout,
+            },
+          ),
+        )),
+      ) as _i8.Future<_i4.ApiResult<T>>);
+
+  @override
+  _i8.Future<_i4.ApiResult<T>> put<T>(
+    String? path, {
+    Object? body,
+    T Function(Map<String, dynamic>)? parser,
+    Duration? timeout,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #put,
+          [path],
+          {
+            #body: body,
+            #parser: parser,
+            #timeout: timeout,
+          },
+        ),
+        returnValue: _i8.Future<_i4.ApiResult<T>>.value(_FakeApiResult_2<T>(
+          this,
+          Invocation.method(
+            #put,
+            [path],
+            {
+              #body: body,
+              #parser: parser,
+              #timeout: timeout,
+            },
+          ),
+        )),
+      ) as _i8.Future<_i4.ApiResult<T>>);
+
+  @override
+  _i8.Future<_i4.ApiResult<T>> delete<T>(
+    String? path, {
+    T Function(Map<String, dynamic>)? parser,
+    Duration? timeout,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #delete,
+          [path],
+          {
+            #parser: parser,
+            #timeout: timeout,
+          },
+        ),
+        returnValue: _i8.Future<_i4.ApiResult<T>>.value(_FakeApiResult_2<T>(
+          this,
+          Invocation.method(
+            #delete,
+            [path],
+            {
+              #parser: parser,
+              #timeout: timeout,
+            },
+          ),
+        )),
+      ) as _i8.Future<_i4.ApiResult<T>>);
+
+  @override
+  _i8.Future<_i5.Response> authenticatedGet(Uri? uri) => (super.noSuchMethod(
+        Invocation.method(
+          #authenticatedGet,
+          [uri],
+        ),
+        returnValue: _i8.Future<_i5.Response>.value(_FakeResponse_3(
+          this,
+          Invocation.method(
+            #authenticatedGet,
+            [uri],
+          ),
+        )),
+      ) as _i8.Future<_i5.Response>);
+
+  @override
+  _i8.Future<_i5.Response> authenticatedPost(
+    Uri? uri, {
+    Object? body,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #authenticatedPost,
+          [uri],
+          {#body: body},
+        ),
+        returnValue: _i8.Future<_i5.Response>.value(_FakeResponse_3(
+          this,
+          Invocation.method(
+            #authenticatedPost,
+            [uri],
+            {#body: body},
+          ),
+        )),
+      ) as _i8.Future<_i5.Response>);
+
+  @override
+  _i8.Future<_i5.Response> authenticatedPut(
+    Uri? uri, {
+    Object? body,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #authenticatedPut,
+          [uri],
+          {#body: body},
+        ),
+        returnValue: _i8.Future<_i5.Response>.value(_FakeResponse_3(
+          this,
+          Invocation.method(
+            #authenticatedPut,
+            [uri],
+            {#body: body},
+          ),
+        )),
+      ) as _i8.Future<_i5.Response>);
+
+  @override
+  _i8.Future<_i5.Response> authenticatedDelete(Uri? uri) => (super.noSuchMethod(
+        Invocation.method(
+          #authenticatedDelete,
+          [uri],
+        ),
+        returnValue: _i8.Future<_i5.Response>.value(_FakeResponse_3(
+          this,
+          Invocation.method(
+            #authenticatedDelete,
+            [uri],
+          ),
+        )),
+      ) as _i8.Future<_i5.Response>);
+
+  @override
+  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -261,7 +496,7 @@ class MockProfileApiService extends _i1.Mock implements _i3.ProfileApiService {
       );
 
   @override
-  void removeListener(_i6.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],

@@ -322,7 +322,7 @@ class MatchesEmptyState {
   }) {
     return EmptyStateWidget(
       icon: Icons.favorite_border_rounded,
-      iconColor: Colors.pink,
+      iconColor: VlvtColors.crimson,
       iconSize: 120,
       title: 'No matches yet',
       message: 'Start swiping in the Discovery tab to find people you like. When you both like each other, you\'ll match!',
@@ -347,7 +347,7 @@ class ChatEmptyState {
   }) {
     return EmptyStateWidget(
       icon: Icons.chat_bubble_outline_rounded,
-      iconColor: Colors.blue,
+      iconColor: VlvtColors.info,
       title: 'Start the conversation!',
       message: 'You matched with $matchedUserName. Say hi and break the ice!',
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/subscription_service.dart';
 import '../screens/paywall_screen.dart';
+import '../theme/vlvt_colors.dart';
 import 'vlvt_button.dart';
 
 class UpgradeBanner extends StatelessWidget {
@@ -24,7 +25,7 @@ class UpgradeBanner extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(51),
+            color: VlvtColors.background.withAlpha(51),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -50,7 +51,7 @@ class UpgradeBanner extends StatelessWidget {
                     Text(
                       'Subscribe to Connect',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: VlvtColors.textPrimary,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -58,7 +59,7 @@ class UpgradeBanner extends StatelessWidget {
                     Text(
                       'Unlock swiping, matching & messaging',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: VlvtColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),

@@ -62,7 +62,7 @@ class UserActionSheet extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${otherUserProfile.name ?? "User"} has been blocked'),
-              backgroundColor: Colors.orange,
+              backgroundColor: VlvtColors.warning,
             ),
           );
 
@@ -135,7 +135,7 @@ class UserActionSheet extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Unmatched with ${otherUserProfile.name ?? "user"}'),
-              backgroundColor: Colors.orange,
+              backgroundColor: VlvtColors.warning,
             ),
           );
 
@@ -181,20 +181,20 @@ class UserActionSheet extends StatelessWidget {
           const SizedBox(height: 8),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.flag, color: Colors.orange),
+            leading: const Icon(Icons.flag, color: VlvtColors.warning),
             title: const Text('Report User'),
             subtitle: const Text('Report inappropriate behavior'),
             onTap: () => _handleReport(context),
           ),
           ListTile(
-            leading: const Icon(Icons.block, color: Colors.red),
+            leading: const Icon(Icons.block, color: VlvtColors.error),
             title: const Text('Block User'),
             subtitle: const Text('Block and prevent future contact'),
             onTap: () => _handleBlock(context),
           ),
           if (match != null) ...[
             ListTile(
-              leading: const Icon(Icons.heart_broken, color: Colors.orange),
+              leading: const Icon(Icons.heart_broken, color: VlvtColors.warning),
               title: const Text('Unmatch'),
               subtitle: const Text('Remove match and conversation'),
               onTap: () => _handleUnmatch(context),
