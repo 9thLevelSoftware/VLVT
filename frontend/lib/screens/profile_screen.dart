@@ -199,10 +199,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: CircleAvatar(
                             radius: 60,
                             backgroundColor: VlvtColors.primary,
-                            child: const Icon(
+                            child: Icon(
                               Icons.person,
                               size: 60,
-                              color: Colors.white,
+                              color: VlvtColors.textPrimary,
                             ),
                           ),
                         ),

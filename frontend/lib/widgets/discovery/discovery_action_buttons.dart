@@ -47,7 +47,7 @@ class DiscoveryActionButtons extends StatelessWidget {
                 onPass();
               },
               backgroundColor: VlvtColors.crimson,
-              child: const Icon(Icons.close, size: 28, color: Colors.white),
+              child: const Icon(Icons.close, size: 28, color: VlvtColors.textPrimary),
             ),
           ),
           if (showUndoButton)
@@ -56,15 +56,22 @@ class DiscoveryActionButtons extends StatelessWidget {
               hint: 'Double tap to undo',
               button: true,
               enabled: true,
-              child: FloatingActionButton(
-                heroTag: 'undo',
-                mini: true,
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  onUndo();
-                },
-                backgroundColor: VlvtColors.primary,
-                child: const Icon(Icons.undo, size: 20, color: Colors.white),
+              // Wrap mini FAB in SizedBox to ensure 48px minimum touch target
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: FloatingActionButton(
+                    heroTag: 'undo',
+                    mini: true,
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      onUndo();
+                    },
+                    backgroundColor: VlvtColors.primary,
+                    child: const Icon(Icons.undo, size: 20, color: VlvtColors.textPrimary),
+                  ),
+                ),
               ),
             ),
           // Like button - accessible alternative to swipe right
@@ -85,7 +92,7 @@ class DiscoveryActionButtons extends StatelessWidget {
                 onLike();
               },
               backgroundColor: VlvtColors.success,
-              child: const Icon(Icons.favorite, size: 28, color: Colors.white),
+              child: const Icon(Icons.favorite, size: 28, color: VlvtColors.textPrimary),
             ),
           ),
         ],

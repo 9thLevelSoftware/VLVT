@@ -599,11 +599,11 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
                 value: 'report',
                 child: Semantics(
                   label: 'Report this user',
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.flag, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Report User'),
+                      Icon(Icons.flag, color: VlvtColors.error),
+                      const SizedBox(width: 8),
+                      const Text('Report User'),
                     ],
                   ),
                 ),
@@ -612,11 +612,11 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
                 value: 'block',
                 child: Semantics(
                   label: 'Block this user',
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.block, color: Colors.orange),
-                      SizedBox(width: 8),
-                      Text('Block User'),
+                      Icon(Icons.block, color: VlvtColors.warning),
+                      const SizedBox(width: 8),
+                      const Text('Block User'),
                     ],
                   ),
                 ),

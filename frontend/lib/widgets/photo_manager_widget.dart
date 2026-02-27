@@ -79,7 +79,7 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Photo added - will be uploaded when you save your profile'),
-              backgroundColor: Colors.blue,
+              backgroundColor: VlvtColors.info,
             ),
           );
         }
@@ -103,7 +103,7 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Photo uploaded successfully'),
-              backgroundColor: Colors.green,
+              backgroundColor: VlvtColors.success,
             ),
           );
         }
@@ -159,7 +159,7 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Photo deleted successfully'),
-            backgroundColor: Colors.orange,
+            backgroundColor: VlvtColors.warning,
             duration: Duration(seconds: 2),
           ),
         );
@@ -175,7 +175,7 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to delete photo: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: VlvtColors.error,
           ),
         );
       }
@@ -269,10 +269,10 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
       });
       widget.onPhotosChanged([..._photos, ..._pendingLocalPhotos.map((p) => 'local:$p')]);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Photo removed'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 1),
+        SnackBar(
+          content: const Text('Photo removed'),
+          backgroundColor: VlvtColors.warning,
+          duration: const Duration(seconds: 1),
         ),
       );
     } else {
@@ -359,7 +359,7 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
                       ),
                       child: const Text(
                         'Main',
-                        style: TextStyle(color: Colors.white, fontSize: 10),
+                        style: TextStyle(color: VlvtColors.textPrimary, fontSize: 10),
                       ),
                     ),
                   ),
@@ -371,27 +371,39 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.blue,
+                        color: VlvtColors.info,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
                         'Pending',
-                        style: TextStyle(color: Colors.white, fontSize: 10),
+                        style: TextStyle(color: VlvtColors.textPrimary, fontSize: 10),
                       ),
                     ),
                   ),
                 Positioned(
-                  top: 4,
-                  right: 4,
-                  child: GestureDetector(
-                    onTap: () => _handlePhotoDelete(index),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+                  top: 0,
+                  right: 0,
+                  child: Semantics(
+                    button: true,
+                    label: 'Delete photo',
+                    child: GestureDetector(
+                      onTap: () => _handlePhotoDelete(index),
+                      behavior: HitTestBehavior.opaque,
+                      // Ensure 48x48 minimum touch target
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.topRight,
+                        padding: const EdgeInsets.all(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: VlvtColors.error,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: VlvtColors.textPrimary, size: 16),
+                        ),
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 16),
                     ),
                   ),
                 ),
@@ -403,18 +415,18 @@ class PhotoManagerWidgetState extends State<PhotoManagerWidget> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.orange[50],
+              color: VlvtColors.warning.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange, width: 2),
+              border: Border.all(color: VlvtColors.warning, width: 2),
             ),
             child: const Row(
               children: [
-                Icon(Icons.warning_amber, color: Colors.orange),
+                Icon(Icons.warning_amber, color: VlvtColors.warning),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Add at least one photo to complete your profile',
-                    style: TextStyle(color: Colors.orange),
+                    style: TextStyle(color: VlvtColors.warning),
                   ),
                 ),
               ],

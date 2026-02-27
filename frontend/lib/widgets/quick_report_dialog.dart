@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../theme/vlvt_colors.dart';
+import '../utils/error_handler.dart';
+import 'vlvt_loader.dart';
 
 /// Reason enum matching backend
 /// Valid values: 'inappropriate', 'harassment', 'spam', 'underage', 'other'
@@ -62,7 +65,7 @@ class _QuickReportDialogState extends State<QuickReportDialog> {
       setState(() => _isSubmitting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit report: $e')),
+          SnackBar(content: Text('Failed to submit report: ${ErrorHandler.getShortMessage(e)}')),
         );
       }
     }
@@ -115,7 +118,7 @@ class _QuickReportDialogState extends State<QuickReportDialog> {
             const Text(
               'This will block the user and end the chat.',
               style: TextStyle(
-                color: Colors.grey,
+                color: VlvtColors.textMuted,
                 fontSize: 12,
               ),
             ),
@@ -132,16 +135,11 @@ class _QuickReportDialogState extends State<QuickReportDialog> {
           onPressed:
               _isSubmitting || _selectedReason == null ? null : _submit,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
+            backgroundColor: VlvtColors.error,
+            foregroundColor: VlvtColors.textPrimary,
           ),
           child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
+              ? const VlvtProgressIndicator(size: 20, strokeWidth: 2)
               : const Text('Report & Exit'),
         ),
       ],

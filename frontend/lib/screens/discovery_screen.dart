@@ -1058,7 +1058,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                 fontFamily: 'Montserrat',
                                                 shadows: [
                                                   Shadow(
-                                                    color: Colors.black.withValues(alpha: 0.3),
+                                                    color: VlvtColors.background.withValues(alpha: 0.3),
                                                     blurRadius: 4,
                                                   ),
                                                 ],
@@ -1094,7 +1094,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                                                 fontFamily: 'Montserrat',
                                                 shadows: [
                                                   Shadow(
-                                                    color: Colors.black.withValues(alpha: 0.3),
+                                                    color: VlvtColors.background.withValues(alpha: 0.3),
                                                     blurRadius: 4,
                                                   ),
                                                 ],
@@ -1159,7 +1159,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
+                          color: VlvtColors.background.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1168,7 +1168,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> with TickerProviderSt
                     child: Text(
                       'Tap UNDO to revert last action',
                       style: VlvtTextStyles.labelMedium.copyWith(
-                        color: Colors.white,
+                        color: VlvtColors.textPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

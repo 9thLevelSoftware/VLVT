@@ -137,7 +137,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = "Failed to load match details: $e";
+        _errorMessage = "Failed to load match details: ${ErrorHandler.getShortMessage(e)}";
       });
     }
   }
@@ -338,7 +338,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           persist: false,
           action: SnackBarAction(
             label: 'Complete Profile',
-            textColor: Colors.white,
+            textColor: VlvtColors.textPrimary,
             onPressed: () {
               Navigator.push(
                 context,
@@ -412,9 +412,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         queuedAt: DateTime.now(),
       ));
       if (mounted) setState(() => _isSending = false);
-      scaffoldMessenger.showSnackBar(const SnackBar(
-        content: Text('Message queued. Will send when connected.'),
-        backgroundColor: Colors.orange,
+      scaffoldMessenger.showSnackBar(SnackBar(
+        content: const Text('Message queued. Will send when connected.'),
+        backgroundColor: VlvtColors.warning,
       ));
       socketService.connect();
       return;
@@ -453,7 +453,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: VlvtColors.background.withValues(alpha: 0.0),
       builder: (context) => DateProposalSheet(
         matchName: _otherUserProfile!.name ?? 'them',
         onSubmit: ({
@@ -479,16 +479,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
           if (result['success'] == true) {
             scaffoldMessenger.showSnackBar(
-              const SnackBar(
-                content: Text('Date proposal sent!'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Date proposal sent!'),
+                backgroundColor: VlvtColors.success,
               ),
             );
           } else {
             scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Text(result['error'] ?? 'Failed to send proposal'),
-                backgroundColor: Colors.red,
+                backgroundColor: VlvtColors.error,
               ),
             );
           }

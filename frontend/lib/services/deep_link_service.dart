@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import '../screens/reset_password_screen.dart';
 import '../screens/main_screen.dart';
 import '../screens/chat_screen.dart';
+import '../widgets/vlvt_loader.dart';
 import 'auth_service.dart';
 import 'deep_link_validator.dart';
 
@@ -190,7 +191,7 @@ class DeepLinkService {
     showDialog(
       context: navigator.context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) => const Center(child: VlvtProgressIndicator()),
     );
 
     final success = await authService.verifyEmail(token);

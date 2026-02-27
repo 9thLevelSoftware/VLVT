@@ -349,8 +349,8 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                   child: Text(
                     badge,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: VlvtColors.textPrimary,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),

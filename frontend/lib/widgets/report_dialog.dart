@@ -90,7 +90,7 @@ class _ReportDialogState extends State<ReportDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Report submitted. Thank you for helping keep our community safe.'),
-            backgroundColor: Colors.green,
+            backgroundColor: VlvtColors.success,
           ),
         );
       }

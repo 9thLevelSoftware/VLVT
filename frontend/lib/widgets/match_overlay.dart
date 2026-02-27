@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../theme/vlvt_colors.dart';
 
 /// Elegant match feedback overlay that replaces intrusive Snackbars
 class MatchOverlay extends StatefulWidget {
@@ -111,15 +112,15 @@ class _MatchOverlayState extends State<MatchOverlay>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: widget.isNewMatch
-                      ? [Colors.pink.shade400, Colors.red.shade400]
-                      : [Colors.orange.shade400, Colors.amber.shade400],
+                      ? [VlvtColors.crimson, VlvtColors.crimsonLight]
+                      : [VlvtColors.warning, VlvtColors.goldLight],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: (widget.isNewMatch ? Colors.pink : Colors.orange)
+                    color: (widget.isNewMatch ? VlvtColors.crimson : VlvtColors.warning)
                         .withAlpha(128),
                     blurRadius: 30,
                     spreadRadius: 5,
@@ -131,7 +132,7 @@ class _MatchOverlayState extends State<MatchOverlay>
                 children: [
                   Icon(
                     widget.isNewMatch ? Icons.favorite : Icons.favorite_border,
-                    color: Colors.white,
+                    color: VlvtColors.textPrimary,
                     size: 64,
                   ),
                   const SizedBox(height: 16),
@@ -140,7 +141,7 @@ class _MatchOverlayState extends State<MatchOverlay>
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: VlvtColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -151,7 +152,7 @@ class _MatchOverlayState extends State<MatchOverlay>
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 16,
-                      color: Colors.white,
+                      color: VlvtColors.textPrimary,
                     ),
                   ),
                 ],
@@ -240,7 +241,7 @@ class _HeartParticleAnimationState extends State<HeartParticleAnimation>
                     opacity: opacity,
                     child: Icon(
                       Icons.favorite,
-                      color: Colors.pink.shade300,
+                      color: VlvtColors.crimsonLight,
                       size: particle.size,
                     ),
                   ),

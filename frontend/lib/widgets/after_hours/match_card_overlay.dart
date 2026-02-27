@@ -333,7 +333,7 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: VlvtColors.background.withValues(alpha: 0.2),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -377,7 +377,7 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withValues(alpha: 0.8),
+                      VlvtColors.background.withValues(alpha: 0.8),
                     ],
                   ),
                 ),
@@ -397,10 +397,10 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
                       Text(
                         widget.match.name,
                         style: VlvtTextStyles.h2.copyWith(
-                          color: Colors.white,
+                          color: VlvtColors.textPrimary,
                           shadows: [
                             Shadow(
-                              color: Colors.black.withValues(alpha: 0.5),
+                              color: VlvtColors.background.withValues(alpha: 0.5),
                               blurRadius: 4,
                             ),
                           ],
@@ -410,7 +410,7 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
                       Text(
                         '${widget.match.age}',
                         style: VlvtTextStyles.h3.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: VlvtColors.textPrimary.withValues(alpha: 0.9),
                         ),
                       ),
                     ],
@@ -421,13 +421,13 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
                       Icon(
                         Icons.location_on,
                         size: 14,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: VlvtColors.textPrimary.withValues(alpha: 0.8),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${widget.match.distance.toStringAsFixed(1)} km away',
                         style: VlvtTextStyles.bodySmall.copyWith(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: VlvtColors.textPrimary.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -437,7 +437,7 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
                     Text(
                       widget.match.bio!,
                       style: VlvtTextStyles.bodyMedium.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: VlvtColors.textPrimary.withValues(alpha: 0.9),
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
@@ -468,7 +468,7 @@ class _MatchCardOverlayState extends State<MatchCardOverlay>
           color: color,
           shadows: [
             Shadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: VlvtColors.background.withValues(alpha: 0.3),
               blurRadius: 4,
             ),
           ],

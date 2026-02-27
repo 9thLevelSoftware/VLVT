@@ -3,6 +3,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../theme/vlvt_colors.dart';
+import 'vlvt_loader.dart';
 
 /// State for the save match button
 enum SaveButtonState {
@@ -48,18 +50,14 @@ class SaveMatchButton extends StatelessWidget {
           label: const Text('Save Match'),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.amber,
-            foregroundColor: Colors.black87,
+            foregroundColor: VlvtColors.textOnGold,
           ),
         );
 
       case SaveButtonState.saving:
         return ElevatedButton.icon(
           onPressed: null,
-          icon: const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          icon: const VlvtProgressIndicator(size: 18, strokeWidth: 2),
           label: const Text('Saving...'),
         );
 
@@ -69,8 +67,8 @@ class SaveMatchButton extends StatelessWidget {
           icon: const Icon(Icons.bookmark, color: Colors.amber),
           label: const Text('Waiting for partner'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.grey.shade200,
-            foregroundColor: Colors.grey.shade700,
+            backgroundColor: VlvtColors.surface,
+            foregroundColor: VlvtColors.textMuted,
           ),
         );
 
@@ -78,22 +76,22 @@ class SaveMatchButton extends StatelessWidget {
         // Highlighted state - they saved first, prompt user to reciprocate
         return ElevatedButton.icon(
           onPressed: onSave,
-          icon: const Icon(Icons.favorite, color: Colors.white),
+          icon: const Icon(Icons.favorite, color: VlvtColors.textPrimary),
           label: const Text('Save to keep chatting!'),
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.colorScheme.primary,
-            foregroundColor: Colors.white,
+            foregroundColor: VlvtColors.textPrimary,
           ),
         );
 
       case SaveButtonState.mutualSaved:
         return ElevatedButton.icon(
           onPressed: null,
-          icon: const Icon(Icons.check_circle, color: Colors.green),
+          icon: const Icon(Icons.check_circle, color: VlvtColors.success),
           label: const Text('Match saved!'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green.shade100,
-            foregroundColor: Colors.green.shade800,
+            backgroundColor: VlvtColors.success.withValues(alpha: 0.2),
+            foregroundColor: VlvtColors.success,
           ),
         );
     }

@@ -35,7 +35,7 @@ class OfflineBanner extends StatelessWidget {
               children: [
                 const Icon(
                   Icons.cloud_off,
-                  color: Colors.white,
+                  color: VlvtColors.textPrimary,
                   size: 20,
                 ),
                 Spacing.horizontalSm,
@@ -43,7 +43,7 @@ class OfflineBanner extends StatelessWidget {
                   child: Text(
                     'You\'re offline',
                     style: VlvtTextStyles.labelMedium.copyWith(
-                      color: Colors.white,
+                      color: VlvtColors.textPrimary,
                     ),
                   ),
                 ),
@@ -121,7 +121,7 @@ class _OfflineWrapperState extends State<OfflineWrapper> {
           SnackBar(
             content: const Row(
               children: [
-                Icon(Icons.cloud_done, color: Colors.white),
+                Icon(Icons.cloud_done, color: VlvtColors.textPrimary),
                 SizedBox(width: 8),
                 Text('Back online'),
               ],
@@ -226,7 +226,7 @@ class ConnectivityChecker {
         SnackBar(
           content: const Row(
             children: [
-              Icon(Icons.cloud_off, color: Colors.white),
+              Icon(Icons.cloud_off, color: VlvtColors.textPrimary),
               SizedBox(width: 8),
               Text('No internet connection'),
             ],
@@ -235,7 +235,7 @@ class ConnectivityChecker {
           persist: false,
           action: SnackBarAction(
             label: 'Dismiss',
-            textColor: Colors.white,
+            textColor: VlvtColors.textPrimary,
             onPressed: () {},
           ),
         ),

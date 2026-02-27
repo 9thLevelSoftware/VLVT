@@ -85,7 +85,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
               persist: false,
               action: SnackBarAction(
                 label: 'Retry',
-                textColor: Colors.white,
+                textColor: VlvtColors.textPrimary,
                 onPressed: _sendResetLink,
               ),
             ),
@@ -149,7 +149,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                         alignment: Alignment.topLeft,
                         child: IconButton(
                           icon:
-                              const Icon(Icons.arrow_back, color: Colors.white),
+                              const Icon(Icons.arrow_back, color: VlvtColors.textPrimary),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
@@ -166,13 +166,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                             Container(
                               padding: Spacing.paddingXl,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
+                                color: VlvtColors.textPrimary.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
                                 Icons.lock_reset,
                                 size: 80,
-                                color: Colors.white,
+                                color: VlvtColors.textPrimary,
                               ),
                             ),
                             Spacing.verticalXl,
@@ -181,7 +181,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                               'Forgot Password?',
                               textAlign: TextAlign.center,
                               style: VlvtTextStyles.displaySmall.copyWith(
-                                color: Colors.white,
+                                color: VlvtColors.textPrimary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -195,7 +195,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                     : 'Enter your email address and we\'ll send you a link to reset your password',
                                 textAlign: TextAlign.center,
                                 style: VlvtTextStyles.bodyMedium.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: VlvtColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -206,10 +206,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                               Container(
                                 padding: Spacing.paddingXl,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
+                                  color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                                   borderRadius: Spacing.borderRadiusLg,
                                   border: Border.all(
-                                    color: Colors.white.withValues(alpha: 0.3),
+                                    color: VlvtColors.textPrimary.withValues(alpha: 0.3),
                                     width: 2,
                                   ),
                                 ),
@@ -219,13 +219,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                     const Icon(
                                       Icons.check_circle_outline,
                                       size: 64,
-                                      color: Colors.white,
+                                      color: VlvtColors.textPrimary,
                                     ),
                                     Spacing.verticalMd,
                                     Text(
                                       'Email Sent!',
                                       style: VlvtTextStyles.h3.copyWith(
-                                        color: Colors.white,
+                                        color: VlvtColors.textPrimary,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -234,8 +234,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                       'We\'ve sent a password reset link to:',
                                       textAlign: TextAlign.center,
                                       style: VlvtTextStyles.bodyMedium.copyWith(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.9),
+                                        color: VlvtColors.textSecondary,
                                       ),
                                     ),
                                     Spacing.verticalSm,
@@ -243,7 +242,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                       _emailController.text.trim(),
                                       textAlign: TextAlign.center,
                                       style: VlvtTextStyles.bodyMedium.copyWith(
-                                        color: Colors.white,
+                                        color: VlvtColors.textPrimary,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -252,8 +251,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                       'Please check your inbox (and spam folder) for the reset link.',
                                       textAlign: TextAlign.center,
                                       style: VlvtTextStyles.bodySmall.copyWith(
-                                        color:
-                                            Colors.white.withValues(alpha: 0.8),
+                                        color: VlvtColors.textSecondary,
                                       ),
                                     ),
                                   ],
@@ -265,7 +263,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                 child: Container(
                                   padding: Spacing.paddingXl,
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.2),
+                                    color: VlvtColors.textPrimary.withValues(alpha: 0.2),
                                     borderRadius: Spacing.borderRadiusLg,
                                   ),
                                   child: Column(
@@ -277,7 +275,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                                         'Sending reset link...',
                                         style:
                                             VlvtTextStyles.bodyMedium.copyWith(
-                                          color: Colors.white,
+                                          color: VlvtColors.textPrimary,
                                         ),
                                       ),
                                     ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/vlvt_colors.dart';
 import '../models/message.dart';
+import 'vlvt_loader.dart';
 
 /// A compact visual indicator showing message delivery status.
 ///
@@ -24,15 +25,9 @@ class MessageStatusIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (status) {
       case MessageStatus.sending:
-        return SizedBox(
-          width: size,
-          height: size,
-          child: CircularProgressIndicator(
-            strokeWidth: 1.5,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              VlvtColors.textMuted.withValues(alpha: 0.7),
-            ),
-          ),
+        return VlvtProgressIndicator(
+          size: size,
+          strokeWidth: 1.5,
         );
 
       case MessageStatus.sent:

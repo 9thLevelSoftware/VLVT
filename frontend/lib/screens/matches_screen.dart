@@ -176,7 +176,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = ErrorHandler.getShortMessage(e);
         _isLoading = false;
       });
     }
@@ -546,9 +546,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.8),
-                      Colors.black.withValues(alpha: 0.4),
-                      Colors.transparent,
+                      VlvtColors.background.withValues(alpha: 0.8),
+                      VlvtColors.background.withValues(alpha: 0.4),
+                      VlvtColors.background.withValues(alpha: 0.0),
                     ],
                     stops: const [0.0, 0.5, 1.0],
                   ),
@@ -559,8 +559,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   children: [
                     Text(
                       '$name, $age',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: VlvtColors.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Montserrat',
@@ -572,7 +572,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8),
+                          color: VlvtColors.textPrimary.withValues(alpha: 0.8),
                           fontSize: 12,
                           fontFamily: 'Montserrat',
                         ),
@@ -612,13 +612,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
       case MatchStatus.likedYou:
         bgColor = VlvtColors.crimson;
         icon = Icons.auto_awesome;
-        textColor = Colors.white;
+        textColor = VlvtColors.textPrimary;
         label = "Liked you";
         break;
       case MatchStatus.liked:
         bgColor = VlvtColors.success;
         icon = Icons.favorite_border;
-        textColor = Colors.white;
+        textColor = VlvtColors.textPrimary;
         label = "You liked";
         break;
     }

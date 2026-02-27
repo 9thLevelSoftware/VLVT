@@ -174,7 +174,7 @@ class _VlvtButtonState extends State<VlvtButton> {
       case VlvtButtonVariant.text:
         return VlvtColors.gold;
       case VlvtButtonVariant.danger:
-        return Colors.white;
+        return VlvtColors.textPrimary;
     }
   }
 

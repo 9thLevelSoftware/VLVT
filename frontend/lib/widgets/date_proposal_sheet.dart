@@ -53,7 +53,7 @@ class _DateProposalSheetState extends State<DateProposalSheet> {
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.dark(
               primary: VlvtColors.gold,
-              onPrimary: Colors.black,
+              onPrimary: VlvtColors.textOnGold,
               surface: VlvtColors.surface,
               onSurface: VlvtColors.textPrimary,
             ),
@@ -76,7 +76,7 @@ class _DateProposalSheetState extends State<DateProposalSheet> {
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.dark(
               primary: VlvtColors.gold,
-              onPrimary: Colors.black,
+              onPrimary: VlvtColors.textOnGold,
               surface: VlvtColors.surface,
               onSurface: VlvtColors.textPrimary,
             ),
