@@ -31,11 +31,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. A service receiving an idle client error from PostgreSQL logs the error and continues operating instead of crashing
   2. Database connections succeed during Railway cold starts (5-second timeout instead of 2-second)
   3. Pool configuration (max connections, idle timeout, SSL, connection timeout) is defined in one shared file and imported by all three services -- no duplicated pool config
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
+- [ ] 08-01-PLAN.md — Create createPool() factory in @vlvt/shared with TDD (RESIL-01, RESIL-02, RESIL-03)
+- [ ] 08-02-PLAN.md — Replace inline pool config in all three services with createPool() import (RESIL-01, RESIL-02, RESIL-03)
 
 ### Phase 9: Backend Service Integration
 **Goal**: All three services shut down gracefully on SIGTERM/SIGINT, closing HTTP connections and database pools without orphaning resources or hanging indefinitely
@@ -90,7 +90,7 @@ Phases 8 and 9 are sequential (shared utilities before service integration). Pha
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 8. Shared Backend Utilities | v2.0 | 0/? | Not started | - |
+| 8. Shared Backend Utilities | v2.0 | 0/2 | Planning complete | - |
 | 9. Backend Service Integration | v2.0 | 0/? | Not started | - |
 | 10. Page Transitions | v2.0 | 0/? | Not started | - |
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 0/? | Not started | - |
