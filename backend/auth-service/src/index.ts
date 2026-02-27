@@ -3647,9 +3647,45 @@ async function initializeApp() {
 
   // Only start server if not in test environment
   if (process.env.NODE_ENV !== 'test') {
-    app.listen(PORT, () => {
-      logger.info(`Auth service started`, { port: PORT, environment: process.env.NODE_ENV || 'development' });
+    let isShuttingDown = false;
+
+    const server = app.listen(PORT, () => {
+      logger.info('Auth service started', { port: PORT, environment: process.env.NODE_ENV || 'development' });
     });
+
+    const gracefulShutdown = async (signal: string) => {
+      if (isShuttingDown) {
+        logger.warn(`Duplicate ${signal} received, shutdown already in progress`);
+        return;
+      }
+      isShuttingDown = true;
+      logger.info(`Received ${signal}, starting graceful shutdown...`);
+
+      // Force exit after 10 seconds to prevent hung deployments
+      const forceExitTimer = setTimeout(() => {
+        logger.error('Graceful shutdown timed out after 10s, forcing exit');
+        process.exit(1);
+      }, 10000);
+      forceExitTimer.unref(); // Don't keep process alive just for this timer
+
+      // Stop accepting new HTTP requests, drain in-flight
+      server.close(() => {
+        logger.info('HTTP server closed');
+      });
+
+      // Close database pool (drains active clients)
+      try {
+        await pool.end();
+        logger.info('Database pool closed');
+      } catch (err) {
+        logger.error('Error closing database pool', { error: (err as Error).message });
+      }
+
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   }
 }
 
