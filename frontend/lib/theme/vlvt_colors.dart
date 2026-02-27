@@ -96,8 +96,8 @@ class VlvtColors {
   /// Secondary text - white at 70% opacity
   static const Color textSecondary = Color(0xFFB3B3B3);
 
-  /// Muted/hint text - white at 50% opacity
-  static const Color textMuted = Color(0xFF808080);
+  /// Muted/hint text - white at 60% for WCAG AA contrast (was 50%)
+  static const Color textMuted = Color(0xFF999999);
 
   /// Text on gold buttons
   static const Color textOnGold = Color(0xFF0D0D0D);
@@ -192,8 +192,8 @@ class VlvtColors {
   /// Text color for received message bubbles
   static const Color chatTextReceived = textPrimary;
 
-  /// Timestamp for sent messages
-  static Color get chatTimestampSent => Colors.white.withValues(alpha: 0.7);
+  /// Timestamp for sent messages - 85% for WCAG AA on purple background (was 70%)
+  static Color get chatTimestampSent => Colors.white.withValues(alpha: 0.85);
 
   /// Timestamp for received messages
   static Color get chatTimestampReceived => textMuted;

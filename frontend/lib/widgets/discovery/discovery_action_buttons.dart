@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../../theme/vlvt_colors.dart';
 
 /// Action buttons for the discovery screen (pass, undo, like)
-/// Made semi-transparent to encourage swiping
+/// Provides accessible alternative to swipe gestures for screen reader users
 class DiscoveryActionButtons extends StatelessWidget {
   final bool showUndoButton;
   final bool hasPremiumAccess;
@@ -29,12 +29,14 @@ class DiscoveryActionButtons extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Pass button - smaller and semi-transparent
-          Opacity(
-            opacity: 0.7,
+          // Pass button - accessible alternative to swipe left
+          Semantics(
+            label: 'Pass on this profile',
+            hint: 'Double tap to pass',
+            button: true,
+            enabled: true,
             child: FloatingActionButton(
               heroTag: 'pass',
-              mini: true,
               onPressed: () {
                 if (!hasPremiumAccess) {
                   HapticFeedback.heavyImpact();
@@ -45,26 +47,34 @@ class DiscoveryActionButtons extends StatelessWidget {
                 onPass();
               },
               backgroundColor: VlvtColors.crimson,
-              child: const Icon(Icons.close, size: 24, color: Colors.white),
+              child: const Icon(Icons.close, size: 28, color: Colors.white),
             ),
           ),
           if (showUndoButton)
-            FloatingActionButton(
-              heroTag: 'undo',
-              mini: true,
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                onUndo();
-              },
-              backgroundColor: VlvtColors.primary,
-              child: const Icon(Icons.undo, size: 20, color: Colors.white),
+            Semantics(
+              label: 'Undo last action',
+              hint: 'Double tap to undo',
+              button: true,
+              enabled: true,
+              child: FloatingActionButton(
+                heroTag: 'undo',
+                mini: true,
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  onUndo();
+                },
+                backgroundColor: VlvtColors.primary,
+                child: const Icon(Icons.undo, size: 20, color: Colors.white),
+              ),
             ),
-          // Like button - smaller and semi-transparent
-          Opacity(
-            opacity: 0.7,
+          // Like button - accessible alternative to swipe right
+          Semantics(
+            label: 'Like this profile',
+            hint: 'Double tap to like',
+            button: true,
+            enabled: true,
             child: FloatingActionButton(
               heroTag: 'like',
-              mini: true,
               onPressed: () {
                 if (!hasPremiumAccess) {
                   HapticFeedback.heavyImpact();
@@ -75,7 +85,7 @@ class DiscoveryActionButtons extends StatelessWidget {
                 onLike();
               },
               backgroundColor: VlvtColors.success,
-              child: const Icon(Icons.favorite, size: 24, color: Colors.white),
+              child: const Icon(Icons.favorite, size: 28, color: Colors.white),
             ),
           ),
         ],

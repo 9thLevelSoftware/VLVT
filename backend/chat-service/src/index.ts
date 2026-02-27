@@ -187,6 +187,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-API-Key', 'X-CSRF-Token']
 }));
 app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
 // Correlation ID middleware - generates/propagates IDs for request tracing (MON-05)
@@ -229,9 +230,12 @@ const csrfTokenHandler = createCsrfTokenHandler();
 // Decision: SEC-01-DOCUMENTED in .planning/phases/01-foundation-safety/SECURITY-DECISIONS.md
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection cannot be established
+  max: parseInt(process.env.DATABASE_POOL_MAX || '20', 10),
+  idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
+  connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT_MS || '2000', 10),
+  // SECURITY WARNING: rejectUnauthorized: false disables certificate validation.
+  // This is ONLY acceptable for Railway's internal private network with self-signed certs.
+  // In public networks, this would be vulnerable to MITM attacks.
   ssl: process.env.DATABASE_URL?.includes('railway')
     ? { rejectUnauthorized: false }
     : false,

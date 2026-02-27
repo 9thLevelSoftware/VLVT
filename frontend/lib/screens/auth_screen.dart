@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -472,60 +471,90 @@ class _AuthScreenState extends State<AuthScreen> {
                           ],
                         ),
                         Spacing.verticalXl,
-                        // Terms of service - single row
-                        Center(
-                          child: RichText(
-                            text: TextSpan(
+                        // Terms of service - separate tappable elements with 48dp touch targets
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              'By signing in, you agree to our ',
                               style: VlvtTextStyles.caption.copyWith(
                                 color: Colors.white.withValues(alpha: 0.7),
                               ),
-                              children: [
-                                const TextSpan(
-                                    text: 'By signing in, you agree to our '),
-                                TextSpan(
-                                  text: 'Terms',
-                                  style: const TextStyle(
-                                    decoration: TextDecoration.underline,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const LegalDocumentViewer(
-                                            documentType: LegalDocumentType
-                                                .termsOfService,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                ),
-                                const TextSpan(text: ' & '),
-                                TextSpan(
-                                  text: 'Privacy Policy',
-                                  style: const TextStyle(
-                                    decoration: TextDecoration.underline,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const LegalDocumentViewer(
-                                            documentType:
-                                                LegalDocumentType.privacyPolicy,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                ),
-                              ],
                             ),
-                          ),
+                            SizedBox(
+                              height: 48,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const LegalDocumentViewer(
+                                        documentType:
+                                            LegalDocumentType.termsOfService,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(4),
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4),
+                                    child: Text(
+                                      'Terms',
+                                      style: VlvtTextStyles.caption.copyWith(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.7),
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Text(
+                              ' & ',
+                              style: VlvtTextStyles.caption.copyWith(
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                            SizedBox(
+                              height: 48,
+                              child: InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const LegalDocumentViewer(
+                                        documentType:
+                                            LegalDocumentType.privacyPolicy,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(4),
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4),
+                                    child: Text(
+                                      'Privacy Policy',
+                                      style: VlvtTextStyles.caption.copyWith(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.7),
+                                        decoration: TextDecoration.underline,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         Spacing.verticalLg,
                       ],
