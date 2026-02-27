@@ -2,12 +2,14 @@ import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
 
+// Shared mock pool instance used by both pg and @vlvt/shared mocks
+const mPool = {
+  query: jest.fn(),
+  on: jest.fn(),
+};
+
 // Mock dependencies before importing the app
 jest.mock('pg', () => {
-  const mPool = {
-    query: jest.fn(),
-    on: jest.fn(),
-  };
   return { Pool: jest.fn(() => mPool) };
 });
 
@@ -44,6 +46,7 @@ jest.mock('@vlvt/shared', () => ({
   createAfterHoursAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   // Internal service auth middleware (HMAC-based service-to-service auth)
   createInternalServiceAuthMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
+  createPool: jest.fn(() => mPool),
 }));
 
 // Mock R2/S3 client for photo operations

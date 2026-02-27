@@ -1,12 +1,14 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
+// Shared mock pool instance used by both pg and @vlvt/shared mocks
+const mPool = {
+  query: jest.fn(),
+  on: jest.fn(),
+};
+
 // Mock dependencies before importing the app
 jest.mock('pg', () => {
-  const mPool = {
-    query: jest.fn(),
-    on: jest.fn(),
-  };
   return { Pool: jest.fn(() => mPool) };
 });
 
@@ -71,6 +73,7 @@ jest.mock('@vlvt/shared', () => ({
   ErrorCodes: {},
   sendErrorResponse: jest.fn(),
   createErrorResponseSender: jest.fn(() => jest.fn()),
+  createPool: jest.fn(() => mPool),
 }));
 
 import request from 'supertest';

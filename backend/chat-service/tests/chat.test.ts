@@ -1,11 +1,13 @@
 import jwt from 'jsonwebtoken';
 
+// Shared mock pool instance used by both pg and @vlvt/shared mocks
+const mPool = {
+  query: jest.fn(),
+  on: jest.fn(),
+};
+
 // Mock dependencies before importing the app
 jest.mock('pg', () => {
-  const mPool = {
-    query: jest.fn(),
-    on: jest.fn(),
-  };
   return { Pool: jest.fn(() => mPool) };
 });
 
@@ -14,7 +16,7 @@ jest.mock('@sentry/node', () => ({
   setupExpressErrorHandler: jest.fn(),
 }));
 
-// Mock @vlvt/shared for CSRF middleware and version utilities
+// Mock @vlvt/shared for CSRF middleware, version utilities, and pool factory
 jest.mock('@vlvt/shared', () => ({
   createCsrfMiddleware: jest.fn(() => (req: any, res: any, next: any) => next()),
   createCsrfTokenHandler: jest.fn(() => (req: any, res: any) => res.json({ token: 'mock-token' })),
@@ -34,6 +36,7 @@ jest.mock('@vlvt/shared', () => ({
   ErrorCodes: {},
   sendErrorResponse: jest.fn(),
   createErrorResponseSender: jest.fn(() => jest.fn()),
+  createPool: jest.fn(() => mPool),
 }));
 
 // Mock rate-limiter to avoid actual rate limiting in tests
