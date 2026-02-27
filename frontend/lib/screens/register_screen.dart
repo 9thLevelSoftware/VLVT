@@ -208,9 +208,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           fit: StackFit.expand,
           children: [
             // Background image with blur effect (matching AuthScreen) - decorative
-            Semantics(
-              excludeSemantics: true,
-              child: Positioned.fill(
+            Positioned.fill(
+              child: Semantics(
+                excludeSemantics: true,
                 child: ImageFiltered(
                   imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
                   child: Image.asset(
@@ -222,9 +222,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             // Dark overlay for better contrast - decorative
-            Semantics(
-              excludeSemantics: true,
-              child: Positioned.fill(
+            Positioned.fill(
+              child: Semantics(
+                excludeSemantics: true,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
