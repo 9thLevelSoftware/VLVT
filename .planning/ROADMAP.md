@@ -47,11 +47,11 @@ Plans:
   3. When chat-service receives SIGTERM, it closes Socket.IO connections, closes the database pool, and exits cleanly
   4. If any shutdown step hangs for more than 10 seconds, the process force-exits to prevent stuck deployments on Railway
   5. Sending SIGTERM twice does not crash the process (double-invocation guard prevents duplicate pool.end() calls)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 09-01: TBD
-- [ ] 09-02: TBD
+- [ ] 09-01-PLAN.md — Auth-service graceful shutdown with server.close + pool.end (RESIL-04, RESIL-07)
+- [ ] 09-02-PLAN.md — Profile-service and chat-service shutdown enhancement with pool.end and resource cleanup (RESIL-05, RESIL-06, RESIL-07)
 
 ### Phase 10: Page Transitions
 **Goal**: All screen navigation uses consistent, polished animations that match the app's design language instead of default MaterialPageRoute transitions

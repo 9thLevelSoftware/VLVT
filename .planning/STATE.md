@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
-status: unknown
-last_updated: "2026-02-27T20:42:36.921Z"
+status: in-progress
+last_updated: "2026-02-27T21:00:27Z"
 progress:
   total_phases: 13
   completed_phases: 13
-  total_plans: 67
-  completed_plans: 67
+  total_plans: 69
+  completed_plans: 68
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 8 - Shared Backend Utilities
+**Current focus:** Phase 9 - Backend Service Integration
 
 ## Current Position
 
-Phase: 8 of 11 (Shared Backend Utilities) -- COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase Complete
-Last activity: 2026-02-27 -- Completed 08-02 service pool integration (3 services migrated, 162 lines removed)
+Phase: 9 of 11 (Backend Service Integration)
+Plan: 1 of 2 in current phase (09-01 complete)
+Status: In Progress
+Last activity: 2026-02-27 -- Completed 09-01 auth-service graceful shutdown
 
-Progress: [##........] 20%
+Progress: [##........] 25%
 
 ## Performance Metrics
 
@@ -54,6 +54,9 @@ v2.0 decisions:
 - Fallback logger uses console methods when no winston instance provided (08-01)
 - mPool extracted to module scope in tests so pg mock and createPool mock share same instance (08-02)
 - Added createPool to all @vlvt/shared mocks (10 test files) for consistency (08-02)
+- Graceful shutdown order: server.close() before pool.end() to prevent in-flight request failures (09-01)
+- Signal handlers gated behind NODE_ENV !== 'test' to avoid Jest interference (09-01)
+- 10s force-exit timer with .unref() prevents hung Railway deployments (09-01)
 
 ### Pending Todos
 
@@ -71,7 +74,7 @@ Operational items deferred from v1.1 (captured in OPS-01 scope):
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 08-02-PLAN.md (service pool integration) -- Phase 8 complete
+Stopped at: Completed 09-01-PLAN.md (auth-service graceful shutdown)
 Resume file: None
 
 ---
