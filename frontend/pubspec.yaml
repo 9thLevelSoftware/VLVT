@@ -9,6 +9,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
+  sentry_flutter: ^9.14.0
   flutter:
     sdk: flutter
   
@@ -83,6 +84,7 @@ dependencies:
   # After Hours - background location for session
   flutter_foreground_task: ^9.2.0
 dev_dependencies:
+  sentry_dart_plugin: ^3.2.1
   flutter_test:
     sdk: flutter
   integration_test:
@@ -134,3 +136,9 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/images/vlvt_logo_text.png"
   min_sdk_android: 21
   remove_alpha_ios: true
+
+sentry:
+  upload_debug_symbols: true
+  upload_source_maps: true
+  project: flutter
+  org: 9th-level-software
