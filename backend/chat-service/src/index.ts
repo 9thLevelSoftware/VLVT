@@ -58,7 +58,6 @@ import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { Pool } from 'pg';
 import { authMiddleware } from './middleware/auth';
 import { validateMessage, validateMatch, validateReport, validateBlock } from './middleware/validation';
 import logger from './utils/logger';
@@ -87,6 +86,8 @@ import {
   correlationMiddleware,
   // Request logger middleware (MON-05)
   createRequestLoggerMiddleware,
+  // Resilient PostgreSQL pool factory (RESIL-01/02/03)
+  createPool,
 } from '@vlvt/shared';
 
 // Admin API key for protected endpoints
@@ -212,59 +213,9 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 const csrfTokenHandler = createCsrfTokenHandler();
 
-// Initialize PostgreSQL connection pool
-//
-// SECURITY NOTE: TLS Configuration for Railway PostgreSQL
-// =========================================================
-// Railway uses self-signed certificates for PostgreSQL connections and does not
-// provide a CA bundle for validation. This means:
-//
-// 1. rejectUnauthorized: false is REQUIRED for Railway connections
-// 2. Connections ARE encrypted with TLS (data in transit is protected)
-// 3. Certificate validation cannot be performed (no MITM detection)
-//
-// Mitigations:
-// - DATABASE_URL uses sslmode=require (enforces TLS, even without cert validation)
-// - Railway internal networking used where possible (private network)
-// - Railway handles certificate rotation automatically
-//
-// When Railway provides a CA bundle, update to:
-//   ssl: { rejectUnauthorized: true, ca: fs.readFileSync('railway-ca.crt') }
-//
-// Reference: https://station.railway.com/questions/postgre-sql-ssl-connection-self-signed-33f0d3b6
-// Decision: SEC-01-DOCUMENTED in .planning/phases/01-foundation-safety/SECURITY-DECISIONS.md
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: parseInt(process.env.DATABASE_POOL_MAX || '20', 10),
-  idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT_MS || '30000', 10),
-  connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT_MS || '2000', 10),
-  // SECURITY WARNING: rejectUnauthorized: false disables certificate validation.
-  // This is ONLY acceptable for Railway's internal private network with self-signed certs.
-  // In public networks, this would be vulnerable to MITM attacks.
-  ssl: process.env.DATABASE_URL?.includes('railway')
-    ? { rejectUnauthorized: false }
-    : false,
-});
-
-// Database connection event handlers
-pool.on('connect', (client) => {
-  logger.info('New database connection established');
-});
-
-pool.on('acquire', (client) => {
-  logger.debug('Database client acquired from pool');
-});
-
-pool.on('remove', (client) => {
-  logger.debug('Database client removed from pool');
-});
-
-pool.on('error', (err, client) => {
-  logger.error('Unexpected database connection error', {
-    error: err.message,
-    stack: err.stack
-  });
-});
+// Initialize PostgreSQL connection pool via shared factory (RESIL-01/02/03)
+// See backend/shared/src/utils/db-pool.ts for pool config, SSL, and event handlers
+const pool = createPool({ logger });
 
 // Initialize Firebase for push notifications
 initializeFirebase();
