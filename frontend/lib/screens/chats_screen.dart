@@ -619,6 +619,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                   IconButton(
                     icon: const Icon(Icons.clear,
                         color: VlvtColors.textSecondary),
+                    tooltip: 'Clear search',
                     onPressed: () {
                       setState(() {
                         _isSearching = false;

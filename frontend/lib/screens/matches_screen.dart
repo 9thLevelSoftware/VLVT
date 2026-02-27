@@ -288,37 +288,40 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     });
                   },
                   borderRadius: BorderRadius.circular(24),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isActive ? VlvtColors.gold : VlvtColors.surface,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: isActive ? VlvtColors.gold : VlvtColors.border,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isActive ? VlvtColors.gold : VlvtColors.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: isActive ? VlvtColors.gold : VlvtColors.border,
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          filter.icon,
-                          size: 14,
-                          color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            filter.label,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'Montserrat',
-                              color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            filter.icon,
+                            size: 14,
+                            color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              filter.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'Montserrat',
+                                color: isActive ? VlvtColors.textOnGold : VlvtColors.textMuted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
