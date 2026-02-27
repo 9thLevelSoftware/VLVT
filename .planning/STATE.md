@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 ## Current Position
 
 Phase: 8 of 11 (Shared Backend Utilities)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-02-27 -- Roadmap created for v2.0 Beta Readiness (4 phases, 15 requirements)
+Plan: 1 of 2 in current phase
+Status: Executing
+Last activity: 2026-02-27 -- Completed 08-01 createPool factory (TDD, 12 tests, RESIL-01/02/03)
 
-Progress: [..........] 0%
+Progress: [#.........] 10%
 
 ## Performance Metrics
 
@@ -36,6 +36,9 @@ v2.0 decisions:
 - 4-phase structure: shared utilities -> service integration -> page transitions -> tooltips+ops
 - Backend phases sequential (8 before 9); frontend phases (10, 11) independent of backend and each other
 - OPS-01 grouped with A11Y in Phase 11 (documentation-only, no code dependency)
+- 5000ms connection timeout default for Railway cold starts (not 2000ms) (08-01)
+- SSL auto-detected via 'railway' substring in connection string (08-01)
+- Fallback logger uses console methods when no winston instance provided (08-01)
 
 ### Pending Todos
 
@@ -53,7 +56,7 @@ Operational items deferred from v1.1 (captured in OPS-01 scope):
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Roadmap creation complete, ready for phase planning
+Stopped at: Completed 08-01-PLAN.md (createPool factory)
 Resume file: None
 
 ---

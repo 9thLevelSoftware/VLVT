@@ -9,9 +9,9 @@ Requirements for Beta Readiness milestone. Each maps to roadmap phases.
 
 ### Backend Resilience
 
-- [ ] **RESIL-01**: All services use a shared resilient DB pool with error handling that prevents process crashes on idle client errors
-- [ ] **RESIL-02**: DB connection timeout is increased from 2s to 5s to handle Railway cold starts
-- [ ] **RESIL-03**: Pool configuration (max connections, idle timeout, SSL) is centralized in one shared utility
+- [x] **RESIL-01**: All services use a shared resilient DB pool with error handling that prevents process crashes on idle client errors
+- [x] **RESIL-02**: DB connection timeout is increased from 2s to 5s to handle Railway cold starts
+- [x] **RESIL-03**: Pool configuration (max connections, idle timeout, SSL) is centralized in one shared utility
 - [ ] **RESIL-04**: Auth-service handles SIGTERM/SIGINT with graceful shutdown (server.close + pool.end)
 - [ ] **RESIL-05**: Profile-service shutdown handler includes pool.end() and server.close()
 - [ ] **RESIL-06**: Chat-service shutdown handler includes pool.end()
@@ -64,9 +64,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| RESIL-01 | Phase 8 | Pending |
-| RESIL-02 | Phase 8 | Pending |
-| RESIL-03 | Phase 8 | Pending |
+| RESIL-01 | Phase 8 | Complete |
+| RESIL-02 | Phase 8 | Complete |
+| RESIL-03 | Phase 8 | Complete |
 | RESIL-04 | Phase 9 | Pending |
 | RESIL-05 | Phase 9 | Pending |
 | RESIL-06 | Phase 9 | Pending |
