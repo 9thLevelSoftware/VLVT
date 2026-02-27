@@ -28,7 +28,7 @@ Requirements for Beta Readiness milestone. Each maps to roadmap phases.
 - [x] **UX-01**: Shared VlvtPageRoute provides slide-from-right transition for forward navigation
 - [x] **UX-02**: Shared VlvtFadeRoute provides crossfade transition for modal/overlay screens
 - [x] **UX-03**: All ~22 plain MaterialPageRoute calls are replaced with VlvtPageRoute or VlvtFadeRoute
-- [ ] **UX-04**: Existing Hero animations continue to work with custom page routes
+- [x] **UX-04**: Existing Hero animations continue to work with custom page routes
 
 ### Operations
 
@@ -77,7 +77,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-01 | Phase 10 | Complete |
 | UX-02 | Phase 10 | Complete |
 | UX-03 | Phase 10 | Complete |
-| UX-04 | Phase 10 | Pending |
+| UX-04 | Phase 10 | Complete |
 | OPS-01 | Phase 11 | Pending |
 
 **Coverage:**
