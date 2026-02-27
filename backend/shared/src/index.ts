@@ -126,6 +126,12 @@ export {
   type AuditLoggerOptions,
 } from './utils/audit-logger';
 
+// Database Pool Factory (RESIL-01, RESIL-02, RESIL-03)
+export {
+  createPool,
+  type CreatePoolOptions,
+} from './utils/db-pool';
+
 // Services
 export {
   initializeFirebase,
