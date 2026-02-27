@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 ## Current Position
 
-Phase: 8 of 11 (Shared Backend Utilities)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-02-27 -- Completed 08-01 createPool factory (TDD, 12 tests, RESIL-01/02/03)
+Phase: 8 of 11 (Shared Backend Utilities) -- COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase Complete
+Last activity: 2026-02-27 -- Completed 08-02 service pool integration (3 services migrated, 162 lines removed)
 
-Progress: [#.........] 10%
+Progress: [##........] 20%
 
 ## Performance Metrics
 
@@ -39,6 +39,8 @@ v2.0 decisions:
 - 5000ms connection timeout default for Railway cold starts (not 2000ms) (08-01)
 - SSL auto-detected via 'railway' substring in connection string (08-01)
 - Fallback logger uses console methods when no winston instance provided (08-01)
+- mPool extracted to module scope in tests so pg mock and createPool mock share same instance (08-02)
+- Added createPool to all @vlvt/shared mocks (10 test files) for consistency (08-02)
 
 ### Pending Todos
 
@@ -56,7 +58,7 @@ Operational items deferred from v1.1 (captured in OPS-01 scope):
 ## Session Continuity
 
 Last session: 2026-02-27
-Stopped at: Completed 08-01-PLAN.md (createPool factory)
+Stopped at: Completed 08-02-PLAN.md (service pool integration) -- Phase 8 complete
 Resume file: None
 
 ---
