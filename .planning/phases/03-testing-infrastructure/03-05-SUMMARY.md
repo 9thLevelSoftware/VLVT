@@ -33,6 +33,8 @@ patterns-established:
   - "Auth error test pattern: expect([401, 403]).toContain(response.status) for endpoints with CSRF"
   - "Safety endpoint test pattern: block/unblock/report all verify auth and authorization"
 
+requirements-completed: [TEST-03, TEST-04]
+
 # Metrics
 duration: 23min
 completed: 2026-01-24

@@ -45,6 +45,8 @@ decisions:
     choice: "Separate SECRETS_MANAGEMENT.md from ENVIRONMENT_VARIABLES.md"
     why: "Operational procedures (rotation) separate from reference docs"
 
+requirements-completed: [DEP-02, DEP-03]
+
 metrics:
   duration: "8 min"
   commits: 2

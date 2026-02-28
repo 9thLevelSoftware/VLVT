@@ -39,6 +39,8 @@ decisions:
     decision: "Use VlvtProgressIndicator for all loading states"
     rationale: "Consistent gold-colored loading indicators across app"
 
+requirements-completed: [UI-04]
+
 metrics:
   duration: "10 minutes"
   completed: "2026-01-25"

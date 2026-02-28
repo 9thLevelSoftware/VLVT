@@ -56,6 +56,8 @@ patterns-established:
   - "Error handling: ErrorHandler.handleError(e).message for all user-facing error text"
   - "Empty states: Use EmptyStateWidget or branded variants (ChatsEmptyState, DiscoveryEmptyState)"
 
+requirements-completed: [UI-05]
+
 # Metrics
 duration: 25min
 completed: 2026-01-25

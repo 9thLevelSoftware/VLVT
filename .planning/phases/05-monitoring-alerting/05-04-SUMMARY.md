@@ -1,3 +1,7 @@
+---
+requirements-completed: [MON-04, MON-06]
+---
+
 # Plan 05-04 Summary: Uptime Monitoring & PII Audit
 
 ## Overview

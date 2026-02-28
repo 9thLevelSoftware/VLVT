@@ -35,6 +35,8 @@ patterns-established:
   - "Health check pattern: async handler with try/catch per dependency"
   - "Degraded state pattern: status field with ok/degraded/unhealthy values"
 
+requirements-completed: [MON-02]
+
 # Metrics
 duration: 12min
 completed: 2026-01-25

@@ -22,6 +22,9 @@ decisions:
   - id: isolated-express-approach
     choice: "Use isolated Express apps for testing instead of full app mocking"
     rationale: "Avoids complex dependency mocking; more reliable tests"
+
+requirements-completed: [TEST-05]
+
 metrics:
   duration: "25 minutes"
   completed: "2026-01-25"

@@ -37,6 +37,8 @@ key-decisions:
 patterns-established:
   - "Non-blocking optional Redis adapter: async IIFE with try/catch for graceful fallback"
 
+requirements-completed: [SEC-09]
+
 # Metrics
 duration: 12min
 completed: 2026-01-24

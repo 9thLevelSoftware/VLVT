@@ -34,6 +34,8 @@ patterns-established:
   - "Railway template deployment: use official templates for infrastructure services"
   - "R2 bucket-scoped API tokens for least privilege"
 
+requirements-completed: [DEP-01]
+
 # Metrics
 duration: 1min
 completed: 2026-01-30

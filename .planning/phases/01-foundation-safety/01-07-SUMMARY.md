@@ -36,6 +36,8 @@ patterns-established:
   - "All rejectUnauthorized: false must have SECURITY NOTE comment"
   - "All SECURITY NOTEs reference SECURITY-DECISIONS.md SEC-01"
 
+requirements-completed: [SEC-01]
+
 # Metrics
 duration: 5min
 completed: 2026-01-24

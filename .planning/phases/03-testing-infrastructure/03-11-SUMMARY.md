@@ -30,6 +30,8 @@ key-decisions:
 patterns-established:
   - "Socket mock pattern: Include handshake.address in mockSocket for message handlers"
 
+requirements-completed: [TEST-03]
+
 # Metrics
 duration: 4min
 completed: 2026-01-25

@@ -24,6 +24,9 @@ key-files:
     - frontend/lib/services/auth_service.dart
     - frontend/lib/screens/safety_settings_screen.dart
 decisions: []
+
+requirements-completed: [GDPR-02]
+
 metrics:
   duration: 3m
   completed: 2026-01-24

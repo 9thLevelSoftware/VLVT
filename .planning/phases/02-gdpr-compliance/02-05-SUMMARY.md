@@ -37,6 +37,8 @@ patterns-established:
   - "GDPR data export: parallel queries with Promise.all, structured JSON response"
   - "Export rate limiting: 2 per hour (stricter than general limiter)"
 
+requirements-completed: [GDPR-03]
+
 # Metrics
 duration: 5min
 completed: 2026-01-24

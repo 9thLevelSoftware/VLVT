@@ -35,6 +35,8 @@ decisions:
     decision: "Input validation rejects emails containing SQL keywords like 'user'"
     rationale: "Defense in depth - the validator is strict by design"
 
+requirements-completed: [TEST-06]
+
 metrics:
   duration: "8 min"
   tasks: 2

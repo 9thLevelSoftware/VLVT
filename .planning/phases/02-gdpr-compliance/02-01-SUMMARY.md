@@ -36,6 +36,8 @@ patterns-established:
   - "Privacy & Legal section placement: before Delete Account in Settings"
   - "Data retention documentation format with legal basis column"
 
+requirements-completed: [GDPR-01, GDPR-06, GDPR-07]
+
 # Metrics
 duration: 8min
 completed: 2026-01-24

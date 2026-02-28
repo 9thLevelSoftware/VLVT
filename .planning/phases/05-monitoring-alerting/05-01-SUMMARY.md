@@ -29,6 +29,8 @@ decisions:
   - "[05-01]: Scrub request body, query strings, cookies, and auth headers in beforeSend"
   - "[05-01]: Correlation ID middleware placed after cookieParser, before CSRF middleware"
 
+requirements-completed: [MON-01, MON-05]
+
 metrics:
   duration: "7 min"
   completed: 2026-01-25

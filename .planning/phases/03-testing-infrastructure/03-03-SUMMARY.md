@@ -35,6 +35,8 @@ patterns-established:
   - "RevenueCat webhook event mocking: set REVENUECAT_WEBHOOK_AUTH, send structured event body"
   - "Subscription status testing: generate JWT, mock pool.query with subscription data"
 
+requirements-completed: [TEST-02]
+
 # Metrics
 duration: 5min
 completed: 2026-01-24

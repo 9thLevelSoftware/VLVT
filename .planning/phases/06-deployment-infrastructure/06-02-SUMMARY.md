@@ -44,6 +44,8 @@ patterns-established:
   - "HTTP API for email: Use provider HTTP APIs (not SMTP) on Railway due to port restrictions"
   - "Migration runner checklist: When adding new migrations, always update run_migration.js file list"
 
+requirements-completed: [DEP-05]
+
 # Metrics
 duration: ~4 days (checkpoint wait for user configuration)
 completed: 2026-01-29

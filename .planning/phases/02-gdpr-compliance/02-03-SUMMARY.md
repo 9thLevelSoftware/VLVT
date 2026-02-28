@@ -40,6 +40,8 @@ patterns-established:
   - "update_updated_at_column() trigger function for auto-updating timestamps"
   - "Consent API pattern: GET list, POST grant, DELETE withdraw"
 
+requirements-completed: [GDPR-02, GDPR-05]
+
 # Metrics
 duration: 8min
 completed: 2026-01-24

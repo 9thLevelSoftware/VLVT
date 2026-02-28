@@ -35,6 +35,8 @@ decisions:
     decision: "Email verification blocked tracked as DEP-05"
     rationale: "Requires EMAIL_PROVIDER configuration in production"
 
+requirements-completed: [UI-02, UI-03]
+
 metrics:
   duration: "15 minutes"
   completed: "2026-01-25"

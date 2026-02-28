@@ -40,6 +40,8 @@ patterns-established:
   - "Security comments above security-sensitive code with Reference links"
   - "SECURITY-DECISIONS.md captures rationale for accepted risks"
 
+requirements-completed: [SEC-01, SEC-06]
+
 # Metrics
 duration: 3min
 completed: 2026-01-24

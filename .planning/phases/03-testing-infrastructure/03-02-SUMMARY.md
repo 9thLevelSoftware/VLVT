@@ -18,6 +18,9 @@ decisions:
   - id: mock-vlvt-shared
     choice: Add @vlvt/shared mock to auth.test.ts
     reason: Logout endpoint uses auditLogger from @vlvt/shared
+
+requirements-completed: [TEST-01]
+
 metrics:
   duration: 8m
   completed: 2026-01-25

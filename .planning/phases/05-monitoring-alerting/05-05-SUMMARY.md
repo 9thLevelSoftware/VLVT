@@ -40,6 +40,8 @@ patterns-established:
   - "req.logger for request-scoped logging with correlation ID"
   - "Winston child logger inherits parent config, adds request metadata"
 
+requirements-completed: [MON-05]
+
 # Metrics
 duration: 5min
 completed: 2026-01-26

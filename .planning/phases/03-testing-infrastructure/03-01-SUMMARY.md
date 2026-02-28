@@ -33,6 +33,8 @@ key-decisions:
 patterns-established:
   - "Jest configuration: Use only jest.config.js, never package.json jest key"
 
+requirements-completed: [TEST-01]
+
 # Metrics
 duration: 3min
 completed: 2026-01-24

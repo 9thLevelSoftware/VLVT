@@ -35,6 +35,8 @@ key-decisions:
 patterns-established:
   - "Rate limiter alerting: handler callback logs + Sentry.captureMessage with tags/extra"
 
+requirements-completed: [MON-03]
+
 # Metrics
 duration: 3min
 completed: 2026-01-26

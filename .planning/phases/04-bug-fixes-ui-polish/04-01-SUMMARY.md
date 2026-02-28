@@ -17,6 +17,9 @@ key-files:
 decisions:
   - decision: "Prioritized issues into Critical/High/Medium based on user impact"
     rationale: "Critical = crashes/security, High = UX blockers, Medium = visual inconsistencies"
+
+requirements-completed: [UI-01]
+
 metrics:
   duration: "~15 min"
   completed: "2026-01-25"

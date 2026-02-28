@@ -29,6 +29,9 @@ decisions:
   - id: DEP-06-TOKEN-PAIR
     choice: "Use issueTokenPair() instead of raw jwt.sign()"
     why: "Matches native flow pattern: short-lived access token + hashed refresh token in database"
+
+requirements-completed: [DEP-06]
+
 metrics:
   duration: "~3 minutes"
   completed: "2026-01-30"

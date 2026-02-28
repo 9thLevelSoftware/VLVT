@@ -31,6 +31,8 @@ key-decisions:
 
 patterns-established: []
 
+requirements-completed: [UI-06]
+
 # Metrics
 duration: 3min
 completed: 2026-01-25
