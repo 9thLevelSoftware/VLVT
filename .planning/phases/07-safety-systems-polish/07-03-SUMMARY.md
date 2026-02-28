@@ -39,6 +39,8 @@ patterns-established:
   - "BullMQ cleanup job pattern in profile-service matching chat-service"
   - "Jobs directory structure in profile-service"
 
+requirements-completed: []
+
 duration: 4min
 completed: 2026-01-24
 ---

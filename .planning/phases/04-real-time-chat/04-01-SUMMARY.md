@@ -39,6 +39,8 @@ patterns-established:
   - "Match validation pattern: query after_hours_matches with user authorization check"
   - "Room naming: after_hours:match:{matchId} for multi-device support"
 
+requirements-completed: []
+
 # Metrics
 duration: 12min
 completed: 2025-01-22

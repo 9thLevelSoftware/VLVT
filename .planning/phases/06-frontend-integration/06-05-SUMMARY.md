@@ -1,3 +1,7 @@
+---
+requirements-completed: []
+---
+
 # Phase 6 Plan 5: Ephemeral Chat UI Summary
 
 **One-liner:** Real-time After Hours chat screen with session timer, save button, and navigation integration

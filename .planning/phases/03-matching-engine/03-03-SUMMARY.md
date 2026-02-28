@@ -40,6 +40,8 @@ patterns-established:
   - "30-second cooldown after decline before next match attempt"
   - "5-minute auto-decline timer from match creation"
 
+requirements-completed: []
+
 # Metrics
 duration: 4min
 completed: 2026-01-23

@@ -40,6 +40,8 @@ patterns-established:
   - "Auto-decline job uses BullMQ delayed jobs with unique jobId"
   - "Manual actions cancel corresponding scheduled jobs"
 
+requirements-completed: []
+
 # Metrics
 duration: 8min
 completed: 2026-01-22

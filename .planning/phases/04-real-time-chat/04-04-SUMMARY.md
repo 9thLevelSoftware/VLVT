@@ -30,6 +30,8 @@ decisions:
     choice: "Separate HTTP service for message history vs socket for real-time"
     rationale: "HTTP for history retrieval (app reopen), socket for real-time operations"
 
+requirements-completed: []
+
 metrics:
   tasks-completed: 2
   duration: ~3 min

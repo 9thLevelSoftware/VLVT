@@ -30,6 +30,8 @@ key-decisions:
 patterns-established:
   - "Routers needing real-time features must be registered after Socket.IO init"
 
+requirements-completed: []
+
 # Metrics
 duration: 3min
 completed: 2026-01-23

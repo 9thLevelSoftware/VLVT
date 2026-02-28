@@ -1,3 +1,7 @@
+---
+requirements-completed: []
+---
+
 # Phase 02 Plan 03: Session Lifecycle API - Summary
 
 **One-liner:** BullMQ-based session scheduling with start/end/extend/status endpoints and automatic expiry.

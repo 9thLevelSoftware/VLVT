@@ -43,6 +43,9 @@ decisions:
     title: "Gender selection chips over radio buttons"
     choice: "Custom animated chips with icons"
     reason: "More visual/interactive than radio buttons, consistent with app's luxury theme"
+
+requirements-completed: []
+
 metrics:
   duration: "4m 33s"
   completed: "2026-01-23"

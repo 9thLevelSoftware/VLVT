@@ -35,6 +35,8 @@ patterns-established:
   - "State enum pattern: define states as enum, switch in build()"
   - "SaveResult pattern: typed result class for API responses"
 
+requirements-completed: []
+
 # Metrics
 duration: 5min
 completed: 2026-01-23

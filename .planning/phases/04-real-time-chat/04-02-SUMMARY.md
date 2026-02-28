@@ -39,6 +39,8 @@ patterns-established:
   - "Router factory: createAfterHoursChatRouter(pool) returns configured router"
   - "Message history cursor: ?before=ISO_TIMESTAMP for pagination"
 
+requirements-completed: []
+
 # Metrics
 duration: 18min
 completed: 2025-01-23

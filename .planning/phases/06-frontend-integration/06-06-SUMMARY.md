@@ -40,6 +40,8 @@ patterns-established:
   - "Auth headers include Content-Type and Bearer token from _authService"
   - "Foreground task initialized with LOW importance for minimal notification visibility"
 
+requirements-completed: []
+
 # Metrics
 duration: 12min
 completed: 2026-01-23

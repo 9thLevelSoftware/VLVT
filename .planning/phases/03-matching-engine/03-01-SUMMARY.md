@@ -3,6 +3,9 @@ phase: 03-matching-engine
 plan: 01
 subsystem: matching
 tags: [postgresql, haversine, concurrency, skip-locked]
+
+requirements-completed: []
+
 metrics:
   duration: ~10min
   tasks: 2/2

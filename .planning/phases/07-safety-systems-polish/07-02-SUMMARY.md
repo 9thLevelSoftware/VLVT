@@ -41,6 +41,8 @@ patterns-established:
   - "Ban check: iterate all banned hashes and compute Hamming distance"
   - "Device fingerprint: fire-and-forget pattern (never blocks session start)"
 
+requirements-completed: []
+
 # Metrics
 duration: 12min
 completed: 2026-01-23

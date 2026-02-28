@@ -1,3 +1,7 @@
+---
+requirements-completed: []
+---
+
 # 07-04 Summary: Frontend Quick Report Flow
 
 ## Deliverables
