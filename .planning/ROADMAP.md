@@ -21,7 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 10: Page Transitions** - Consistent slide and fade navigation animations across all screens (completed 2026-02-27)
 - [x] **Phase 11: Tooltip Accessibility and Ops Readiness** - Screen reader support on all icon buttons plus pre-beta operations checklist (completed 2026-02-28)
 - [x] **Phase 12: Shutdown Ordering Fix** - Await server.close() before pool.end() in auth-service and profile-service (gap closure) (completed 2026-02-28)
-- [ ] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt)
+- [x] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt) (completed 2026-02-28)
 - [ ] **Phase 14: Documentation Cleanup** - Update ROADMAP progress table and SUMMARY.md frontmatter across all plans (tech debt)
 
 ## Phase Details
@@ -112,7 +112,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 13-01-PLAN.md — Verify pre-existing test fixes are still green (verification only, no code changes)
+- [x] 13-01-PLAN.md — Verify pre-existing test fixes are still green (verification only, no code changes)
 
 ### Phase 14: Documentation Cleanup
 **Goal**: ROADMAP.md and all SUMMARY.md files accurately reflect execution state
@@ -135,7 +135,7 @@ Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase
 | 10. Page Transitions | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 12. Shutdown Ordering Fix | 1/1 | Complete    | 2026-02-28 | - |
-| 13. Pre-Existing Test Fixes | v2.0 | 0/? | Not started | - |
+| 13. Pre-Existing Test Fixes | 1/1 | Complete   | 2026-02-28 | - |
 | 14. Documentation Cleanup | v2.0 | 0/? | Not started | - |
 
 ---
