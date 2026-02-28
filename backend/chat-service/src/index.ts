@@ -1669,9 +1669,24 @@ if (process.env.NODE_ENV !== 'test') {
     });
 
     // Close Socket.IO (disconnects all clients AND closes underlying HTTP server)
-    io.close(() => {
-      logger.info('Socket.IO server closed');
-    });
+    // NOTE: io.close() is async but its returned Promise resolves before the
+    // underlying HTTP server finishes draining. The callback is forwarded to
+    // httpServer.close() and fires when the HTTP server fully closes.
+    try {
+      await new Promise<void>((resolve, reject) => {
+        io.close((err) => {
+          if (err) {
+            logger.error('Error closing Socket.IO server', { error: (err as Error).message });
+            reject(err);
+          } else {
+            logger.info('Socket.IO server closed');
+            resolve();
+          }
+        });
+      });
+    } catch {
+      // io.close error logged above; continue with pool cleanup
+    }
 
     // Close database pool (drains active clients)
     try {
