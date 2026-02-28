@@ -95,6 +95,10 @@ Plans:
   1. Auth-service awaits server.close() callback before calling pool.end()
   2. Profile-service awaits server.close() callback before calling pool.end()
   3. In-flight requests complete before the database pool is closed during shutdown
+**Plans**: 1 plan
+
+Plans:
+- [ ] 12-01-PLAN.md — Wrap server.close() in Promise and await it in auth-service and profile-service (RESIL-04, RESIL-05)
 
 ### Phase 13: Pre-Existing Test Fixes
 **Goal**: All pre-existing failing tests in auth-service and profile-service pass
