@@ -106,9 +106,13 @@ Plans:
 **Requirements**: None (tech debt cleanup)
 **Gap Closure**: Resolves pre-existing test failures identified in v2.0 audit
 **Success Criteria** (what must be TRUE):
-  1. All 12 tests in auth-service account-lockout.test.ts pass (currently returning 500 errors)
-  2. All 10 tests in profile-service search-filters.test.ts pass (currently returning 500 errors)
+  1. All 13 tests in auth-service account-lockout.test.ts pass (fixed by commit 09c7028)
+  2. All 12 tests in profile-service search-filters.test.ts pass (fixed by commit 09c7028)
   3. No new test regressions introduced
+**Plans**: 1 plan
+
+Plans:
+- [ ] 13-01-PLAN.md — Verify pre-existing test fixes are still green (verification only, no code changes)
 
 ### Phase 14: Documentation Cleanup
 **Goal**: ROADMAP.md and all SUMMARY.md files accurately reflect execution state
