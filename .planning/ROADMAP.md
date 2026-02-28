@@ -125,8 +125,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Add requirements-completed frontmatter to all 65 v1.0 and v1.1 SUMMARY files (DOCDEBT-14)
-- [ ] 14-02-PLAN.md — Fix ROADMAP.md progress table alignment, plan checkboxes, and Phase 14 entries (DOCDEBT-14)
+- [x] 14-01-PLAN.md — Add requirements-completed frontmatter to all 65 v1.0 and v1.1 SUMMARY files (DOCDEBT-14)
+- [x] 14-02-PLAN.md — Fix ROADMAP.md progress table alignment, plan checkboxes, and Phase 14 entries (DOCDEBT-14)
 
 ## Progress
 
@@ -141,7 +141,7 @@ Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 12. Shutdown Ordering Fix | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
-| 14. Documentation Cleanup | 2/2 | Complete   | 2026-02-28 | - |
+| 14. Documentation Cleanup | v2.0 | 2/2 | Complete | 2026-02-28 |
 
 ---
 *Roadmap created: 2026-02-27*

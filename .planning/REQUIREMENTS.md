@@ -34,6 +34,10 @@ Requirements for Beta Readiness milestone. Each maps to roadmap phases.
 
 - [x] **OPS-01**: Pre-beta operations checklist documents all operational prerequisites (backup validation, monitoring, security, external services)
 
+### Documentation
+
+- [x] **DOCDEBT-14**: All SUMMARY.md files have `requirements-completed` frontmatter field and ROADMAP.md progress table is accurate
+
 ## Future Requirements
 
 Deferred to post-beta. Tracked but not in current roadmap.
@@ -79,10 +83,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-03 | Phase 10 | Complete |
 | UX-04 | Phase 10 | Complete |
 | OPS-01 | Phase 11 | Complete |
+| DOCDEBT-14 | Phase 14 | Complete |
 
 **Coverage:**
-- v2.0 requirements: 15 total
-- Mapped to phases: 15
+- v2.0 requirements: 16 total
+- Mapped to phases: 16
 - Unmapped: 0
 
 ---
