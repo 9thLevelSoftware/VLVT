@@ -139,7 +139,10 @@ Plans:
   1. Chat-service awaits io.close() completion before calling pool.end()
   2. In-flight Socket.IO connections complete before the database pool is closed during shutdown
   3. The same Promise-wrapping pattern used in Phase 12 (auth/profile) is applied consistently
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 15-01-PLAN.md — Wrap io.close() in Promise and await it before pool.end() (RESIL-06)
 
 ### Phase 16: Tech Debt Cleanup
 **Goal**: Resolve accumulated tech debt items from v2.0 audit — fix documentation misalignment, clean up orphaned widget, and register informal requirement IDs
