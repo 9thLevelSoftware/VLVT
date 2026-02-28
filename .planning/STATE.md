@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 Phase: 16 of 16 (Tech Debt Cleanup)
 Plan: 1 of 1 in current phase (COMPLETE)
 Status: Phase 16 Complete -- v2.0 Milestone Complete
-Last activity: 2026-02-28 -- Completed 16-01 (ROADMAP alignment, VlvtIconButton removal, TECHDEBT-13 cleanup)
+Last activity: 2026-02-28 - Completed quick task 1: fix SUMMARY frontmatter + ROADMAP Phase 16 row
 
 Progress: [##########] 100%
 
@@ -96,6 +96,12 @@ Operational items now documented in docs/PRE-BETA-CHECKLIST.md (OPS-01 complete)
 
 - Railway RAILWAY_DEPLOYMENT_DRAINING_SECONDS must be verified/set to 15s minimum (Phase 9 prerequisite)
 - Railway Custom Start Commands may use npm start instead of node dist/index.js (Phase 9 verification)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 1 | fix SUMMARY frontmatter + ROADMAP Phase 16 row | 2026-02-28 | fbcf03e | [1-fix-summary-frontmatter-roadmap-phase-16](./quick/1-fix-summary-frontmatter-roadmap-phase-16/) |
 
 ## Session Continuity
 
