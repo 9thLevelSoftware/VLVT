@@ -309,6 +309,7 @@ class VlvtIconButton extends StatelessWidget {
   final Color? color;
   final double size;
   final bool outlined;
+  final String? tooltip;
 
   const VlvtIconButton({
     super.key,
@@ -317,6 +318,7 @@ class VlvtIconButton extends StatelessWidget {
     this.color,
     this.size = 24,
     this.outlined = false,
+    this.tooltip,
   });
 
   @override
@@ -325,6 +327,7 @@ class VlvtIconButton extends StatelessWidget {
 
     if (outlined) {
       return Semantics(
+        label: tooltip,
         button: true,
         enabled: onPressed != null,
         child: GestureDetector(
@@ -349,15 +352,13 @@ class VlvtIconButton extends StatelessWidget {
       );
     }
 
-    return Semantics(
-      button: true,
-      enabled: onPressed != null,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon),
-        iconSize: size,
-        color: iconColor,
-      ),
+    // No Semantics wrapper -- IconButton handles its own via tooltip
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon),
+      iconSize: size,
+      color: iconColor,
+      tooltip: tooltip,
     );
   }
 }
