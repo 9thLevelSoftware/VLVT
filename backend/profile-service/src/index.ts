@@ -1835,10 +1835,22 @@ if (process.env.NODE_ENV !== 'test') {
         }, 10000);
         forceExitTimer.unref();
 
-        // Stop accepting new HTTP requests
-        server.close(() => {
-          logger.info('HTTP server closed');
-        });
+        // Stop accepting new HTTP requests, wait for in-flight to complete
+        try {
+          await new Promise<void>((resolve, reject) => {
+            server.close((err) => {
+              if (err) {
+                logger.error('Error closing HTTP server', { error: (err as Error).message });
+                reject(err);
+              } else {
+                logger.info('HTTP server closed');
+                resolve();
+              }
+            });
+          });
+        } catch {
+          // server.close error logged above; continue with cleanup
+        }
 
         // Close background schedulers
         await closeMatchingScheduler().catch((err: any) => {
