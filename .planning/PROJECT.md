@@ -2,7 +2,7 @@
 
 ## What This Is
 
-VLVT is a dating app with Flutter frontend and Node.js microservices backend, featuring After Hours Mode for time-boxed spontaneous connections. Production-hardened for staged beta launch with comprehensive security, GDPR compliance, monitoring, and safety systems.
+VLVT is a dating app with Flutter frontend and Node.js microservices backend, featuring After Hours Mode for time-boxed spontaneous connections. Production-hardened with resilient backend infrastructure, screen reader accessibility, polished navigation animations, and comprehensive security/GDPR compliance. Ready for staged public beta.
 
 ## Core Value
 
@@ -72,60 +72,53 @@ When beta users sign up, their data must be secure, their privacy protected, and
 - ✓ Content moderation capability -- v1.1
 - ✓ Report handling workflow -- v1.1
 - ✓ Ephemeral messages retained for safety (30 days) -- v1.1
+- ✓ Resilient DB pool with auto-reconnection across all services -- v2.0
+- ✓ Graceful shutdown with pool cleanup across all services -- v2.0
+- ✓ Tooltip accessibility on all IconButtons -- v2.0
+- ✓ Consistent page transition animations -- v2.0
+- ✓ Pre-beta operations checklist -- v2.0
 
 ### Active
 
-<!-- Current scope: v2.0 Beta Readiness -->
-
-- [ ] Resilient DB pool with auto-reconnection across all services
-- [ ] Graceful shutdown with pool cleanup across all services
-- [ ] Tooltip accessibility on all IconButtons
-- [ ] Consistent page transition animations
-- [ ] Pre-beta operations checklist
+<!-- No active requirements -- between milestones -->
 
 ### Out of Scope
 
-- New feature development beyond current scope -- hardening complete, features for v2+
+- New feature development beyond current scope -- hardening complete, features for v3+
 - 100% test coverage -- focus on critical paths; diminishing returns
 - SOC 2 certification -- not required for beta; consider post-launch
 - Performance optimization beyond critical issues -- defer to post-beta
 - iOS background location fix -- known limitation; acceptable for beta
 - Interests/tags system -- deferred from v1.0; not production-readiness
-- Location encryption at rest -- deferred to v2 (KYCAID done, GPS plaintext with documented rationale)
-
-## Current Milestone: v2.0 Beta Readiness
-
-**Goal:** Resolve the 5 remaining P2 issues from the Board of Directors review to make VLVT ready for public beta — operational resilience, accessibility, UX polish, and ops documentation.
-
-**Target features:**
-- Resilient DB pool with auto-reconnection (handles Railway cold starts, connection pool exhaustion)
-- Graceful shutdown with database pool cleanup (prevents orphaned connections during deployments)
-- Tooltip accessibility on all 20 IconButtons missing them (screen reader support)
-- Consistent page transition animations via VlvtPageRoute/VlvtFadeRoute
-- Pre-beta operations checklist consolidating all operational prerequisites
+- Location encryption at rest -- deferred (KYCAID done, GPS plaintext with documented rationale)
+- pg package upgrade (8.16.3 -> 8.19.0) -- current version has all needed features
+- Custom retry wrappers for DB queries -- pg Pool handles reconnection internally
 
 ## Context
 
-**Current state (post v1.1):**
-- Backend: ~15,000+ LOC TypeScript across auth-service, profile-service, chat-service
-- Frontend: ~33,400+ LOC Dart (Flutter)
+**Current state (post v2.0):**
+- Backend: ~44,000 LOC TypeScript across auth-service, profile-service, chat-service, @vlvt/shared
+- Frontend: ~33,300 LOC Dart (Flutter)
 - Database: 25+ migrations, PostgreSQL
-- Tests: 477 automated tests across all services
+- Tests: 477 automated tests across all services (all passing)
 - Deployment: Railway hosting + CI/CD configured
 - Monitoring: Sentry + health checks + structured logging + correlation IDs
 - Backups: Daily PostgreSQL to R2 with 30-day retention
 - Safety: Block/report, device fingerprinting, photo hashing, chat preservation
+- Accessibility: All IconButtons have screen reader tooltips
+- Navigation: VlvtPageRoute (slide) + VlvtFadeRoute (crossfade) on all 33 navigation calls
+- Resilience: Shared DB pool factory, graceful shutdown with awaited close, 10s force-exit
 
-**Beta launch plan:**
-- Staged rollout: start with closed beta, expand gradually
-- Real users with real data -- security and privacy are non-negotiable
-
-**Operational prerequisites before beta:**
+**Operational prerequisites before beta (see docs/PRE-BETA-CHECKLIST.md):**
 1. Set KYCAID_ENCRYPTION_KEY in Railway
 2. Configure UptimeRobot monitors for 3 services
 3. Configure Apple Developer Portal for Android Apple Sign-In (optional)
 4. Execute backup restore test to validate runbook
-5. Install AWS CLI and configure R2 access for backup operations
+5. Verify Railway RAILWAY_DEPLOYMENT_DRAINING_SECONDS >= 15s
+
+**Beta launch plan:**
+- Staged rollout: start with closed beta, expand gradually
+- Real users with real data -- security and privacy are non-negotiable
 
 ## Constraints
 
@@ -138,7 +131,7 @@ When beta users sign up, their data must be secure, their privacy protected, and
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Comprehensive audit over quick fixes | Beta users deserve a solid foundation | ✓ Good -- 40/40 requirements satisfied |
+| Comprehensive audit over quick fixes | Beta users deserve a solid foundation | ✓ Good -- 40/40 v1.1 requirements satisfied |
 | GDPR as critical priority | Dating app + location + EU users = high risk | ✓ Good -- full compliance achieved |
 | Staged rollout for beta | Catch issues with small group before expanding | -- Pending (not yet launched) |
 | Risk-priority phase ordering | Security first, then GDPR, then testing | ✓ Good -- each phase built on previous |
@@ -149,6 +142,12 @@ When beta users sign up, their data must be secure, their privacy protected, and
 | R2 photo deletion before CASCADE | Photo keys lost after database CASCADE delete | ✓ Good -- GDPR deletion complete |
 | Daily 3 AM UTC backup to separate R2 bucket | Off-peak for US timezones; isolation from photo storage | ✓ Good -- automated |
 | Apple Services ID separate from Client ID | Web flow needs different identifier than native iOS | ✓ Good -- code deployed |
+| 5s DB connection timeout for Railway cold starts | 2s default too aggressive for Railway cold boot | ✓ Good -- no connection timeouts |
+| server.close() before pool.end() in shutdown | Prevents 500 errors on in-flight requests during redeploy | ✓ Good -- clean shutdown verified |
+| Manual Promise wrapper over util.promisify for server/io.close | Explicit error handling; util.promisify doesn't handle callback errors well | ✓ Good -- consistent pattern across 3 services |
+| VlvtPageRoute easeOutCubic 300ms slide-from-right | Matches MaterialPageRoute duration, smoother feel | ✓ Good -- consistent across 33 nav calls |
+| VlvtFadeRoute for modals/overlays (paywall, filters, legal) | Crossfade distinguishes modal from forward navigation | ✓ Good -- clear visual hierarchy |
+| Removed Semantics wrapper from non-outlined VlvtIconButton | Prevents duplicate screen reader announcements | ✓ Good -- verified no duplicates |
 
 ---
-*Last updated: 2026-02-27 after v2.0 milestone start*
+*Last updated: 2026-02-28 after v2.0 milestone completion*

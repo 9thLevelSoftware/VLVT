@@ -1,4 +1,40 @@
 # Project Milestones: VLVT
+## v2.0 Beta Readiness (Shipped: 2026-02-28)
+
+**Delivered:** Operational resilience, accessibility, UX polish, and documentation cleanup to make VLVT's backend crash-proof during Railway deployments and the frontend screen-reader accessible with polished navigation animations.
+
+**Phases completed:** 8-16 (9 phases, 14 plans)
+
+**Key accomplishments:**
+
+- Centralized resilient DB pool factory (`createPool`) across all 3 services with 5s timeout for Railway cold starts
+- Graceful shutdown in all services: SIGTERM -> server/io.close (awaited) -> pool.end -> exit, with 10s force-exit safety net
+- Consistent page transitions: VlvtPageRoute (slide-from-right) and VlvtFadeRoute (crossfade) replacing all 33 MaterialPageRoute calls
+- Screen reader accessibility: all IconButtons announce descriptive tooltips, no duplicate Semantics wrappers
+- Pre-beta operations checklist consolidating all operational prerequisites for launch
+- Fixed 22 pre-existing test failures and cleaned accumulated tech debt
+
+**Stats:**
+
+- 44 files modified (code, excluding planning docs)
+- +996 / -470 lines changed
+- 9 phases, 14 plans, 16 requirements satisfied
+- 2 days (2026-02-27 -> 2026-02-28)
+- 56 commits
+
+**Git range:** `a44af90` -> `7d6c524`
+
+**Known tech debt (non-blocking):**
+- 4 runtime visual checks for animation quality (human_needed)
+- 3 TalkBack/VoiceOver on-device checks (human_needed)
+- Apple Developer Portal Services ID configuration (pending)
+- UptimeRobot external monitoring setup (pending)
+- Backup restore test execution (pending)
+
+**What's next:** Beta launch with real users, iterate based on feedback
+
+---
+
 
 ## v1.1 Production Readiness (Shipped: 2026-02-03)
 
