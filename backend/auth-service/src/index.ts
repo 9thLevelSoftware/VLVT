@@ -3668,10 +3668,22 @@ async function initializeApp() {
       }, 10000);
       forceExitTimer.unref(); // Don't keep process alive just for this timer
 
-      // Stop accepting new HTTP requests, drain in-flight
-      server.close(() => {
-        logger.info('HTTP server closed');
-      });
+      // Stop accepting new HTTP requests, wait for in-flight to complete
+      try {
+        await new Promise<void>((resolve, reject) => {
+          server.close((err) => {
+            if (err) {
+              logger.error('Error closing HTTP server', { error: (err as Error).message });
+              reject(err);
+            } else {
+              logger.info('HTTP server closed');
+              resolve();
+            }
+          });
+        });
+      } catch {
+        // server.close error logged above; continue with pool cleanup
+      }
 
       // Close database pool (drains active clients)
       try {
