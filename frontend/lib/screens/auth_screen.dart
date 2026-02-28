@@ -206,6 +206,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    // Scale logo to fit small screens; cap at 260 for larger ones
+    final logoSize = (screenHeight * 0.28).clamp(160.0, 260.0);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       extendBody: true,
@@ -263,14 +267,14 @@ class _AuthScreenState extends State<AuthScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Logo - larger size for better branding
+                      // Logo - responsive size for branding
                       Image.asset(
                         'assets/images/logo.png',
-                        width: 340,
-                        height: 340,
+                        width: logoSize,
+                        height: logoSize,
                         semanticLabel: 'VLVT logo',
                       ),
-                      Spacing.verticalXl,
+                      Spacing.verticalMd,
                       // Loading indicator or form
                       if (_isLoading)
                         Center(
@@ -356,7 +360,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   return null;
                                 },
                               ),
-                              Spacing.verticalLg,
+                              Spacing.verticalMd,
                               // Sign In button with glow effect
                               VlvtButton.primary(
                                 label: 'Sign In',
@@ -379,7 +383,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   },
                                 ),
                               ),
-                              Spacing.verticalMd,
+                              Spacing.verticalSm,
                               // Create account link - larger touch target
                               Center(
                                 child: InkWell(
@@ -427,7 +431,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ],
                           ),
                         ),
-                        Spacing.verticalXl,
+                        Spacing.verticalMd,
                         // Divider
                         Row(
                           children: [
@@ -454,7 +458,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ],
                         ),
-                        Spacing.verticalXl,
+                        Spacing.verticalMd,
                         // OAuth buttons row - following brand guidelines
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -471,7 +475,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ],
                         ),
-                        Spacing.verticalXl,
+                        Spacing.verticalMd,
                         // Terms of service - separate tappable elements with 48dp touch targets
                         Wrap(
                           alignment: WrapAlignment.center,
@@ -555,7 +559,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ],
                         ),
-                        Spacing.verticalLg,
+                        Spacing.verticalSm,
                       ],
                     ],
                   ),
