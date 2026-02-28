@@ -153,7 +153,10 @@ Plans:
   1. ROADMAP.md Phase 14 progress row shows correct `2/2` in Plans Complete column
   2. VlvtIconButton is either adopted by screens or removed if truly orphaned
   3. TECHDEBT-13 is either registered in REQUIREMENTS.md or informal references removed from plan frontmatter
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 16-01-PLAN.md — Fix ROADMAP alignment, remove orphaned VlvtIconButton, clean TECHDEBT-13 references
 
 ## Progress
 
