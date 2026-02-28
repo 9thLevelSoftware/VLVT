@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Backend Service Integration** - Graceful shutdown with pool cleanup across all three services (completed 2026-02-27)
 - [x] **Phase 10: Page Transitions** - Consistent slide and fade navigation animations across all screens (completed 2026-02-27)
 - [x] **Phase 11: Tooltip Accessibility and Ops Readiness** - Screen reader support on all icon buttons plus pre-beta operations checklist (completed 2026-02-28)
-- [ ] **Phase 12: Shutdown Ordering Fix** - Await server.close() before pool.end() in auth-service and profile-service (gap closure)
+- [x] **Phase 12: Shutdown Ordering Fix** - Await server.close() before pool.end() in auth-service and profile-service (gap closure) (completed 2026-02-28)
 - [ ] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt)
 - [ ] **Phase 14: Documentation Cleanup** - Update ROADMAP progress table and SUMMARY.md frontmatter across all plans (tech debt)
 
@@ -130,7 +130,7 @@ Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase
 | 9. Backend Service Integration | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 10. Page Transitions | v2.0 | 2/2 | Complete | 2026-02-27 |
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
-| 12. Shutdown Ordering Fix | v2.0 | 0/? | Not started | - |
+| 12. Shutdown Ordering Fix | 1/1 | Complete   | 2026-02-28 | - |
 | 13. Pre-Existing Test Fixes | v2.0 | 0/? | Not started | - |
 | 14. Documentation Cleanup | v2.0 | 0/? | Not started | - |
 
