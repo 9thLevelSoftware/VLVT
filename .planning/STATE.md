@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 Phase: 14 of 14 (Documentation Cleanup)
 Plan: 2 of 2 in current phase (COMPLETE)
 Status: Phase 14 Complete
-Last activity: 2026-02-28 -- Completed 14-02 (ROADMAP.md progress table alignment and plan checkboxes fixed)
+Last activity: 2026-02-28 -- Completed 14-01 (requirements-completed frontmatter backfill for 40 v1.1 SUMMARY files)
 
 Progress: [##########] 100%
 
@@ -76,6 +76,7 @@ v2.0 decisions:
 - Empty catch block after server.close Promise to ensure pool.end() runs even on server.close failure (12-01)
 - No code changes needed for Phase 13 -- commit 09c7028 fix confirmed still green (13-01)
 - Phase 14 plan list already correct in ROADMAP.md, no Edit 3 changes needed (14-02)
+- v1.1 SEC mapping corrected by reading SUMMARY accomplishments; SEC-08 not assigned (not in scope) (14-01)
 
 ### Pending Todos
 
@@ -93,7 +94,7 @@ Operational items now documented in docs/PRE-BETA-CHECKLIST.md (OPS-01 complete)
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 14-02-PLAN.md (Phase 14 complete -- ROADMAP.md progress table fixed)
+Stopped at: Completed 14-01-PLAN.md (requirements-completed backfill for v1.1 SUMMARY files)
 Resume file: None
 
 ---
