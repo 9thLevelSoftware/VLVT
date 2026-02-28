@@ -183,6 +183,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         leading: IconButton(
           icon: const Icon(Icons.close, color: VlvtColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(false),
+          tooltip: 'Close verification',
         ),
         title: Text(
           'Get Verified',

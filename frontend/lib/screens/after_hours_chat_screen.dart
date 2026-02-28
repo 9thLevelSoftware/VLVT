@@ -898,6 +898,7 @@ class _AfterHoursChatScreenState extends State<AfterHoursChatScreen>
                   : const Icon(Icons.send),
               color: VlvtColors.gold,
               iconSize: 28,
+              tooltip: 'Send message',
             ),
           ],
         ),

@@ -191,6 +191,7 @@ class _ProfileDetailScreenState extends State<ProfileDetailScreen> {
                 child: Icon(Icons.arrow_back, color: VlvtColors.textPrimary),
               ),
               onPressed: () => Navigator.of(context).pop(),
+              tooltip: 'Go back',
             ),
             actions: [
               PopupMenuButton<String>(

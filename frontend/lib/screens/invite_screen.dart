@@ -372,6 +372,7 @@ class _InviteCodeTile extends StatelessWidget {
           if (!code.used)
             IconButton(
               icon: Icon(Icons.share, color: VlvtColors.gold),
+              tooltip: 'Share invite code',
               onPressed: () {
                 SharePlus.instance.share(
                   ShareParams(text: "Join me on VLVT - the exclusive dating app! Use my invite code: ${code.code}\n\nhttps://getvlvt.vip/invite/${code.code}"),

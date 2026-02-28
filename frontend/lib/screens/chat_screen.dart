@@ -1124,6 +1124,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   : const Icon(Icons.send),
               color: isDisabled ? VlvtColors.textMuted : VlvtColors.gold,
               iconSize: 28,
+              tooltip: 'Send message',
             ),
           ]),
         ]),

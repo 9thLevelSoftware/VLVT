@@ -74,6 +74,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Go back',
               )
             : null,
       ),
@@ -453,6 +454,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () => Navigator.of(context).pop(),
+                tooltip: 'Go back',
               )
             : null,
         actions: [
@@ -462,6 +464,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
               onPressed: () async {
                 await authService.signOut();
               },
+              tooltip: 'Sign out',
             ),
         ],
       ),

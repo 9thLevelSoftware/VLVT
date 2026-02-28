@@ -303,6 +303,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 Navigator.of(context).pop();
               }
             },
+            tooltip: 'Discard changes',
           ),
           actions: widget.isFirstTimeSetup ? [
             TextButton(

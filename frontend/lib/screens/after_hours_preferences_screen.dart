@@ -210,6 +210,7 @@ class _AfterHoursPreferencesScreenState
         leading: IconButton(
           icon: Icon(Icons.close, color: VlvtColors.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Close',
         ),
         actions: [
           TextButton(

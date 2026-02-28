@@ -207,6 +207,7 @@ class _FeedbackFormState extends State<FeedbackForm> {
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Close',
                     ),
                   ],
                 ),
@@ -279,6 +280,7 @@ class _FeedbackFormState extends State<FeedbackForm> {
                           _rating = starValue;
                         });
                       },
+                      tooltip: 'Rate $starValue star${starValue == 1 ? "" : "s"}',
                     );
                   }),
                 ),

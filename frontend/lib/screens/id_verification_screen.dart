@@ -249,6 +249,7 @@ class _IdVerificationScreenState extends State<IdVerificationScreen> {
           leading: IconButton(
             icon: const Icon(Icons.close, color: VlvtColors.textPrimary),
             onPressed: _closeWebView,
+            tooltip: 'Close verification',
           ),
           title: Text(
             'Verify Your ID',

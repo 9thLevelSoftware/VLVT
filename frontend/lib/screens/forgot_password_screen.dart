@@ -151,6 +151,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                           icon:
                               const Icon(Icons.arrow_back, color: VlvtColors.textPrimary),
                           onPressed: () => Navigator.of(context).pop(),
+                          tooltip: 'Go back',
                         ),
                       ),
                     ),
