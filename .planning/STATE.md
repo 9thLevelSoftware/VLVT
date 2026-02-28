@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
-status: unknown
-last_updated: "2026-02-28T01:57:20.270Z"
+status: complete
+last_updated: "2026-02-28T01:59:55.155Z"
 progress:
   total_phases: 16
-  completed_phases: 15
+  completed_phases: 16
   total_plans: 73
-  completed_plans: 72
+  completed_plans: 73
 ---
 
 # Project State
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 11 - Tooltip Accessibility and Ops Readiness
+**Current focus:** v2.0 Beta Readiness - All phases complete
 
 ## Current Position
 
 Phase: 11 of 11 (Tooltip Accessibility and Ops Readiness)
-Plan: 1 of 2 remaining in current phase (11-01 pending, 11-02 COMPLETE)
-Status: Phase 11 In Progress
-Last activity: 2026-02-28 -- Completed 11-02 pre-beta operations checklist (8 verifiable action items at docs/PRE-BETA-CHECKLIST.md)
+Plan: 2 of 2 in current phase (COMPLETE)
+Status: Phase 11 Complete -- v2.0 Milestone Complete
+Last activity: 2026-02-28 -- Completed 11-01 tooltip accessibility (VlvtIconButton tooltip param, 18 IconButtons labeled across 12 files)
 
-Progress: [###.......] 33%
+Progress: [##########] 100%
 
 ## Performance Metrics
 
@@ -37,7 +37,7 @@ Progress: [###.......] 33%
 |-----------|--------|-------|----------|---------|
 | v1.0 After Hours Mode | 7 | 28 | 3 days | 2026-01-24 |
 | v1.1 Production Readiness | 7 | 50 | 7 days | 2026-02-03 |
-| v2.0 Beta Readiness | 4 | TBD | -- | -- |
+| v2.0 Beta Readiness | 4 | 8 | -- | -- |
 
 ## Accumulated Context
 
@@ -69,6 +69,9 @@ v2.0 decisions:
 - Generic type parameters preserved on routes (VlvtPageRoute<bool>, VlvtPageRoute<Profile>) (10-02)
 - Checklist items include per-service env var tables with Secret/Source columns for quick audit (11-02)
 - KYCAID_ENCRYPTION_KEY includes warning about never rotating without data migration (11-02)
+- Removed Semantics wrapper from non-outlined VlvtIconButton to prevent duplicate screen reader announcements (11-01)
+- Outlined VlvtIconButton retains Semantics wrapper with label passthrough for GestureDetector accessibility (11-01)
+- Star rating tooltips use dynamic pluralization for natural screen reader output (11-01)
 
 ### Pending Todos
 
@@ -86,11 +89,11 @@ Operational items now documented in docs/PRE-BETA-CHECKLIST.md (OPS-01 complete)
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 11-02-PLAN.md (pre-beta operations checklist)
+Stopped at: Completed 11-01-PLAN.md (Phase 11 complete -- v2.0 milestone complete)
 Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestones: v1.0 (shipped 2026-01-24), v1.1 (shipped 2026-02-03)*
-*Current milestone: v2.0 Beta Readiness (in progress)*
+*Current milestone: v2.0 Beta Readiness (all phases complete)*

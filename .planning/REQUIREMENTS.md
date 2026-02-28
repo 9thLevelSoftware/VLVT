@@ -19,9 +19,9 @@ Requirements for Beta Readiness milestone. Each maps to roadmap phases.
 
 ### Accessibility
 
-- [ ] **A11Y-01**: VlvtIconButton widget accepts and renders a tooltip parameter
-- [ ] **A11Y-02**: All 20 identified IconButtons have descriptive action tooltips (e.g., "Send message", "Go back", "Close")
-- [ ] **A11Y-03**: Tooltips do not create duplicate screen reader announcements where Semantics wrappers already exist
+- [x] **A11Y-01**: VlvtIconButton widget accepts and renders a tooltip parameter
+- [x] **A11Y-02**: All 20 identified IconButtons have descriptive action tooltips (e.g., "Send message", "Go back", "Close")
+- [x] **A11Y-03**: Tooltips do not create duplicate screen reader announcements where Semantics wrappers already exist
 
 ### UX Polish
 
@@ -71,9 +71,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RESIL-05 | Phase 9 | Complete |
 | RESIL-06 | Phase 9 | Complete |
 | RESIL-07 | Phase 9 | Complete |
-| A11Y-01 | Phase 11 | Pending |
-| A11Y-02 | Phase 11 | Pending |
-| A11Y-03 | Phase 11 | Pending |
+| A11Y-01 | Phase 11 | Complete |
+| A11Y-02 | Phase 11 | Complete |
+| A11Y-03 | Phase 11 | Complete |
 | UX-01 | Phase 10 | Complete |
 | UX-02 | Phase 10 | Complete |
 | UX-03 | Phase 10 | Complete |
