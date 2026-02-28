@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
 status: unknown
-last_updated: "2026-02-28T03:44:31.151Z"
+last_updated: "2026-02-28T15:12:17.245Z"
 progress:
-  total_phases: 19
-  completed_phases: 19
-  total_plans: 77
-  completed_plans: 77
+  total_phases: 21
+  completed_phases: 20
+  total_plans: 78
+  completed_plans: 78
 ---
 
 # Project State
@@ -22,10 +22,10 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 ## Current Position
 
-Phase: 14 of 14 (Documentation Cleanup)
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 14 Complete
-Last activity: 2026-02-28 -- Completed 14-01 (requirements-completed frontmatter backfill for 40 v1.1 SUMMARY files)
+Phase: 15 of 16 (Chat Shutdown Ordering)
+Plan: 1 of 1 in current phase (COMPLETE)
+Status: Phase 15 Complete
+Last activity: 2026-02-28 -- Completed 15-01 (Promise-wrapped io.close() in chat-service graceful shutdown)
 
 Progress: [##########] 100%
 
@@ -38,6 +38,7 @@ Progress: [##########] 100%
 | v1.0 After Hours Mode | 7 | 28 | 3 days | 2026-01-24 |
 | v1.1 Production Readiness | 7 | 50 | 7 days | 2026-02-03 |
 | v2.0 Beta Readiness | 7 | 10 | -- | -- |
+| Phase 15 P01 | 1min | 1 task | 1 file |  |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ v2.0 decisions:
 - No code changes needed for Phase 13 -- commit 09c7028 fix confirmed still green (13-01)
 - Phase 14 plan list already correct in ROADMAP.md, no Edit 3 changes needed (14-02)
 - v1.1 SEC mapping corrected by reading SUMMARY accomplishments; SEC-08 not assigned (not in scope) (14-01)
+- Manual Promise wrapper over io.close() callback (not await io.close()) because returned Promise resolves before HTTP server finishes draining (15-01)
+- Empty catch block after io.close Promise to ensure pool.end() runs even on io.close failure (15-01)
 
 ### Pending Todos
 
@@ -94,7 +97,7 @@ Operational items now documented in docs/PRE-BETA-CHECKLIST.md (OPS-01 complete)
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 14-01-PLAN.md (requirements-completed backfill for v1.1 SUMMARY files)
+Stopped at: Completed 15-01-PLAN.md (Promise-wrapped io.close() in chat-service graceful shutdown)
 Resume file: None
 
 ---

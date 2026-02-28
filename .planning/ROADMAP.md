@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 12: Shutdown Ordering Fix** - Await server.close() before pool.end() in auth-service and profile-service (gap closure) (completed 2026-02-28)
 - [x] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt) (completed 2026-02-28)
 - [x] **Phase 14: Documentation Cleanup** - Update ROADMAP progress table and SUMMARY.md frontmatter across all plans (tech debt) (completed 2026-02-28)
-- [ ] **Phase 15: Chat-Service Shutdown Ordering** - Await io.close() before pool.end() in chat-service (gap closure)
+- [x] **Phase 15: Chat-Service Shutdown Ordering** - Await io.close() before pool.end() in chat-service (gap closure) (completed 2026-02-28)
 - [ ] **Phase 16: Tech Debt Cleanup** - Fix ROADMAP row alignment, orphaned VlvtIconButton, informal TECHDEBT-13 ID (tech debt)
 
 ## Phase Details
@@ -169,7 +169,7 @@ Phases 8-14 are complete. Phase 15 depends on Phase 9/12 (same shutdown pattern)
 | 12. Shutdown Ordering Fix | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 14. Documentation Cleanup | v2.0 | 2/2 | Complete | 2026-02-28 |
-| 15. Chat-Service Shutdown Ordering | v2.0 | 0/0 | Planned | — |
+| 15. Chat-Service Shutdown Ordering | 1/1 | Complete   | 2026-02-28 | — |
 | 16. Tech Debt Cleanup | v2.0 | 0/0 | Planned | — |
 
 ---
