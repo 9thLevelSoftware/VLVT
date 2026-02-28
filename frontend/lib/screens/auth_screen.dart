@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -207,8 +208,8 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    // Scale logo to fit small screens; cap at 260 for larger ones
-    final logoSize = (screenHeight * 0.28).clamp(160.0, 260.0);
+    // Scale logo to fit small screens; cap at 320 for larger ones
+    final logoSize = (screenHeight * 0.35).clamp(180.0, 320.0);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -476,88 +477,63 @@ class _AuthScreenState extends State<AuthScreen> {
                           ],
                         ),
                         Spacing.verticalMd,
-                        // Terms of service - separate tappable elements with 48dp touch targets
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(
-                              'By signing in, you agree to our ',
+                        // Terms of service - single inline line
+                        Center(
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
                               style: VlvtTextStyles.caption.copyWith(
                                 color: VlvtColors.textSecondary,
                               ),
-                            ),
-                            SizedBox(
-                              height: 48,
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    VlvtFadeRoute(
-                                      builder: (_) =>
-                                          const LegalDocumentViewer(
-                                        documentType:
-                                            LegalDocumentType.termsOfService,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(4),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4),
-                                    child: Text(
-                                      'Terms',
-                                      style: VlvtTextStyles.caption.copyWith(
-                                        color: VlvtColors.textSecondary,
-                                        decoration: TextDecoration.underline,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                              children: [
+                                const TextSpan(
+                                    text: 'By signing in, you agree to our '),
+                                TextSpan(
+                                  text: 'Terms',
+                                  style: VlvtTextStyles.caption.copyWith(
+                                    color: VlvtColors.textSecondary,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(
+                                        context,
+                                        VlvtFadeRoute(
+                                          builder: (_) =>
+                                              const LegalDocumentViewer(
+                                            documentType: LegalDocumentType
+                                                .termsOfService,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                 ),
-                              ),
-                            ),
-                            Text(
-                              ' & ',
-                              style: VlvtTextStyles.caption.copyWith(
-                                color: VlvtColors.textSecondary,
-                              ),
-                            ),
-                            SizedBox(
-                              height: 48,
-                              child: InkWell(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    VlvtFadeRoute(
-                                      builder: (_) =>
-                                          const LegalDocumentViewer(
-                                        documentType:
-                                            LegalDocumentType.privacyPolicy,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(4),
-                                child: Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4),
-                                    child: Text(
-                                      'Privacy Policy',
-                                      style: VlvtTextStyles.caption.copyWith(
-                                        color: VlvtColors.textSecondary,
-                                        decoration: TextDecoration.underline,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                const TextSpan(text: ' & '),
+                                TextSpan(
+                                  text: 'Privacy Policy',
+                                  style: VlvtTextStyles.caption.copyWith(
+                                    color: VlvtColors.textSecondary,
+                                    decoration: TextDecoration.underline,
+                                    fontWeight: FontWeight.w600,
                                   ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () {
+                                      Navigator.push(
+                                        context,
+                                        VlvtFadeRoute(
+                                          builder: (_) =>
+                                              const LegalDocumentViewer(
+                                            documentType: LegalDocumentType
+                                                .privacyPolicy,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                         Spacing.verticalSm,
                       ],
