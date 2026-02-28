@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
 status: unknown
-last_updated: "2026-02-27T21:49:38.826Z"
+last_updated: "2026-02-28T01:57:20.270Z"
 progress:
-  total_phases: 15
+  total_phases: 16
   completed_phases: 15
-  total_plans: 71
-  completed_plans: 71
+  total_plans: 73
+  completed_plans: 72
 ---
 
 # Project State
@@ -18,14 +18,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-27)
 
 **Core value:** When beta users sign up, their data must be secure, their privacy protected, and the app must not fail in ways that expose them to harm or embarrassment.
-**Current focus:** Phase 10 - Page Transitions
+**Current focus:** Phase 11 - Tooltip Accessibility and Ops Readiness
 
 ## Current Position
 
-Phase: 10 of 11 (Page Transitions)
-Plan: 2 of 2 in current phase (COMPLETE)
-Status: Phase 10 Complete
-Last activity: 2026-02-27 -- Completed 10-02 screen migration (20 nav calls migrated, 100% VlvtPageRoute/VlvtFadeRoute coverage)
+Phase: 11 of 11 (Tooltip Accessibility and Ops Readiness)
+Plan: 1 of 2 remaining in current phase (11-01 pending, 11-02 COMPLETE)
+Status: Phase 11 In Progress
+Last activity: 2026-02-28 -- Completed 11-02 pre-beta operations checklist (8 verifiable action items at docs/PRE-BETA-CHECKLIST.md)
 
 Progress: [###.......] 33%
 
@@ -67,10 +67,12 @@ v2.0 decisions:
 - VlvtFadeRoute for legal documents in safety_settings (crossfade replaces slide-from-bottom) (10-02)
 - VlvtFadeRoute for all After Hours screens (consistent fade for the mode) (10-02)
 - Generic type parameters preserved on routes (VlvtPageRoute<bool>, VlvtPageRoute<Profile>) (10-02)
+- Checklist items include per-service env var tables with Secret/Source columns for quick audit (11-02)
+- KYCAID_ENCRYPTION_KEY includes warning about never rotating without data migration (11-02)
 
 ### Pending Todos
 
-Operational items deferred from v1.1 (captured in OPS-01 scope):
+Operational items now documented in docs/PRE-BETA-CHECKLIST.md (OPS-01 complete):
 - Apple Developer Portal Services ID configuration
 - Backup restore test execution
 - UptimeRobot external monitoring setup
@@ -83,8 +85,8 @@ Operational items deferred from v1.1 (captured in OPS-01 scope):
 
 ## Session Continuity
 
-Last session: 2026-02-27
-Stopped at: Completed 10-02-PLAN.md (Phase 10 complete -- 100% page transition migration)
+Last session: 2026-02-28
+Stopped at: Completed 11-02-PLAN.md (pre-beta operations checklist)
 Resume file: None
 
 ---

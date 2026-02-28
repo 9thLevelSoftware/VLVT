@@ -93,7 +93,7 @@ Phases 8 and 9 are sequential (shared utilities before service integration). Pha
 | 8. Shared Backend Utilities | v2.0 | 0/2 | Planning complete | - |
 | 9. Backend Service Integration | v2.0 | 0/? | Not started | - |
 | 10. Page Transitions | 2/2 | Complete    | 2026-02-27 | - |
-| 11. Tooltip Accessibility and Ops Readiness | v2.0 | 0/2 | Planning complete | - |
+| 11. Tooltip Accessibility and Ops Readiness | 1/2 | In Progress|  | - |
 
 ---
 *Roadmap created: 2026-02-27*

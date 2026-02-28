@@ -32,7 +32,7 @@ Requirements for Beta Readiness milestone. Each maps to roadmap phases.
 
 ### Operations
 
-- [ ] **OPS-01**: Pre-beta operations checklist documents all operational prerequisites (backup validation, monitoring, security, external services)
+- [x] **OPS-01**: Pre-beta operations checklist documents all operational prerequisites (backup validation, monitoring, security, external services)
 
 ## Future Requirements
 
@@ -78,7 +78,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-02 | Phase 10 | Complete |
 | UX-03 | Phase 10 | Complete |
 | UX-04 | Phase 10 | Complete |
-| OPS-01 | Phase 11 | Pending |
+| OPS-01 | Phase 11 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 15 total
