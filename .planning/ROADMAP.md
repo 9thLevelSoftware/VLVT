@@ -173,7 +173,7 @@ Phases 8-14 are complete. Phase 15 depends on Phase 9/12 (same shutdown pattern)
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 14. Documentation Cleanup | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 15. Chat-Service Shutdown Ordering | v2.0 | 1/1 | Complete | 2026-02-28 |
-| 16. Tech Debt Cleanup | v2.0 | Complete    | 2026-02-28 | 2026-02-28 |
+| 16. Tech Debt Cleanup | v2.0 | 1/1 | Complete | 2026-02-28 |
 
 ---
 *Roadmap created: 2026-02-27*
