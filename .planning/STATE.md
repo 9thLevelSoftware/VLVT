@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Beta Readiness
-status: unknown
-last_updated: "2026-02-28T15:15:52.102Z"
+status: complete
+last_updated: "2026-02-28T15:30:59Z"
 progress:
   total_phases: 21
-  completed_phases: 20
-  total_plans: 78
-  completed_plans: 78
+  completed_phases: 21
+  total_plans: 79
+  completed_plans: 79
 ---
 
 # Project State
@@ -22,10 +22,10 @@ See: .planning/PROJECT.md (updated 2026-02-27)
 
 ## Current Position
 
-Phase: 15 of 16 (Chat Shutdown Ordering)
+Phase: 16 of 16 (Tech Debt Cleanup)
 Plan: 1 of 1 in current phase (COMPLETE)
-Status: Phase 15 Complete
-Last activity: 2026-02-28 -- Completed 15-01 (Promise-wrapped io.close() in chat-service graceful shutdown)
+Status: Phase 16 Complete -- v2.0 Milestone Complete
+Last activity: 2026-02-28 -- Completed 16-01 (ROADMAP alignment, VlvtIconButton removal, TECHDEBT-13 cleanup)
 
 Progress: [##########] 100%
 
@@ -39,6 +39,7 @@ Progress: [##########] 100%
 | v1.1 Production Readiness | 7 | 50 | 7 days | 2026-02-03 |
 | v2.0 Beta Readiness | 7 | 10 | -- | -- |
 | Phase 15 P01 | 1min | 1 task | 1 file |  |
+| Phase 16 P01 | 4min | 2 tasks | 4 files |  |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ v2.0 decisions:
 - v1.1 SEC mapping corrected by reading SUMMARY accomplishments; SEC-08 not assigned (not in scope) (14-01)
 - Manual Promise wrapper over io.close() callback (not await io.close()) because returned Promise resolves before HTTP server finishes draining (15-01)
 - Empty catch block after io.close Promise to ensure pool.end() runs even on io.close failure (15-01)
+- Phase 16 plan list already existed from research -- Edit C skipped as redundant (16-01)
+- Phase 16 success criterion 1 corrected to reference Phase 15 row, not Phase 14 (16-01)
 
 ### Pending Todos
 
@@ -97,11 +100,11 @@ Operational items now documented in docs/PRE-BETA-CHECKLIST.md (OPS-01 complete)
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 15-01-PLAN.md (Promise-wrapped io.close() in chat-service graceful shutdown)
+Stopped at: Completed 16-01-PLAN.md (ROADMAP alignment, VlvtIconButton removal, TECHDEBT-13 cleanup)
 Resume file: None
 
 ---
 
 *State initialized: 2026-01-24*
 *Previous milestones: v1.0 (shipped 2026-01-24), v1.1 (shipped 2026-02-03)*
-*Current milestone: v2.0 Beta Readiness (all phases complete)*
+*Current milestone: v2.0 Beta Readiness (all phases complete -- 16/16)*

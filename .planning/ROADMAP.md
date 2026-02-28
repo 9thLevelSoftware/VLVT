@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt) (completed 2026-02-28)
 - [x] **Phase 14: Documentation Cleanup** - Update ROADMAP progress table and SUMMARY.md frontmatter across all plans (tech debt) (completed 2026-02-28)
 - [x] **Phase 15: Chat-Service Shutdown Ordering** - Await io.close() before pool.end() in chat-service (gap closure) (completed 2026-02-28)
-- [ ] **Phase 16: Tech Debt Cleanup** - Fix ROADMAP row alignment, orphaned VlvtIconButton, informal TECHDEBT-13 ID (tech debt)
+- [x] **Phase 16: Tech Debt Cleanup** - Fix ROADMAP row alignment, orphaned VlvtIconButton, informal TECHDEBT-13 ID (tech debt) (completed 2026-02-28)
 
 ## Phase Details
 
@@ -156,7 +156,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 16-01-PLAN.md — Fix ROADMAP alignment, remove orphaned VlvtIconButton, clean TECHDEBT-13 references
+- [x] 16-01-PLAN.md — Fix ROADMAP alignment, remove orphaned VlvtIconButton, clean TECHDEBT-13 references
 
 ## Progress
 
@@ -173,7 +173,7 @@ Phases 8-14 are complete. Phase 15 depends on Phase 9/12 (same shutdown pattern)
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 14. Documentation Cleanup | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 15. Chat-Service Shutdown Ordering | v2.0 | 1/1 | Complete | 2026-02-28 |
-| 16. Tech Debt Cleanup | v2.0 | 0/1 | In Progress | — |
+| 16. Tech Debt Cleanup | v2.0 | 1/1 | Complete | 2026-02-28 |
 
 ---
 *Roadmap created: 2026-02-27*
