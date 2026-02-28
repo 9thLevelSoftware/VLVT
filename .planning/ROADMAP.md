@@ -4,7 +4,7 @@
 
 - v1.0 After Hours Mode - Phases 1-7 (shipped 2026-01-24)
 - v1.1 Production Readiness - Phases 1-7 (shipped 2026-02-03)
-- v2.0 Beta Readiness - Phases 8-11 (in progress)
+- v2.0 Beta Readiness - Phases 8-14 (in progress)
 
 ## Phases
 
@@ -16,10 +16,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### v2.0 Beta Readiness
 
-- [ ] **Phase 8: Shared Backend Utilities** - Centralized resilient DB pool factory with error handling and connection config
-- [ ] **Phase 9: Backend Service Integration** - Graceful shutdown with pool cleanup across all three services
+- [x] **Phase 8: Shared Backend Utilities** - Centralized resilient DB pool factory with error handling and connection config (completed 2026-02-27)
+- [x] **Phase 9: Backend Service Integration** - Graceful shutdown with pool cleanup across all three services (completed 2026-02-27)
 - [x] **Phase 10: Page Transitions** - Consistent slide and fade navigation animations across all screens (completed 2026-02-27)
 - [x] **Phase 11: Tooltip Accessibility and Ops Readiness** - Screen reader support on all icon buttons plus pre-beta operations checklist (completed 2026-02-28)
+- [ ] **Phase 12: Shutdown Ordering Fix** - Await server.close() before pool.end() in auth-service and profile-service (gap closure)
+- [ ] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt)
+- [ ] **Phase 14: Documentation Cleanup** - Update ROADMAP progress table and SUMMARY.md frontmatter across all plans (tech debt)
 
 ## Phase Details
 
@@ -83,17 +86,49 @@ Plans:
 - [ ] 11-01-PLAN.md — Refactor VlvtIconButton tooltip + add tooltips to all 18 missing IconButtons (A11Y-01, A11Y-02, A11Y-03)
 - [ ] 11-02-PLAN.md — Create pre-beta operations checklist at docs/PRE-BETA-CHECKLIST.md (OPS-01)
 
+### Phase 12: Shutdown Ordering Fix
+**Goal**: server.close() completes before pool.end() runs in auth-service and profile-service, preventing 500 errors on in-flight requests during Railway redeploys
+**Depends on**: Phase 9
+**Requirements**: RESIL-04, RESIL-05 (improvement)
+**Gap Closure**: Closes integration gap from v2.0 audit (server-close-not-awaited)
+**Success Criteria** (what must be TRUE):
+  1. Auth-service awaits server.close() callback before calling pool.end()
+  2. Profile-service awaits server.close() callback before calling pool.end()
+  3. In-flight requests complete before the database pool is closed during shutdown
+
+### Phase 13: Pre-Existing Test Fixes
+**Goal**: All pre-existing failing tests in auth-service and profile-service pass
+**Depends on**: Phase 8 (uses shared pool)
+**Requirements**: None (tech debt cleanup)
+**Gap Closure**: Resolves pre-existing test failures identified in v2.0 audit
+**Success Criteria** (what must be TRUE):
+  1. All 12 tests in auth-service account-lockout.test.ts pass (currently returning 500 errors)
+  2. All 10 tests in profile-service search-filters.test.ts pass (currently returning 500 errors)
+  3. No new test regressions introduced
+
+### Phase 14: Documentation Cleanup
+**Goal**: ROADMAP.md and all SUMMARY.md files accurately reflect execution state
+**Depends on**: Nothing (documentation only)
+**Requirements**: None (documentation format gap)
+**Gap Closure**: Fixes documentation gaps identified in v2.0 audit
+**Success Criteria** (what must be TRUE):
+  1. SUMMARY.md frontmatter includes populated `requirements_completed` field for all plan summaries
+  2. ROADMAP.md progress table accurately reflects completion state of all phases
+
 ## Progress
 
 **Execution Order:**
-Phases 8 and 9 are sequential (shared utilities before service integration). Phases 10 and 11 are independent and can run in parallel with each other and with the backend track.
+Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase 8. Phase 14 is independent. Phases 12 and 13 can run in parallel, Phase 14 can run in parallel with both.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 8. Shared Backend Utilities | v2.0 | 0/2 | Planning complete | - |
-| 9. Backend Service Integration | v2.0 | 0/? | Not started | - |
-| 10. Page Transitions | 2/2 | Complete    | 2026-02-27 | - |
-| 11. Tooltip Accessibility and Ops Readiness | 2/2 | Complete    | 2026-02-28 | - |
+| 8. Shared Backend Utilities | v2.0 | 2/2 | Complete | 2026-02-27 |
+| 9. Backend Service Integration | v2.0 | 2/2 | Complete | 2026-02-27 |
+| 10. Page Transitions | v2.0 | 2/2 | Complete | 2026-02-27 |
+| 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
+| 12. Shutdown Ordering Fix | v2.0 | 0/? | Not started | - |
+| 13. Pre-Existing Test Fixes | v2.0 | 0/? | Not started | - |
+| 14. Documentation Cleanup | v2.0 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27*

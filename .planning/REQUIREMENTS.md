@@ -67,8 +67,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RESIL-01 | Phase 8 | Complete |
 | RESIL-02 | Phase 8 | Complete |
 | RESIL-03 | Phase 8 | Complete |
-| RESIL-04 | Phase 9 | Complete |
-| RESIL-05 | Phase 9 | Complete |
+| RESIL-04 | Phase 9, Phase 12 (gap closure) | Complete |
+| RESIL-05 | Phase 9, Phase 12 (gap closure) | Complete |
 | RESIL-06 | Phase 9 | Complete |
 | RESIL-07 | Phase 9 | Complete |
 | A11Y-01 | Phase 11 | Complete |
@@ -87,4 +87,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-27*
-*Last updated: 2026-02-27 after roadmap creation*
+*Last updated: 2026-02-28 after gap closure phase creation*
