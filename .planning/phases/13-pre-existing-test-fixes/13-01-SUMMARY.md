@@ -27,7 +27,7 @@ key-decisions:
 
 patterns-established: []
 
-requirements-completed: [TECHDEBT-13]
+requirements-completed: []
 
 # Metrics
 duration: 1min
