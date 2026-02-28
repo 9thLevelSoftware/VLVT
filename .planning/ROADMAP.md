@@ -4,7 +4,7 @@
 
 - v1.0 After Hours Mode - Phases 1-7 (shipped 2026-01-24)
 - v1.1 Production Readiness - Phases 1-7 (shipped 2026-02-03)
-- v2.0 Beta Readiness - Phases 8-14 (in progress)
+- v2.0 Beta Readiness - Phases 8-16 (in progress)
 
 ## Phases
 
@@ -23,6 +23,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 12: Shutdown Ordering Fix** - Await server.close() before pool.end() in auth-service and profile-service (gap closure) (completed 2026-02-28)
 - [x] **Phase 13: Pre-Existing Test Fixes** - Fix 22 failing tests in auth-service and profile-service (tech debt) (completed 2026-02-28)
 - [x] **Phase 14: Documentation Cleanup** - Update ROADMAP progress table and SUMMARY.md frontmatter across all plans (tech debt) (completed 2026-02-28)
+- [ ] **Phase 15: Chat-Service Shutdown Ordering** - Await io.close() before pool.end() in chat-service (gap closure)
+- [ ] **Phase 16: Tech Debt Cleanup** - Fix ROADMAP row alignment, orphaned VlvtIconButton, informal TECHDEBT-13 ID (tech debt)
 
 ## Phase Details
 
@@ -128,10 +130,32 @@ Plans:
 - [x] 14-01-PLAN.md — Add requirements-completed frontmatter to all 65 v1.0 and v1.1 SUMMARY files (DOCDEBT-14)
 - [x] 14-02-PLAN.md — Fix ROADMAP.md progress table alignment, plan checkboxes, and Phase 14 entries (DOCDEBT-14)
 
+### Phase 15: Chat-Service Shutdown Ordering
+**Goal**: io.close() completes before pool.end() runs in chat-service, ensuring Socket.IO connections finish before the database pool is closed during Railway redeploys
+**Depends on**: Phase 9, Phase 12 (same pattern)
+**Requirements**: RESIL-06 (consistency improvement)
+**Gap Closure**: Closes integration gap from v2.0 re-audit (chat-io-close-not-awaited) and flow gap (Chat-service SIGTERM shutdown)
+**Success Criteria** (what must be TRUE):
+  1. Chat-service awaits io.close() completion before calling pool.end()
+  2. In-flight Socket.IO connections complete before the database pool is closed during shutdown
+  3. The same Promise-wrapping pattern used in Phase 12 (auth/profile) is applied consistently
+**Plans**: TBD
+
+### Phase 16: Tech Debt Cleanup
+**Goal**: Resolve accumulated tech debt items from v2.0 audit — fix documentation misalignment, clean up orphaned widget, and register informal requirement IDs
+**Depends on**: Nothing (independent)
+**Requirements**: None (tech debt cleanup)
+**Gap Closure**: Resolves tech debt items from v2.0 re-audit
+**Success Criteria** (what must be TRUE):
+  1. ROADMAP.md Phase 14 progress row shows correct `2/2` in Plans Complete column
+  2. VlvtIconButton is either adopted by screens or removed if truly orphaned
+  3. TECHDEBT-13 is either registered in REQUIREMENTS.md or informal references removed from plan frontmatter
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase 8. Phase 14 is independent. Phases 12 and 13 can run in parallel, Phase 14 can run in parallel with both.
+Phases 8-14 are complete. Phase 15 depends on Phase 9/12 (same shutdown pattern). Phase 16 is independent. Phases 15 and 16 can run in parallel.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -141,7 +165,9 @@ Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 12. Shutdown Ordering Fix | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
-| 14. Documentation Cleanup | v2.0 | Complete    | 2026-02-28 | 2026-02-28 |
+| 14. Documentation Cleanup | v2.0 | 2/2 | Complete | 2026-02-28 |
+| 15. Chat-Service Shutdown Ordering | v2.0 | 0/0 | Planned | — |
+| 16. Tech Debt Cleanup | v2.0 | 0/0 | Planned | — |
 
 ---
 *Roadmap created: 2026-02-27*
