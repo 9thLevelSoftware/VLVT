@@ -122,6 +122,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. SUMMARY.md frontmatter includes populated `requirements_completed` field for all plan summaries
   2. ROADMAP.md progress table accurately reflects completion state of all phases
+**Plans**: 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Add requirements-completed frontmatter to all 65 v1.0 and v1.1 SUMMARY files (DOCDEBT-14)
+- [ ] 14-02-PLAN.md — Fix ROADMAP.md progress table alignment, plan checkboxes, and Phase 14 entries (DOCDEBT-14)
 
 ## Progress
 
@@ -136,7 +141,7 @@ Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 12. Shutdown Ordering Fix | 1/1 | Complete    | 2026-02-28 | - |
 | 13. Pre-Existing Test Fixes | 1/1 | Complete    | 2026-02-28 | - |
-| 14. Documentation Cleanup | v2.0 | 0/? | Not started | - |
+| 14. Documentation Cleanup | v2.0 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-27*
