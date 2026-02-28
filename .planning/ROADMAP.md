@@ -141,7 +141,7 @@ Phases 8-11 are complete. Phase 12 depends on Phase 9. Phase 13 depends on Phase
 | 11. Tooltip Accessibility and Ops Readiness | v2.0 | 2/2 | Complete | 2026-02-28 |
 | 12. Shutdown Ordering Fix | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
-| 14. Documentation Cleanup | v2.0 | 0/2 | Not started | - |
+| 14. Documentation Cleanup | v2.0 | 1/2 | In Progress | - |
 
 ---
 *Roadmap created: 2026-02-27*
