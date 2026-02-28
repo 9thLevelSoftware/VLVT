@@ -142,7 +142,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 15-01-PLAN.md — Wrap io.close() in Promise and await it before pool.end() (RESIL-06)
+- [x] 15-01-PLAN.md — Wrap io.close() in Promise and await it before pool.end() (RESIL-06)
 
 ### Phase 16: Tech Debt Cleanup
 **Goal**: Resolve accumulated tech debt items from v2.0 audit — fix documentation misalignment, clean up orphaned widget, and register informal requirement IDs
@@ -150,7 +150,7 @@ Plans:
 **Requirements**: None (tech debt cleanup)
 **Gap Closure**: Resolves tech debt items from v2.0 re-audit
 **Success Criteria** (what must be TRUE):
-  1. ROADMAP.md Phase 14 progress row shows correct `2/2` in Plans Complete column
+  1. ROADMAP.md Phase 15 progress row has correct column alignment with `v2.0` milestone value
   2. VlvtIconButton is either adopted by screens or removed if truly orphaned
   3. TECHDEBT-13 is either registered in REQUIREMENTS.md or informal references removed from plan frontmatter
 **Plans**: 1 plan
@@ -172,8 +172,8 @@ Phases 8-14 are complete. Phase 15 depends on Phase 9/12 (same shutdown pattern)
 | 12. Shutdown Ordering Fix | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 13. Pre-Existing Test Fixes | v2.0 | 1/1 | Complete | 2026-02-28 |
 | 14. Documentation Cleanup | v2.0 | 2/2 | Complete | 2026-02-28 |
-| 15. Chat-Service Shutdown Ordering | 1/1 | Complete    | 2026-02-28 | — |
-| 16. Tech Debt Cleanup | v2.0 | 0/0 | Planned | — |
+| 15. Chat-Service Shutdown Ordering | v2.0 | 1/1 | Complete | 2026-02-28 |
+| 16. Tech Debt Cleanup | v2.0 | 0/1 | In Progress | — |
 
 ---
 *Roadmap created: 2026-02-27*
